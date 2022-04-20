@@ -45,6 +45,19 @@ def dump_json(fn: str, obj, indent: int = None):
 
 
 @jaseci_action()
+def base64_to_bytesio(b64: str):
+    """Standard built in for building form data from base64 file list"""
+    """BytesIO avoids file writing on server"""
+    return BytesIO(b64decode(b64))
+
+
+@jaseci_action()
+def file_to_form_data(fieldName: str, fileName: str, file: any):
+    """Standard built in for converting file to be form data"""
+    return (fieldName, (fileName,file))
+    
+    
+@jaseci_action()
 def build_form_data_from_b64(files: list):
     """Standard built in for building form data from base64 file list"""
     """BytesIO avoids file writing on server"""

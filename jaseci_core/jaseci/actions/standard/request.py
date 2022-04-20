@@ -23,17 +23,16 @@ def get(url: str, data: dict, header: dict):
 
 
 @jaseci_action()
-def post(url: str, data: dict, files: list, header: dict):
+def post(url: str, data: dict, header: dict):
     """
     Issue request
     Param 1 - url
     Param 2 - data
-    Param 3 - files
-    Param 4 - header
+    Param 3 - header
 
     Return - response object
     """
-    res = requests.post(url, json=data, files=files, headers=header)
+    res = requests.post(url, json=data, headers=header)
     ret = {'status_code': res.status_code}
     try:
         ret['response'] = res.json()
@@ -110,6 +109,25 @@ def options(url: str, data: dict, header: dict):
     Return - response object
     """
     res = requests.options(url, json=data, headers=header)
+    ret = {'status_code': res.status_code}
+    try:
+        ret['response'] = res.json()
+    except Exception:
+        ret['response'] = res.text
+    return ret
+
+
+@jaseci_action()
+def multipart(url: str, files: list, header: dict):
+    """
+    Issue request
+    Param 1 - url
+    Param 2 - files
+    Param 3 - header
+
+    Return - response object
+    """
+    res = requests.post(url, files=files, headers=header)
     ret = {'status_code': res.status_code}
     try:
         ret['response'] = res.json()
