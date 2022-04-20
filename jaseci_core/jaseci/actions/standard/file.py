@@ -55,38 +55,19 @@ def base64_to_bytesio(b64: str):
 def file_to_form_data(fieldName: str, fileName: str, file: any):
     """Standard built in for converting file to be form data"""
     return (fieldName, (fileName,file))
-    
-    
-@jaseci_action()
-def build_form_data_from_b64(files: list):
-    """Standard built in for building form data from base64 file list"""
-    """BytesIO avoids file writing on server"""
-    ret = []
-    for f in files:
-        ret.append(
-            ('file', (
-                f["name"],
-                BytesIO(
-                    b64decode(f["base64"])
-                )
-            ))
-        )
-
-    return ret
 
 @jaseci_action()
 def load_url(url: str, header: dict):
     """Standard built in for download file from url"""
-
     with requests.get(url, stream = True, headers = header) as res:
         res.raise_for_status()
         with BytesIO() as buffer:
             for chunk in res.iter_content(chunk_size=8192):
                 buffer.write(chunk)
             ret = buffer.getvalue()
-            
     return ret
 
 @jaseci_action()
 def bytes_to_base64(file: bytes, encoding: str = "utf-8"):
-    return b64encode(bytes).decode(encoding)
+    """Standard built in for converting bytes to base64"""
+    return b64encode(file).decode(encoding)
