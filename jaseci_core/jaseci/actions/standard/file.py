@@ -1,7 +1,7 @@
 """Built in actions for Jaseci"""
 from jaseci.actions.live_actions import jaseci_action
 from base64 import b64decode, b64encode
-from io import BytesIO
+from io import BytesIO, StringIO
 import json, requests
 
 
@@ -46,15 +46,17 @@ def dump_json(fn: str, obj, indent: int = None):
 
 @jaseci_action()
 def base64_to_bytesio(b64: str):
-    """Standard built in for building form data from base64 file list"""
+    """Standard built in for converting base64 to file (in-memory)"""
     """BytesIO avoids file writing on server"""
     return BytesIO(b64decode(b64))
 
 
 @jaseci_action()
-def file_to_form_data(fieldName: str, fileName: str, file: any):
-    """Standard built in for converting file to be form data"""
-    return (fieldName, (fileName,file))
+def string_to_stringio(data: str):
+    """Standard built in for converting string to file (in-memory)"""
+    """StringIO avoids file writing on server"""
+    return StringIO(data)
+
 
 @jaseci_action()
 def load_url(url: str, header: dict):
@@ -66,6 +68,7 @@ def load_url(url: str, header: dict):
                 buffer.write(chunk)
             ret = buffer.getvalue()
     return ret
+
 
 @jaseci_action()
 def bytes_to_base64(file: bytes, encoding: str = "utf-8"):

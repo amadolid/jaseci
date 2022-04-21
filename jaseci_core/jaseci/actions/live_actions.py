@@ -67,6 +67,7 @@ def load_standard():
     import jaseci.actions.standard.file  # noqa
     import jaseci.actions.standard.vector  # noqa
     import jaseci.actions.standard.date  # noqa
+    import jaseci.actions.standard.multipart  # noqa
 
 
 load_standard()
