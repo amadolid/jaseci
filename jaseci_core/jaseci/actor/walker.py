@@ -139,27 +139,28 @@ class walker(element, jac_code, walker_interp, anchored):
         if not self.report:
             logger.debug(str(f"Walker {self.name} did not arrive at report state"))
 
-        report_ret["report"] = self.report
-        if self.report_status:
-            report_ret["status_code"] = self.report_status
         if self.report_custom:
-            report_ret["report_custom"] = self.report_custom
-        if len(self.runtime_errors):
-            report_ret["errors"] = self.runtime_errors
-            report_ret["success"] = False
-        if profiling:
-            pr.disable()
-            s = io.StringIO()
-            sortby = pstats.SortKey.CUMULATIVE
-            ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
-            ps.print_stats()
-            s = s.getvalue()
-            s = "ncalls" + s.split("ncalls")[-1]
-            s = "\n".join(
-                [",".join(line.rstrip().split(None, 5)) for line in s.split("\n")]
-            )
-            self.profile["perf"] = s
-            report_ret["profile"] = self.profile
+            report_ret = self.report_custom
+        else:
+            report_ret["report"] = self.report
+            if self.report_status:
+                report_ret["status_code"] = self.report_status
+            if len(self.runtime_errors):
+                report_ret["errors"] = self.runtime_errors
+                report_ret["success"] = False
+            if profiling:
+                pr.disable()
+                s = io.StringIO()
+                sortby = pstats.SortKey.CUMULATIVE
+                ps = pstats.Stats(pr, stream=s).sort_stats(sortby)
+                ps.print_stats()
+                s = s.getvalue()
+                s = "ncalls" + s.split("ncalls")[-1]
+                s = "\n".join(
+                    [",".join(line.rstrip().split(None, 5)) for line in s.split("\n")]
+                )
+                self.profile["perf"] = s
+                report_ret["profile"] = self.profile
 
         return report_ret
 
