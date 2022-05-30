@@ -409,9 +409,19 @@ class interp(machine_state):
                 self.rt_error("Report not Json serializable", kid[0])
             self.report.append(copy(report))
 
+    def run_metadata_action(self, jac_ast):
+        """
+        metadata_action: KW_METADATA COLON NAME SEMI;
+        """
+        kid = self.set_cur_ast(jac_ast)
+        if kid[2].token_text() == "request":
+            return self.request_context
+        else:
+            self.rt_error("Invalid metadata expression!", kid[2])
+
     def run_expression(self, jac_ast):
         """
-        expression: connect (assignment | copy_assign | inc_assign)?;
+        expression: connect (assignment | copy_assign | inc_assign | metadata_assign)?;
         """
 
         def check_can_write(val):
@@ -445,6 +455,13 @@ class interp(machine_state):
                 if not check_can_write(dest):
                     return dest
                 return self.run_inc_assign(kid[1], dest=dest)
+            elif kid[1].name == "metadata_assign":
+                self._assign_mode = True
+                dest = self.run_connect(kid[0])
+                self._assign_mode = False
+                if not check_can_write(dest):
+                    return dest
+                return self.run_metadata_assign(kid[1], dest=dest)
 
     def run_assignment(self, jac_ast, dest):
         """
@@ -490,6 +507,15 @@ class interp(machine_state):
             dest.value = dest.value * self.run_expression(kid[1]).value
         elif kid[0].name == "DEQ":
             dest.value = dest.value / self.run_expression(kid[1]).value
+        dest.write(jac_ast)
+        return dest
+
+    def run_metadata_assign(self, jac_ast, dest):
+        """
+        metadata_assign: EQ metadata_action;
+        """
+        kid = self.set_cur_ast(jac_ast)
+        dest.value = self.run_metadata_action(kid[1])
         dest.write(jac_ast)
         return dest
 

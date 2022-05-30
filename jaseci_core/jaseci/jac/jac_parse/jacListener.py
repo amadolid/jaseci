@@ -265,6 +265,14 @@ class jacListener(ParseTreeListener):
     def exitNode_ctx_block(self, ctx: jacParser.Node_ctx_blockContext):
         pass
 
+    # Enter a parse tree produced by jacParser#metadata_action.
+    def enterMetadata_action(self, ctx: jacParser.Metadata_actionContext):
+        pass
+
+    # Exit a parse tree produced by jacParser#metadata_action.
+    def exitMetadata_action(self, ctx: jacParser.Metadata_actionContext):
+        pass
+
     # Enter a parse tree produced by jacParser#statement.
     def enterStatement(self, ctx: jacParser.StatementContext):
         pass
@@ -407,6 +415,14 @@ class jacListener(ParseTreeListener):
 
     # Exit a parse tree produced by jacParser#copy_assign.
     def exitCopy_assign(self, ctx: jacParser.Copy_assignContext):
+        pass
+
+    # Enter a parse tree produced by jacParser#metadata_assign.
+    def enterMetadata_assign(self, ctx: jacParser.Metadata_assignContext):
+        pass
+
+    # Exit a parse tree produced by jacParser#metadata_assign.
+    def exitMetadata_assign(self, ctx: jacParser.Metadata_assignContext):
         pass
 
     # Enter a parse tree produced by jacParser#inc_assign.

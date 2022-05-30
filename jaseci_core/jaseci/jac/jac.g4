@@ -95,6 +95,8 @@ code_block: LBRACE statement* RBRACE | COLON statement;
 
 node_ctx_block: name_list code_block;
 
+metadata_action: KW_METADATA COLON NAME;
+
 statement:
 	code_block
 	| node_ctx_block
@@ -146,11 +148,13 @@ ignore_action: KW_IGNORE expression SEMI;
 
 take_action: KW_TAKE expression (SEMI | else_stmt);
 
-expression: connect (assignment | copy_assign | inc_assign)?;
+expression: connect (assignment | copy_assign | inc_assign | metadata_assign)?;
 
 assignment: EQ expression;
 
 copy_assign: CPY_EQ expression;
+
+metadata_assign: EQ metadata_action;
 
 inc_assign: (PEQ | MEQ | TEQ | DEQ) expression;
 
@@ -401,6 +405,7 @@ KW_DISENGAGE: 'disengage';
 KW_SKIP: 'skip';
 KW_REPORT: 'report';
 KW_DESTROY: 'destroy';
+KW_METADATA: '_metadata';
 KW_TRY: 'try';
 DOT: '.';
 NOT: '!' | 'not';
