@@ -1,5 +1,5 @@
 from django.urls import path
-from .views import AbstractJacAPIView
+from .views import AbstractCeleryJacAPIView, AbstractJacAPIView
 from .views import AbstractAdminJacAPIView, AbstractPublicJacAPIView
 from jaseci.element.element import element
 from jaseci_serv.base.models import super_master
@@ -80,6 +80,7 @@ def generate_apis(api_list, view_cls, dir_head):
         )
 
 
+generate_apis(super_master._celery_api, AbstractCeleryJacAPIView, "js_celery")
 generate_apis(super_master._public_api, AbstractPublicJacAPIView, "js_public")
 generate_apis(super_master._private_api, AbstractJacAPIView, "js")
 generate_apis(super_master._admin_api, AbstractAdminJacAPIView, "js_admin")

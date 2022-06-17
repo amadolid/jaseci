@@ -1,4 +1,5 @@
 import json
+import logging
 from tempfile import _TemporaryFileWrapper
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
@@ -12,6 +13,8 @@ from jaseci_serv.base.models import master as core_master
 from time import time
 from base64 import b64encode
 from io import BytesIO
+from jaseci_serv.jaseci_celery.celery import app
+from jaseci_serv.jaseci_celery.tasks import async_post
 
 
 class JResponse(Response):
@@ -55,9 +58,23 @@ class AbstractJacAPIView(APIView):
         bodies accordingly
         """
         self.proc_request(request, **kwargs)
+        if self.trigger_async(self.cmd, type(self).__name__):
+            return Response(status=200)
+
         api_result = self.caller.general_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
         return self.issue_response(api_result)
+
+    def trigger_async(self, request, api, is_general=True):
+        if "async" in self.cmd and (
+            self.cmd["async"] == True
+            or self.cmd["async"] == "true"
+            or self.cmd["async"] == "True"
+        ):
+            self.cmd.pop("async")
+            async_post.delay(request, api, is_general)
+            return True
+        return False
 
     def log_request_stats(self):
         """Api call preamble"""
@@ -208,6 +225,8 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
         bodies accordingly
         """
         self.proc_request(request, **kwargs)
+        if self.trigger_async(self.cmd, type(self).__name__, False):
+            return Response(status=200)
 
         api_result = self.caller.public_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
@@ -232,3 +251,49 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
             return JResponse(self.caller._pub_committer, api_result, status=status)
         else:
             return Response(api_result, status=status)
+
+
+class AbstractCeleryJacAPIView(AbstractPublicJacAPIView):
+    """
+    The abstract base for Jaseci Celery Consumer
+    """
+
+    http_method_names = ["post"]
+    permission_classes = (AllowAny,)
+
+    def post(self, request, **kwargs):
+        """
+        Public post function that parses api signature to load parms
+        SuperSmart Post - can read signatures of master and process
+        bodies accordingly
+        """
+        self.proc_request(request, **kwargs)
+
+        logging.error("=======================================")
+        i = app.control.inspect()
+        logging.error(i.scheduled())
+        logging.error(i.active())
+        logging.error(i.reserved())
+        api_result = self.get_result(request, **kwargs)
+
+        logging.error("=======================================")
+
+        self.log_request_stats()
+        return self.issue_response(api_result)
+
+    def get_result(self, request, **kwargs):
+        """Get Result"""
+        if self.cmd["_is_general_"]:
+            self.caller = request.user.get_master()
+            api = self.caller.general_interface_to_api
+        else:
+            self.caller = core_master(
+                h=orm_hook(objects=JaseciObject.objects, globs=GlobalVars.objects),
+                persist=False,
+            )
+            api = self.caller.public_interface_to_api
+
+        return api(
+            self.cmd["_request_"],
+            self.cmd["_api_"],
+        )

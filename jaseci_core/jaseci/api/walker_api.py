@@ -17,6 +17,13 @@ class walker_api:
     def __init__(self):
         self.spawned_walker_ids = id_list(self)
 
+    @interface.celery_api()
+    def asynchronous(self):
+        """
+        Celery API for running async walker
+        """
+        return
+
     @interface.public_api(url_args=["nd", "wlk"], allowed_methods=["post", "get"])
     def walker_callback(
         self,
