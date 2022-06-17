@@ -47,6 +47,7 @@ INSTALLED_APPS = [
     "jaseci_serv.obj_api",
     "jaseci_serv.jac_api",
     "corsheaders",
+    "django_celery_results",
 ]
 
 MIDDLEWARE = [
@@ -207,3 +208,7 @@ JASECI_CONFIGS = [
     "EMAIL_RESETPASS_HTML_BODY",
     "LOGIN_TOKEN_TTL_HOURS",
 ]
+
+CELERY_RESULT_BACKEND = "django-db"
+CELERY_TASK_TRACK_STARTED = True
+CELERY_TASK_TIME_LIMIT = 30 * 60

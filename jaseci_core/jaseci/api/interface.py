@@ -15,6 +15,7 @@ class interface:
 
     _public_api = []
     _private_api = []
+    _celery_api = []
     _admin_api = []
     _cli_api = []
 
@@ -73,6 +74,19 @@ class interface:
 
         return decorator_func
 
+    def celery_api(cmd_group=None, cli_args=None, url_args=None, allowed_methods=None):
+        def decorator_func(func):
+            return interface.assimilate_api(
+                interface._celery_api,
+                func,
+                cmd_group,
+                cli_args,
+                url_args,
+                allowed_methods,
+            )
+
+        return decorator_func
+
     def admin_api(cmd_group=None, cli_args=None, url_args=None, allowed_methods=None):
         def decorator_func(func):
             return interface.assimilate_api(
@@ -95,11 +109,17 @@ class interface:
         return decorator_func
 
     def all_apis(self):
-        return interface._public_api + interface._private_api + interface._admin_api
+        return (
+            interface._public_api
+            + interface._private_api
+            + interface._admin_api
+            + interface._celery_api
+        )
 
     assimilate_api = staticmethod(assimilate_api)
     public_api = staticmethod(public_api)
     private_api = staticmethod(private_api)
+    celery_api = staticmethod(celery_api)
     admin_api = staticmethod(admin_api)
     cli_api = staticmethod(cli_api)
 
