@@ -3,8 +3,8 @@ import requests
 from celery import shared_task
 
 
-@shared_task
-def async_post(request, api, is_general):
+@shared_task(bind=True)
+def async_post(self, request, api, is_general):
     request["_req_ctx"]["headers"].pop("Content-Type")
     return requests.post(
         "http://localhost:8000/js_celery/asynchronous",
