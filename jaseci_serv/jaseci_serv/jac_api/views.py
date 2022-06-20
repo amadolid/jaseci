@@ -1,5 +1,4 @@
 import json
-import logging
 from tempfile import _TemporaryFileWrapper
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
@@ -58,8 +57,10 @@ class AbstractJacAPIView(APIView):
         bodies accordingly
         """
         self.proc_request(request, **kwargs)
-        if self.trigger_async(self.cmd, type(self).__name__):
-            return Response(status=200)
+
+        async_result = self.trigger_async(self.cmd, type(self).__name__)
+        if not (async_result is None):
+            return Response(async_result, status=200)
 
         api_result = self.caller.general_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
@@ -72,9 +73,9 @@ class AbstractJacAPIView(APIView):
             or self.cmd["async"] == "True"
         ):
             self.cmd.pop("async")
-            async_post.delay(request, api, is_general)
-            return True
-        return False
+            result = async_post.delay(request, api, is_general)
+            return {"task_id": result.task_id}
+        return None
 
     def log_request_stats(self):
         """Api call preamble"""
@@ -225,8 +226,10 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
         bodies accordingly
         """
         self.proc_request(request, **kwargs)
-        if self.trigger_async(self.cmd, type(self).__name__, False):
-            return Response(status=200)
+
+        async_result = self.trigger_async(self.cmd, type(self).__name__, False)
+        if not (async_result is None):
+            return Response(async_result, status=200)
 
         api_result = self.caller.public_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
@@ -258,8 +261,26 @@ class AbstractCeleryJacAPIView(AbstractPublicJacAPIView):
     The abstract base for Jaseci Celery Consumer
     """
 
-    http_method_names = ["post"]
+    http_method_names = ["post", "get"]
     permission_classes = (AllowAny,)
+
+    def get(self, request, **kwargs):
+        """
+        Public GET function that parses api signature to load parms
+        SuperSmart GET - can read signatures of master and process
+        bodies accordingly
+        """
+        query = request.GET.dict()
+        if "task_id" in query:
+            response = {"state": app.AsyncResult(query["task_id"]).state}
+        else:
+            task_list = app.control.inspect()
+            response = {
+                "scheduled": task_list.scheduled(),
+                "active": task_list.active(),
+                "reserved": task_list.reserved(),
+            }
+        return Response(response, status=200)
 
     def post(self, request, **kwargs):
         """
@@ -269,19 +290,12 @@ class AbstractCeleryJacAPIView(AbstractPublicJacAPIView):
         """
         self.proc_request(request, **kwargs)
 
-        logging.error("=======================================")
-        i = app.control.inspect()
-        logging.error(i.scheduled())
-        logging.error(i.active())
-        logging.error(i.reserved())
-        api_result = self.get_result(request, **kwargs)
-
-        logging.error("=======================================")
+        api_result = self.get_result(request)
 
         self.log_request_stats()
         return self.issue_response(api_result)
 
-    def get_result(self, request, **kwargs):
+    def get_result(self, request):
         """Get Result"""
         if self.cmd["_is_general_"]:
             self.caller = request.user.get_master()
