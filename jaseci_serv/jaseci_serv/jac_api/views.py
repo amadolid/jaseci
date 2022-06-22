@@ -13,7 +13,7 @@ from time import time
 from base64 import b64encode
 from io import BytesIO
 from jaseci_serv.jaseci_celery.celery import app
-from jaseci_serv.jaseci_celery.tasks import async_post
+from jaseci_serv.jaseci_celery.worker import async_post, add_scheduler
 
 
 class JResponse(Response):
@@ -74,6 +74,7 @@ class AbstractJacAPIView(APIView):
         ):
             self.cmd.pop("async")
             result = async_post.delay(request, api, is_general)
+            add_scheduler.delay(test=result.task_id)
             return {"task_id": result.task_id}
         return None
 
