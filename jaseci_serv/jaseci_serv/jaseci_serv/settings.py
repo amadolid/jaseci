@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     "jaseci_serv.jac_api",
     "corsheaders",
     "django_celery_results",
+    "django_celery_beat",
 ]
 
 MIDDLEWARE = [
@@ -210,5 +211,6 @@ JASECI_CONFIGS = [
 ]
 
 CELERY_RESULT_BACKEND = "django-db"
-CELERY_RESULT_BACKEND_DB = "db+sqlite:///mydatabase"
+# CELERY_RESULT_BACKEND_DB = "db+sqlite:///mydatabase"
 CELERY_TASK_TRACK_STARTED = True
+DJANGO_CELERY_BEAT_TZ_AWARE = False
