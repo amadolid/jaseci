@@ -3,6 +3,7 @@ import re
 from .celery import app
 
 from requests import post, get, request
+from requests.exceptions import HTTPError
 from datetime import datetime
 from celery.schedules import crontab
 
@@ -49,6 +50,7 @@ def add_scheduler(test="custom"):
     app.add_periodic_task(crontab(), per_minute.s(), name=test)
 
 
+eval = re.compile("\{\((.*?)\)\}")
 full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}$")
 partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}")
 
@@ -73,7 +75,7 @@ def get_value(data, keys):
         keys = keys.split(".")
         key = keys.pop(0)
         if key == "#":
-            return get_deep_value(data["history"], keys)
+            return get_deep_value(data["responses"], keys)
         elif key == "$":
             t = type(data["current"])
             if t is dict or t is list:
@@ -103,22 +105,32 @@ def deep_replace_dict(data, container):
 
 @app.task(bind=True)
 def dynamic_request(self, requests):
-    container = {"history": [], "temp_req_hist": []}
+    container = {"responses": [], "requests": []}
     for req in requests:
         deep_replace_dict(req, container)
-        container["temp_req_hist"].append(req)
+        container["requests"].append(req)
         method = req["method"].upper()
-        if method == "POST":
-            response = post(
-                req["url"], json=req.get("body", {}), headers=req.get("header", {})
-            )
-        elif method == "GET":
-            response = get(req["url"], headers=req.get("header", {}))
-        if "application/json" in response.headers.get("Content-Type"):
-            container["current"] = response.json()
-        else:
-            container["current"] = response.text
-        container["history"].append(container["current"])
+
+        try:
+            if method == "POST":
+                response = post(
+                    req["url"], json=req.get("body", {}), headers=req.get("header", {})
+                )
+            elif method == "GET":
+                response = get(req["url"], headers=req.get("header", {}))
+
+            response.raise_for_status()
+
+            if "application/json" in response.headers.get("Content-Type"):
+                container["current"] = response.json()
+            else:
+                container["current"] = response.text
+        except HTTPError as err:
+            container["current"] = {
+                "status": err.response.status_code,
+                "message": err.response.reason,
+            }
+        container["responses"].append(container["current"])
 
     print("##################################")
     print(container)
