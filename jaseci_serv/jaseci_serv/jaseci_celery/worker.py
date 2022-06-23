@@ -49,8 +49,8 @@ def add_scheduler(test="custom"):
     app.add_periodic_task(crontab(), per_minute.s(), name=test)
 
 
-full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#]*)\}\}$")
-partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#]*)\}\}")
+full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}$")
+partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}")
 
 
 def get_deep_value(data, keys):
@@ -112,11 +112,13 @@ def dynamic_request(self, requests):
             response = post(
                 req["url"], json=req.get("body", {}), headers=req.get("header", {})
             )
-            if "application/json" in response.headers.get("Content-Type"):
-                container["current"] = response.json()
-            else:
-                container["current"] = response.text
-            container["history"].append(container["current"])
+        elif method == "GET":
+            response = get(req["url"], headers=req.get("header", {}))
+        if "application/json" in response.headers.get("Content-Type"):
+            container["current"] = response.json()
+        else:
+            container["current"] = response.text
+        container["history"].append(container["current"])
 
     print("##################################")
     print(container)
