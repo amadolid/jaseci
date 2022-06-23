@@ -1,3 +1,4 @@
+from copy import deepcopy
 import re
 
 from .celery import app
@@ -50,9 +51,10 @@ def add_scheduler(test="custom"):
     app.add_periodic_task(crontab(), per_minute.s(), name=test)
 
 
-eval = re.compile("\{\((.*?)\)\}")
-full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}$")
-partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#]*?)\}\}")
+json_escape = re.compile("[^a-zA-Z0-9_]")
+internal = re.compile("\(([a-zA-Z0-9_\.\[\]\$\#]*?)\)")
+full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}$")
+partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}")
 
 
 def get_deep_value(data, keys):
@@ -70,45 +72,89 @@ def get_deep_value(data, keys):
         return None
 
 
-def get_value(data, keys):
+def get_value(persistence, container, keys):
+    while internal.search(keys):
+        for intern in internal.findall(keys):
+            keys = keys.replace(
+                "(" + intern + ")", get_value(persistence, container, intern)
+            )
+
     if keys:
         keys = keys.split(".")
         key = keys.pop(0)
         if key == "#":
-            return get_deep_value(data["responses"], keys)
+            return get_deep_value(persistence, keys)
         elif key == "$":
-            t = type(data["current"])
+            t = type(container)
             if t is dict or t is list:
-                return get_deep_value(data["current"], keys)
+                return get_deep_value(container, keys)
             else:
-                return data
+                return container
     return None
 
 
-def deep_replace_str(data, key, container):
+def compare(condition, expected, actual):
+    if condition == "eq":
+        return actual == expected
+    elif condition == "ne":
+        return actual != expected
+    elif condition == "gt":
+        return actual > expected
+    elif condition == "gte":
+        return actual >= expected
+    elif condition == "lt":
+        return actual < expected
+    elif condition == "lte":
+        return actual <= expected
+    elif condition == "regex":
+        return re.compile(expected).match(actual)
+
+
+def ignore_loop(persistence, loop, filter):
+    for filt in filter:
+        for cons in filt["condition"].keys():
+            if not (filt["condition"][cons] is None) and not compare(
+                cons, filt["condition"][cons], get_value(persistence, loop, filt["by"])
+            ):
+                return True
+    return False
+
+
+def deep_replace_str(persistence, container, data, key):
     matcher = full.match(data[key])
     if matcher:
-        data[key] = get_value(container, matcher.group(1))
+        data[key] = get_value(persistence, container, matcher.group(1))
     else:
         for rep in partial.findall(data[key]):
-            data[key] = data[key].replace("{{" + rep + "}}", get_value(container, rep))
+            data[key] = data[key].replace(
+                "{{" + rep + "}}", get_value(persistence, container, rep)
+            )
 
 
-def deep_replace_dict(data, container):
+def deep_replace_dict(persistence, container, data):
     for key in data.keys():
-        t = type(data[key])
-        if t is str:
-            deep_replace_str(data, key, container)
-        elif t is dict:
-            deep_replace_dict(data[key], container)
+        if key != "loop":
+            t = type(data[key])
+            if t is str:
+                deep_replace_str(persistence, container, data, key)
+            elif t is dict:
+                deep_replace_dict(persistence, container, data[key])
 
 
 @app.task(bind=True)
-def dynamic_request(self, requests):
-    container = {"responses": [], "requests": []}
+def dynamic_request(self, requests, persistence={}, container={}):
+
+    if "parent_current" in container:
+        container["current"] = container["parent_current"]
+
     for req in requests:
-        deep_replace_dict(req, container)
-        container["requests"].append(req)
+
+        if "current" in container:
+            deep_replace_dict(persistence, container["current"], req)
+
+        if "save_req_to" in req:
+            persistence[json_escape.sub("_", req["save_req_to"])] = req
+
         method = req["method"].upper()
 
         try:
@@ -125,13 +171,28 @@ def dynamic_request(self, requests):
                 container["current"] = response.json()
             else:
                 container["current"] = response.text
+
+            if "loop" in req:
+                for loop in get_value(
+                    persistence, container["current"], req["loop"]["by"]
+                ):
+                    if "filter" in req["loop"] and ignore_loop(
+                        persistence, loop, req["loop"]["filter"]
+                    ):
+                        continue
+                    loop_container = {"parent_current": loop}
+                    dynamic_request(
+                        requests=deepcopy(req["loop"]["requests"]),
+                        persistence=persistence,
+                        container=loop_container,
+                        root=False,
+                    )
+
         except HTTPError as err:
             container["current"] = {
                 "status": err.response.status_code,
                 "message": err.response.reason,
             }
-        container["responses"].append(container["current"])
 
-    print("##################################")
-    print(container)
-    print("##################################")
+        if "save_to" in req:
+            persistence[json_escape.sub("_", req["save_to"])] = container["current"]
