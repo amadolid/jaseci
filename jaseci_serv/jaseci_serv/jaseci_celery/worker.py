@@ -1,5 +1,6 @@
 from copy import deepcopy
 import re
+from typing import Tuple
 
 from .celery import app
 
@@ -52,9 +53,9 @@ def add_scheduler(test="custom"):
 
 
 json_escape = re.compile("[^a-zA-Z0-9_]")
-internal = re.compile("\(([a-zA-Z0-9_\.\[\]\$\#]*?)\)")
-full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}$")
-partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}")
+internal = re.compile("\(([a-zA-Z0-9_\.\[\]\$\#\@]*?)\)")
+full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)\@]*?)\}\}$")
+partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)\@]*?)\}\}")
 
 
 def get_deep_value(data, keys, default):
@@ -72,24 +73,28 @@ def get_deep_value(data, keys, default):
         return default
 
 
-def get_value(persistence, container, keys, default=None):
+def get_value(holder: Tuple, keys: str, default=None):
     while internal.search(keys):
         for intern in internal.findall(keys):
-            keys = keys.replace(
-                "(" + intern + ")", get_value(persistence, container, intern, "")
-            )
+            keys = keys.replace("(" + intern + ")", get_value(holder, intern, ""))
 
     if keys:
         keys = keys.split(".")
         key = keys.pop(0)
         if key == "#":
-            return get_deep_value(persistence, keys, default)
+            return get_deep_value(holder[0], keys, default)
         elif key == "$":
-            t = type(container)
+            t = type(holder[1])
             if t is dict or t is list:
-                return get_deep_value(container, keys, default)
+                return get_deep_value(holder[1], keys, default)
             else:
-                return container
+                return holder[1]
+        elif key == "@":
+            t = type(holder[2])
+            if t is dict or t is list:
+                return get_deep_value(holder[2], keys, default)
+            else:
+                return holder[2]
     return default
 
 
@@ -110,75 +115,82 @@ def compare(condition, expected, actual):
         return re.compile(expected).match(actual)
 
 
-def condition(persistence, loop, filter):
+def condition(holder: Tuple, filter):
     for cons in filter["condition"].keys():
         if not (filter["condition"][cons] is None) and not compare(
-            cons, filter["condition"][cons], get_value(persistence, loop, filter["by"])
+            cons, filter["condition"][cons], get_value(holder, filter["by"])
         ):
             return False
     return True
 
 
-def or_condition(persistence, loop, filter):
+def or_condition(holder: Tuple, filter):
     for filt in filter:
-        if "condition" in filt and condition(persistence, loop, filt):
+        if "condition" in filt and condition(holder, filt):
             return True
-        elif "or" in filt and or_condition(persistence, loop, filt["or"]):
+        elif "or" in filt and or_condition(holder, filt["or"]):
             return True
-        elif "and" in filt and and_condition(persistence, loop, filt["and"]):
+        elif "and" in filt and and_condition(holder, filt["and"]):
             return True
     return False
 
 
-def and_condition(persistence, loop, filter):
+def and_condition(holder: Tuple, filter):
     for filt in filter:
-        if "condition" in filt and not condition(persistence, loop, filt):
+        if "condition" in filt and not condition(holder, filt):
             return False
-        elif "or" in filt and not or_condition(persistence, loop, filt["or"]):
+        elif "or" in filt and not or_condition(holder, filt["or"]):
             return False
-        elif "and" in filt and not and_condition(persistence, loop, filt["and"]):
+        elif "and" in filt and not and_condition(holder, filt["and"]):
             return False
     return True
 
 
-def deep_replace_str(persistence, container, data, key):
+def deep_replace_str(holder: Tuple, data, key):
     matcher = full.match(data[key])
     if matcher:
-        data[key] = get_value(persistence, container, matcher.group(1))
+        data[key] = get_value(holder, matcher.group(1))
     else:
         for rep in partial.findall(data[key]):
-            data[key] = data[key].replace(
-                "{{" + rep + "}}", get_value(persistence, container, rep, "")
-            )
+            data[key] = data[key].replace("{{" + rep + "}}", get_value(holder, rep, ""))
 
 
-def deep_replace_dict(persistence, container, data):
+def deep_replace_dict(holder: Tuple, data):
     for key in data.keys():
-        if key != "loop":
+        if key != "__def_loop__":
             t = type(data[key])
             if t is str:
-                deep_replace_str(persistence, container, data, key)
+                deep_replace_str(holder, data, key)
             elif t is dict:
-                deep_replace_dict(persistence, container, data[key])
+                deep_replace_dict(holder, data[key])
+
+
+def save(holder: Tuple, req, params):
+    if params in req:
+        holder[0][json_escape.sub("_", req[params])] = holder[1]
 
 
 @app.task(bind=True)
-def dynamic_request(self, requests, persistence={}, container={}):
+def dynamic_request(self, requests: dict, persistence: dict = {}, container: dict = {}):
 
     if "parent_current" in container:
         container["current"] = container["parent_current"]
 
     for req in requests:
-
-        if "current" in container:
-            deep_replace_dict(persistence, container["current"], req)
-
-        if "save_req_to" in req:
-            persistence[json_escape.sub("_", req["save_req_to"])] = req
-
-        method = req["method"].upper()
-
         try:
+            if "current" in container:
+                deep_replace_dict(
+                    (
+                        persistence,
+                        container["current"],
+                        container.get("parent_current", {}),
+                    ),
+                    req,
+                )
+
+            save((persistence, req), req, "save_req_to")
+
+            method = req["method"].upper()
             if method == "POST":
                 response = post(
                     req["url"], json=req.get("body", {}), headers=req.get("header", {})
@@ -193,26 +205,39 @@ def dynamic_request(self, requests, persistence={}, container={}):
             else:
                 container["current"] = response.text
 
-            if "loop" in req:
+            if "__def_loop__" in req:
+                def_loop = req["__def_loop__"]
                 for loop in get_value(
-                    persistence, container["current"], req["loop"]["by"], []
+                    (persistence, container["current"]), def_loop["by"], []
                 ):
-                    if "filter" in req["loop"] and not and_condition(
-                        persistence, loop, req["loop"]["filter"]
+                    if "filter" in def_loop and not and_condition(
+                        (persistence, loop), def_loop["filter"]
                     ):
                         continue
                     loop_container = {"parent_current": loop}
                     dynamic_request(
-                        requests=deepcopy(req["loop"]["requests"]),
+                        requests=deepcopy(def_loop["requests"]),
                         persistence=persistence,
                         container=loop_container,
                     )
 
-        except HTTPError as err:
-            container["current"] = {
-                "status": err.response.status_code,
-                "message": err.response.reason,
-            }
+            save((persistence, container["current"]), req, "save_to")
 
-        if "save_to" in req:
-            persistence[json_escape.sub("_", req["save_to"])] = container["current"]
+        except Exception as err:
+            container["current"] = (
+                {
+                    "status": err.response.status_code,
+                    "message": err.response.reason,
+                }
+                if isinstance(err, HTTPError)
+                else {
+                    "worker_error": str(err),
+                }
+            )
+
+            save((persistence, container["current"]), req, "save_to")
+
+            if "ignore_error" not in req or not req["ignore_error"]:
+                if "parent_current" in container:
+                    raise err
+                break
