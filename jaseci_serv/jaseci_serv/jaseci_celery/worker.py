@@ -57,7 +57,7 @@ full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}$")
 partial = re.compile("\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)]*?)\}\}")
 
 
-def get_deep_value(data, keys):
+def get_deep_value(data, keys, default):
     if len(keys) == 0:
         return data
 
@@ -65,32 +65,32 @@ def get_deep_value(data, keys):
     t = type(data)
 
     if t is dict and key in data:
-        return get_deep_value(data[key], keys)
+        return get_deep_value(data[key], keys, default)
     elif t is list and key.isnumeric():
-        return get_deep_value(data[int(key)], keys)
+        return get_deep_value(data[int(key)], keys, default)
     else:
-        return None
+        return default
 
 
-def get_value(persistence, container, keys):
+def get_value(persistence, container, keys, default=None):
     while internal.search(keys):
         for intern in internal.findall(keys):
             keys = keys.replace(
-                "(" + intern + ")", get_value(persistence, container, intern)
+                "(" + intern + ")", get_value(persistence, container, intern, "")
             )
 
     if keys:
         keys = keys.split(".")
         key = keys.pop(0)
         if key == "#":
-            return get_deep_value(persistence, keys)
+            return get_deep_value(persistence, keys, default)
         elif key == "$":
             t = type(container)
             if t is dict or t is list:
-                return get_deep_value(container, keys)
+                return get_deep_value(container, keys, default)
             else:
                 return container
-    return None
+    return default
 
 
 def compare(condition, expected, actual):
@@ -110,14 +110,35 @@ def compare(condition, expected, actual):
         return re.compile(expected).match(actual)
 
 
-def ignore_loop(persistence, loop, filter):
+def condition(persistence, loop, filter):
+    for cons in filter["condition"].keys():
+        if not (filter["condition"][cons] is None) and not compare(
+            cons, filter["condition"][cons], get_value(persistence, loop, filter["by"])
+        ):
+            return False
+    return True
+
+
+def or_condition(persistence, loop, filter):
     for filt in filter:
-        for cons in filt["condition"].keys():
-            if not (filt["condition"][cons] is None) and not compare(
-                cons, filt["condition"][cons], get_value(persistence, loop, filt["by"])
-            ):
-                return True
+        if "condition" in filt and condition(persistence, loop, filt):
+            return True
+        elif "or" in filt and or_condition(persistence, loop, filt["or"]):
+            return True
+        elif "and" in filt and and_condition(persistence, loop, filt["and"]):
+            return True
     return False
+
+
+def and_condition(persistence, loop, filter):
+    for filt in filter:
+        if "condition" in filt and not condition(persistence, loop, filt):
+            return False
+        elif "or" in filt and not or_condition(persistence, loop, filt["or"]):
+            return False
+        elif "and" in filt and not and_condition(persistence, loop, filt["and"]):
+            return False
+    return True
 
 
 def deep_replace_str(persistence, container, data, key):
@@ -127,7 +148,7 @@ def deep_replace_str(persistence, container, data, key):
     else:
         for rep in partial.findall(data[key]):
             data[key] = data[key].replace(
-                "{{" + rep + "}}", get_value(persistence, container, rep)
+                "{{" + rep + "}}", get_value(persistence, container, rep, "")
             )
 
 
@@ -174,9 +195,9 @@ def dynamic_request(self, requests, persistence={}, container={}):
 
             if "loop" in req:
                 for loop in get_value(
-                    persistence, container["current"], req["loop"]["by"]
+                    persistence, container["current"], req["loop"]["by"], []
                 ):
-                    if "filter" in req["loop"] and ignore_loop(
+                    if "filter" in req["loop"] and not and_condition(
                         persistence, loop, req["loop"]["filter"]
                     ):
                         continue
@@ -185,7 +206,6 @@ def dynamic_request(self, requests, persistence={}, container={}):
                         requests=deepcopy(req["loop"]["requests"]),
                         persistence=persistence,
                         container=loop_container,
-                        root=False,
                     )
 
         except HTTPError as err:
