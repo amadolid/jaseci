@@ -13,6 +13,12 @@ from time import time
 from base64 import b64encode
 from io import BytesIO
 
+# from jaseci_serv.jaseci_celery.celery import app
+from jaseci_serv.jaseci_celery.worker import add_queue, add_public_queue
+
+from modernrpc.views import RPCEntryPoint
+from modernrpc.core import JSONRPC_PROTOCOL
+
 
 class JResponse(Response):
     def __init__(self, master, *args, **kwargs):
@@ -55,9 +61,26 @@ class AbstractJacAPIView(APIView):
         bodies accordingly
         """
         self.proc_request(request, **kwargs)
+
+        async_result = self.trigger_async(self.cmd, type(self).__name__)
+        if not (async_result is None):
+            return Response(async_result, status=200)
+
         api_result = self.caller.general_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
         return self.issue_response(api_result)
+
+    def trigger_async(self, request, api, is_general=True):
+        if "async" in self.cmd and (
+            self.cmd["async"] == True
+            or self.cmd["async"] == "true"
+            or self.cmd["async"] == "True"
+        ):
+            self.cmd.pop("async")
+            queue = add_queue.delay if is_general else add_public_queue.delay
+            result = queue("http://localhost:8000/", api, request)
+            return {"task_id": result.task_id}
+        return None
 
     def log_request_stats(self):
         """Api call preamble"""
@@ -209,6 +232,10 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
         """
         self.proc_request(request, **kwargs)
 
+        async_result = self.trigger_async(self.cmd, type(self).__name__, False)
+        if not (async_result is None):
+            return Response(async_result, status=200)
+
         api_result = self.caller.public_interface_to_api(self.cmd, type(self).__name__)
         self.log_request_stats()
         return self.issue_response(api_result)
@@ -232,3 +259,16 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
             return JResponse(self.caller._pub_committer, api_result, status=status)
         else:
             return Response(api_result, status=status)
+
+
+class AbstractRPCJacAPIView(RPCEntryPoint, APIView):
+    authentication_classes = (TokenAuthentication,)
+    permission_classes = (IsAuthenticated,)
+    protocol = JSONRPC_PROTOCOL
+    http_method_names = ["post"]
+    entry_point = "private"
+
+
+class AbstractPublicRPCJacAPIView(RPCEntryPoint):
+    protocol = JSONRPC_PROTOCOL
+    entry_point = "public"

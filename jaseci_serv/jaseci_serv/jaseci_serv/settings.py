@@ -47,6 +47,9 @@ INSTALLED_APPS = [
     "jaseci_serv.obj_api",
     "jaseci_serv.jac_api",
     "corsheaders",
+    "django_celery_results",
+    "django_celery_beat",
+    "modernrpc",
 ]
 
 MIDDLEWARE = [
@@ -207,3 +210,10 @@ JASECI_CONFIGS = [
     "EMAIL_RESETPASS_HTML_BODY",
     "LOGIN_TOKEN_TTL_HOURS",
 ]
+
+MODERNRPC_METHODS_MODULES = ["jaseci_serv.jac_api.rpc"]
+
+CELERY_RESULT_BACKEND = "django-db"
+# CELERY_RESULT_BACKEND_DB = "db+sqlite:///mydatabase"
+CELERY_TASK_TRACK_STARTED = True
+DJANGO_CELERY_BEAT_TZ_AWARE = False

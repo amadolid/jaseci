@@ -1,5 +1,10 @@
 from django.urls import path
-from .views import AbstractJacAPIView
+from django.conf.urls import url
+from .views import (
+    AbstractJacAPIView,
+    AbstractPublicRPCJacAPIView,
+    AbstractRPCJacAPIView,
+)
 from .views import AbstractAdminJacAPIView, AbstractPublicJacAPIView
 from jaseci.element.element import element
 from jaseci_serv.base.models import super_master
@@ -83,3 +88,8 @@ def generate_apis(api_list, view_cls, dir_head):
 generate_apis(super_master._public_api, AbstractPublicJacAPIView, "js_public")
 generate_apis(super_master._private_api, AbstractJacAPIView, "js")
 generate_apis(super_master._admin_api, AbstractAdminJacAPIView, "js_admin")
+
+generated_urls.append(url(r"^rpc/", AbstractRPCJacAPIView.as_view()))
+generated_urls.append(
+    url(r"^public_rpc/", AbstractPublicRPCJacAPIView.as_view()),
+)
