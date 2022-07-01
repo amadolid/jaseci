@@ -1,4 +1,8 @@
-from modernrpc.core import rpc_method, REQUEST_KEY
+from modernrpc.core import rpc_method
+from knox.models import AuthToken
+from knox.settings import CONSTANTS
+
+from django.utils import timezone
 
 from jaseci_serv.base.orm_hook import orm_hook
 from jaseci_serv.base.models import JaseciObject, GlobalVars
@@ -6,9 +10,18 @@ from jaseci_serv.base.models import master as core_master
 
 
 @rpc_method(entry_point="private")
-def walker(api, body, **kwargs):
-    caller = kwargs[REQUEST_KEY].user.get_master()
-    return caller.general_interface_to_api(body, api)
+def walker(token, api, body):
+    try:
+        return (
+            AuthToken.objects.get(
+                token_key=token[: CONSTANTS.TOKEN_KEY_LENGTH],
+                expiry__gte=timezone.now(),
+            )
+            .user.get_master()
+            .general_interface_to_api(body, api)
+        )
+    except AuthToken.DoesNotExist as e:
+        return {"err_msg": "Forbidden Request!"}
 
 
 @rpc_method(entry_point="public")

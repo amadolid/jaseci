@@ -212,6 +212,7 @@ JASECI_CONFIGS = [
 ]
 
 MODERNRPC_METHODS_MODULES = ["jaseci_serv.jac_api.rpc"]
+MODERNRPC_HOST = "http://localhost:8000/"
 
 CELERY_RESULT_BACKEND = "django-db"
 # CELERY_RESULT_BACKEND_DB = "db+sqlite:///mydatabase"

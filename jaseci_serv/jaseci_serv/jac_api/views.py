@@ -1,7 +1,9 @@
 import json
+from datetime import timedelta
 from tempfile import _TemporaryFileWrapper
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
+from knox.models import AuthToken
 from rest_framework.permissions import IsAdminUser, IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from jaseci.utils.utils import logger
@@ -13,8 +15,10 @@ from time import time
 from base64 import b64encode
 from io import BytesIO
 
-# from jaseci_serv.jaseci_celery.celery import app
-from jaseci_serv.jaseci_celery.worker import add_queue, add_public_queue
+from django.conf import settings
+
+from jaseci_serv.jaseci_celery.celery import app
+from jaseci_serv.jaseci_celery.worker import add_queue
 
 from modernrpc.views import RPCEntryPoint
 from modernrpc.core import JSONRPC_PROTOCOL
@@ -42,6 +46,7 @@ class AbstractJacAPIView(APIView):
     http_method_names = ["post"]
     authentication_classes = (TokenAuthentication,)
     permission_classes = (IsAuthenticated,)
+    rpc_host = getattr(settings, "MODERNRPC_HOST", "http://localhost:8000")
 
     def get(self, request, **kwargs):
         """
@@ -62,7 +67,7 @@ class AbstractJacAPIView(APIView):
         """
         self.proc_request(request, **kwargs)
 
-        async_result = self.trigger_async(self.cmd, type(self).__name__)
+        async_result = self.trigger_async(self.cmd, type(self).__name__, request.user)
         if not (async_result is None):
             return Response(async_result, status=200)
 
@@ -70,15 +75,23 @@ class AbstractJacAPIView(APIView):
         self.log_request_stats()
         return self.issue_response(api_result)
 
-    def trigger_async(self, request, api, is_general=True):
+    def trigger_async(self, request, api, user=None):
         if "async" in self.cmd and (
             self.cmd["async"] == True
             or self.cmd["async"] == "true"
             or self.cmd["async"] == "True"
         ):
             self.cmd.pop("async")
-            queue = add_queue.delay if is_general else add_public_queue.delay
-            result = queue("http://localhost:8000/", api, request)
+            result = add_queue.delay(
+                self.rpc_host,
+                api,
+                request,
+                token=None
+                if user is None
+                else AuthToken.objects.create(user=user, expiry=timedelta(seconds=300))[
+                    1
+                ],
+            )
             return {"task_id": result.task_id}
         return None
 
@@ -232,7 +245,7 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
         """
         self.proc_request(request, **kwargs)
 
-        async_result = self.trigger_async(self.cmd, type(self).__name__, False)
+        async_result = self.trigger_async(self.cmd, type(self).__name__)
         if not (async_result is None):
             return Response(async_result, status=200)
 
@@ -261,14 +274,24 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
             return Response(api_result, status=status)
 
 
-class AbstractRPCJacAPIView(RPCEntryPoint, APIView):
-    authentication_classes = (TokenAuthentication,)
-    permission_classes = (IsAuthenticated,)
+class AbstractJacQueueAPIView(APIView):
+    http_method_names = ["get"]
+    permission_classes = (AllowAny,)
+
+    def get(self, request, **kwargs):
+        query = request.GET.dict()
+        if "task_id" in query:
+            response = {"state": app.AsyncResult(query["task_id"]).state}
+        else:
+            task_list = app.control.inspect()
+            response = {
+                "scheduled": task_list.scheduled(),
+                "active": task_list.active(),
+                "reserved": task_list.reserved(),
+            }
+        return Response(response, status=200)
+
+
+class AbstractRPCJacAPIView(RPCEntryPoint):
     protocol = JSONRPC_PROTOCOL
-    http_method_names = ["post"]
     entry_point = "private"
-
-
-class AbstractPublicRPCJacAPIView(RPCEntryPoint):
-    protocol = JSONRPC_PROTOCOL
-    entry_point = "public"

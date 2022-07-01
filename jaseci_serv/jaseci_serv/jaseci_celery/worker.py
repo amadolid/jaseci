@@ -38,23 +38,16 @@ def per_minute(self, test=""):
     return
 
 
-def queue(url, rpc, method, api, ctx):
-    ctx["_req_ctx"]["headers"].pop("Content-Type")
-    return post(
-        url + rpc,
-        json=request(method, params=(api, ctx)),
-        headers=ctx["_req_ctx"]["headers"],
-    ).json()
-
-
 @app.task
-def add_queue(url, api, ctx):
-    return queue(url, "rpc/", "walker", api, ctx)
-
-
-@app.task
-def add_public_queue(url, api, ctx):
-    return queue(url, "public_rpc/", "public_walker", api, ctx)
+def add_queue(url, api, ctx, token=None):
+    if token is None:
+        return post(
+            url + "public_rpc/", json=request("public_walker", params=(api, ctx))
+        ).json()
+    else:
+        return post(
+            url + "rpc/", json=request("walker", params=(token, api, ctx))
+        ).json()
 
 
 json_escape = re.compile("[^a-zA-Z0-9_]")
