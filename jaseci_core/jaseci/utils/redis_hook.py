@@ -24,10 +24,11 @@ class redis_hook(mem_hook):
         self.save_glob_dict = {}
         super().__init__()
 
-    def get_obj_from_store(self, item_id):
+    def get_obj_from_store(self, item_id, quiet=False):
         loaded_obj = self.red.get(item_id.urn)
         if not loaded_obj:
-            logger.error(str(f"Object {item_id} does not exist in Redis!"))
+            if not quiet:
+                logger.error(str(f"Object {item_id} does not exist in Redis!"))
             return None
 
         jdict = json.loads(loaded_obj)

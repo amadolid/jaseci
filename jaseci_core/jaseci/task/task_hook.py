@@ -114,7 +114,7 @@ class task_hook:
         que = task_hook.queues.pop(queue_id)
 
         caller = task_hook.main_hook.get_obj(
-            "override", uuid.UUID(que["caller"]), override=True
+            "override", uuid.UUID(que["caller"]), override=True, quiet=True
         )
         kwargs = que.get("kwargs", {})
 

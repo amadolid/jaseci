@@ -75,7 +75,7 @@ class orm_hook(mem_hook):
         self.save_glob_dict = {}
         super().__init__(enable_task=TASK_HOOK)
 
-    def get_obj_from_store(self, item_id):
+    def get_obj_from_store(self, item_id, quiet=False):
         loaded_obj = self.red.get(item_id.urn)
         if loaded_obj:
             jdict = json.loads(loaded_obj)
@@ -90,10 +90,11 @@ class orm_hook(mem_hook):
             try:
                 loaded_obj = self.objects.get(jid=item_id)
             except ObjectDoesNotExist:
-                logger.error(
-                    str(f"Object {item_id} does not exist in Django ORM!"),
-                    exc_info=True,
-                )
+                if not quiet:
+                    logger.error(
+                        str(f"Object {item_id} does not exist in Django ORM!"),
+                        exc_info=True,
+                    )
                 return None
 
             class_for_type = find_class_and_import(loaded_obj.j_type, core_mod)

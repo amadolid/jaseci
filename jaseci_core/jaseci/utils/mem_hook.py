@@ -41,7 +41,7 @@ class mem_hook(task_hook):
         if enable_task:
             super().__init__()
 
-    def get_obj(self, caller_id, item_id, override=False):
+    def get_obj(self, caller_id, item_id, override=False, quiet=False):
         """
         Get item from session cache by id, then try store
         TODO: May need to make this an object copy so you cant do mem writes
@@ -51,7 +51,7 @@ class mem_hook(task_hook):
             if override or (ret is not None and ret.check_read_access(caller_id)):
                 return ret
         else:
-            ret = self.get_obj_from_store(item_id)
+            ret = self.get_obj_from_store(item_id, quiet=quiet)
             self.mem[item_id] = ret
             if override or (ret is not None and ret.check_read_access(caller_id)):
                 return ret
@@ -137,7 +137,7 @@ class mem_hook(task_hook):
         """
         mem_hook.__init__(self)
 
-    def get_obj_from_store(self, item_id):
+    def get_obj_from_store(self, item_id, quiet=False):
         """
         Get item from externally hooked general store by id
         """
