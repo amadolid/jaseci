@@ -6,6 +6,7 @@ from inspect import signature, getdoc
 from jaseci.utils.utils import logger
 from jaseci.utils.utils import is_jsonable
 from jaseci.element.element import element
+from jaseci.actor.walker import walker
 
 
 class interface:
@@ -131,17 +132,6 @@ class interface:
             ret["stack_trace"] = stack
         return ret
 
-    def process_async(self, params, caller, api_name, jid_types, **kwargs):
-        """
-        Process Async
-        """
-
-        if "async" in params and params["async"]:
-            task_id = self._h.queue(caller.jid, api_name, jid_types, **kwargs)
-            return {"task_id": task_id}
-        else:
-            return getattr(caller, api_name)(**kwargs)
-
     def general_interface_to_api(self, params, api_name):
         """
         A mapper utility to interface to master class
@@ -150,7 +140,6 @@ class interface:
             api_name is the name of the api being mapped to
         """
         param_map = {}
-        jid_types = []
         if (
             api_name.startswith("master_active")
             or api_name.startswith("master_become")
@@ -184,8 +173,7 @@ class interface:
                     break
                 val = _caller._h.get_obj(_caller._m_id, uuid.UUID(val))
                 if isinstance(val, p_type):
-                    param_map[i] = val
-                    jid_types.append(i)
+                    param_map[i] = self.sync_constraints(val, params)
                 else:
                     return self.interface_error(f"{type(val)} is not {p_type}")
             else:  # TODO: Can do type checks here too
@@ -194,7 +182,7 @@ class interface:
             if param_map[i] is None:
                 return self.interface_error(f"Invalid API args - {params}")
         try:
-            ret = self.process_async(params, _caller, api_name, jid_types, **param_map)
+            ret = getattr(_caller, api_name)(**param_map)
         except Exception as e:
             import traceback as tb
 
@@ -213,7 +201,6 @@ class interface:
             api_name is the name of the api being mapped to
         """
         param_map = {}
-        jid_types = []
         if not hasattr(self, api_name):
             return self.interface_error(f"{api_name} not a valid API")
         func_sig = signature(getattr(self, api_name))
@@ -234,8 +221,7 @@ class interface:
                 val = self._h.get_obj("override", uuid.UUID(val), override=True)
                 self.seek_committer(val)
                 if isinstance(val, p_type):
-                    param_map[i] = val
-                    jid_types.append(i)
+                    param_map[i] = self.sync_constraints(val, params)
                 else:
                     return self.interface_error(f"{type(val)} is not {p_type}")
             else:  # TODO: Can do type checks here too
@@ -244,7 +230,7 @@ class interface:
             if param_map[i] is None:
                 return self.interface_error(f"Invalid API parameter set - {params}")
         try:
-            ret = self.process_async(params, self, api_name, jid_types, **param_map)
+            ret = getattr(self, api_name)(**param_map)
         except Exception as e:
             import traceback as tb
 
@@ -256,6 +242,13 @@ class interface:
                 str(f"API returns non json object {type(ret)}: {ret}")
             )
         return ret
+
+    # future constraints other than `async` should be add here
+    def sync_constraints(self, obj, params):
+        if isinstance(obj, walker):
+            obj._async = params.get("is_async", False)
+
+        return obj
 
     def seek_committer(self, obj):
         """Opportunistically assign a committer"""

@@ -214,7 +214,7 @@ class PublicJacApiTests(TestCaseHelper, TestCase):
         walk = res.data["spawned:walker:callback"].split(":")[2]
         nd = res.data["active:graph"].split(":")[2]
         payload = {
-            "async": True,
+            "is_async": True,
             "op": "walker_callback",
             "key": key,
             "wlk": walk,
@@ -227,6 +227,7 @@ class PublicJacApiTests(TestCaseHelper, TestCase):
             payload,
             format="json",
         )
+
         self.assertFalse("updated" in res.data)
         self.assertTrue("task_id" in res.data)
 

@@ -91,20 +91,16 @@ class task_hook:
     def task_hook_ready(self):
         return not (task_hook.app is None)
 
-    def queue(self, caller, api_name, jid_types, **kwargs):
-        for types in jid_types:
-            kwargs[types] = kwargs[types].jid
+    def get_element(jid):
 
+        # Already validated reason for bypassing read access check
+        return task_hook.main_hook.get_obj("bypass", uuid.UUID(jid), True)
+
+    def queue(self, wlk):
         queue_id = str(uuid4())
+
         task_hook.queues.update(
-            {
-                queue_id: {
-                    "caller": caller,
-                    "api_name": api_name,
-                    "jid_types": jid_types,
-                    "kwargs": kwargs,
-                }
-            }
+            {queue_id: {"wlk": wlk.jid, "proc": wlk._async_procedure}}
         )
 
         return task_hook._queue.delay(queue_id).task_id
@@ -112,27 +108,21 @@ class task_hook:
     def consume(queue_id):
 
         que = task_hook.queues.pop(queue_id)
+        wlk = task_hook.get_element(que["wlk"])
 
-        kwargs = que.get("kwargs", {})
+        # pre procedure
+        for proc in que["proc"]:
+            if proc[0] == "run":
+                if not (proc[1][0] is None):
+                    # parse start_node
+                    proc[1][0] = task_hook.get_element(proc[1][0])
+                resp = getattr(wlk, proc[0])(*proc[1])
+            else:
+                out = getattr(wlk, proc[0])(*proc[1])
+                if proc[2]:
+                    wlk = out
 
-        if task_hook.main_hook.has_obj(uuid.UUID(que["caller"])):
-            caller = task_hook.main_hook.get_obj(
-                "override", uuid.UUID(que["caller"]), override=True
-            )
-
-            for types in que.get("jid_types", []):
-                kwargs[types] = task_hook.main_hook.get_obj(
-                    caller._m_id, uuid.UUID(kwargs[types])
-                )
-
-            return getattr(caller, que["api_name"])(**kwargs)
-        else:
-            for types in que.get("jid_types", []):
-                kwargs[types] = task_hook.main_hook.get_obj(
-                    "override", uuid.UUID(kwargs[types]), override=True
-                )
-
-            return getattr(task_hook.get_basic_master(), que["api_name"])(**kwargs)
+        return resp
 
     def get_basic_master():
         if task_hook.basic_master is None:
