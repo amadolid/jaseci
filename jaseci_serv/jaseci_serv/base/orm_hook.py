@@ -10,7 +10,7 @@ from jaseci.utils import utils
 from jaseci.utils.utils import logger
 import jaseci as core_mod
 from jaseci.utils.mem_hook import mem_hook, json_str_to_jsci_dict
-from jaseci_serv.jaseci_serv.settings import REDIS_HOST, TASK_HOOK
+from jaseci_serv.jaseci_serv.settings import REDIS_HOST, TASK_QUIET
 from redis import Redis
 import uuid
 import json
@@ -73,7 +73,7 @@ class orm_hook(mem_hook):
         self.skip_redis_update = False
         self.save_obj_list = set()
         self.save_glob_dict = {}
-        super().__init__(enable_task=TASK_HOOK)
+        super().__init__()
 
     def get_obj_from_store(self, item_id):
         loaded_obj = self.red.get(item_id.urn)
@@ -217,19 +217,20 @@ class orm_hook(mem_hook):
             self.commit_glob(name=i, value=self.save_glob_dict[i])
         self.save_glob_dict = {}
 
-    def generate_basic_master(self):
-        from jaseci_serv.base.models import (
-            JaseciObject,
-            GlobalVars,
-            master as core_master,
-        )
+    def celery_config(self):
+        self.task_app().config_from_object("jaseci_serv.jaseci_serv.settings")
+        self.task_quiet(TASK_QUIET)
 
-        return core_master(
-            h=orm_hook(objects=JaseciObject.objects, globs=GlobalVars.objects),
-            persist=False,
-        )
+    def get_by_task_id(self, task_id):
+        task = self.task_app().AsyncResult(task_id)
 
-    def get_task_result_data(self, task_id):
-        """Get TaskResult by task_id"""
+        ret = {"status": task.state}
 
-        return TaskResult.objects.get(task_id=task_id).result
+        if task.ready():
+            task_result = TaskResult.objects.get(task_id=task_id).result
+            try:
+                ret["result"] = json.loads(task_result)
+            except ValueError as e:
+                ret["result"] = task_result
+
+        return ret

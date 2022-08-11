@@ -237,7 +237,7 @@ class PublicJacApiTests(TestCaseHelper, TestCase):
             reverse(f"jac_api:walker_queue") + f"?task_id={task_id}"
         )
 
-        self.assertEqual("SUCCESS", res.data["state"])
+        self.assertEqual("SUCCESS", res.data["status"])
 
         self.assertTrue(res.data["result"]["success"])
 

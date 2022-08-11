@@ -11,12 +11,12 @@ class queue(Task):
     def run(self, queue_id):
         from .task_hook import task_hook
 
-        ret = task_hook.consume(queue_id)
+        ret = task_hook.consume_queue(queue_id)
 
         return ret
 
 
-class dynamic_request(Task):
+class schedule_queue(Task):
     json_escape = re.compile("[^a-zA-Z0-9_]")
     internal = re.compile("\(([a-zA-Z0-9_\.\[\]\$\#\@\!]*?)\)")
     full = re.compile("^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)\@\!]*?)\}\}$")

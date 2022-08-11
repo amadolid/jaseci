@@ -32,14 +32,12 @@ class mem_hook(task_hook):
     to the objects. They return jaseci core types.
     """
 
-    def __init__(self, enable_task=False):
+    def __init__(self):
         from jaseci.actions.live_actions import get_global_actions
 
         self.mem = {"global": {}}
         self.global_action_list = get_global_actions(self)
-
-        if enable_task:
-            super().__init__()
+        super().__init__()
 
     def get_obj(self, caller_id, item_id, override=False):
         """
