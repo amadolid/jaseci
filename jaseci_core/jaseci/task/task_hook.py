@@ -51,6 +51,8 @@ class task_hook:
 
     def __init__(self):
 
+        self.allowed_scheduler = True
+
         if task_hook.state != -1 and task_hook.app is None:
 
             task_hook.main_hook = self
@@ -61,7 +63,8 @@ class task_hook:
                 if task_hook.inspect.ping() is None:
                     self.__tasks()
                     self.__worker()
-                    self.__scheduler()
+                    if self.allowed_scheduler:
+                        self.__scheduler()
                     task_hook.state = 1
             except Exception as e:
                 task_hook.state = -1
@@ -136,15 +139,24 @@ class task_hook:
     #############################################
 
     def get_element(jid):
-        # Already validated reason for bypassing read access check
-        if task_hook.redis is None:
-            return task_hook.main_hook.get_obj("bypass", UUID(jid), True)
+        from ..actor.walker import walker
+
+        if not (task_hook.redis is None) and jid in task_hook.shared_mem:
+            kwargs = task_hook.shared_mem.pop(jid)
+            namespaces = kwargs.pop("namespaces")
+            wlk = walker(h=task_hook.main_hook, **kwargs)
+            wlk.namespaces = namespaces
+            return wlk
         else:
-            # to be supported
-            return task_hook.redis(jid)
+            return task_hook.main_hook.get_obj("bypass", UUID(jid), True)
 
     def add_queue(self, wlk):
         queue_id = str(uuid4())
+
+        if not (task_hook.redis is None):
+            jid, meta = wlk.dismantle()
+            task_hook.shared_mem.update({jid: meta})
+
         task_hook.shared_mem.update(
             {queue_id: {"wlk": wlk.jid, "proc": wlk._async_procedure}}
         )
@@ -192,6 +204,7 @@ class task_hook:
     # ORM_HOOK OVERRIDE
     def celery_config(self):
         """Add celery config"""
+        self.allowed_scheduler = False
         task_hook.app.conf.update(**CELERY_DEFAULT_CONFIGS)
         task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
         task_hook.quiet = QUIET

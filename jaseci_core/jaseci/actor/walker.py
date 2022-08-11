@@ -284,3 +284,12 @@ class walker(element, jac_code, walker_interp, anchored):
     def trigger_async(self):
         task_id = self._h.add_queue(self)
         return {"task_id": task_id}
+
+    def dismantle(self):
+        return self.jid, {
+            "m_id": self._m_id,
+            "code_ir": self.code_ir,
+            "name": self.name,
+            "kind": self.kind,
+            "namespaces": self.namespaces,
+        }
