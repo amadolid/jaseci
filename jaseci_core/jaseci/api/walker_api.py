@@ -44,7 +44,7 @@ class walker_api:
             wlk=walk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=False
         )
         walk.destroy()
-        return res
+        return walk.build_response(res)
 
     @interface.public_api(cli_args=["wlk"])
     def walker_summon(
@@ -71,7 +71,7 @@ class walker_api:
             wlk=walk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=False
         )
         walk.destroy()
-        return res
+        return walk.build_response(res)
 
     @interface.private_api(cli_args=["code"])
     def walker_register(
@@ -213,6 +213,7 @@ class walker_api:
         _req_ctx: dict = {},
         snt: sentinel = None,
         profiling: bool = False,
+        is_async: bool = False,
     ):
         """
         Creates walker instance, primes walker on node, executes walker,
@@ -220,14 +221,14 @@ class walker_api:
         """
         wlk = self.yielded_walkers_ids.get_obj_by_name(name, silent=True)
         if wlk is None:
-            wlk = snt.spawn_walker(name, caller=self)
+            wlk = snt.spawn_walker(name, caller=self, is_async=is_async)
         if wlk is None:
             return self.bad_walk_response([f"Walker {name} not found!"])
         res = self.walker_execute(
             wlk=wlk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=profiling
         )
         wlk.register_yield_or_destroy(self.yielded_walkers_ids)
-        return res
+        return wlk.build_response(res)
 
     @interface.private_api(cli_args=["name"], url_args=["name"])
     def wapi(
@@ -253,3 +254,16 @@ class walker_api:
 
     def bad_walk_response(self, errors=list()):
         return {"report": [], "success": False, "errors": errors}
+
+    @interface.private_api(allowed_methods=["get"])
+    def walker_queue(self, task_id: str = ""):
+        """
+        Create blank or code loaded walker and return object
+        """
+        if not self._h.task_hook_ready():
+            return "Task hook is not yet initialized!"
+
+        if not task_id:
+            return self._h.inspect_tasks()
+        else:
+            return self._h.get_by_task_id(task_id)
