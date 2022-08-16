@@ -1,6 +1,6 @@
 from .id_list import id_list
-from .utils import logger
-
+from .utils import logger, find_class_and_import
+import jaseci as core_mod
 from jaseci.task.task_hook import task_hook
 
 import json
@@ -36,6 +36,9 @@ class mem_hook(task_hook):
         from jaseci.actions.live_actions import get_global_actions
 
         self.mem = {"global": {}}
+        self.save_obj_list = set()
+        self.save_glob_dict = {}
+        self.skip_redis_update = False
         self.global_action_list = get_global_actions(self)
         super().__init__()
 
@@ -44,38 +47,27 @@ class mem_hook(task_hook):
         Get item from session cache by id, then try store
         TODO: May need to make this an object copy so you cant do mem writes
         """
-        if item_id in self.mem.keys():
-            ret = self.mem[item_id]
-            if override or (ret is not None and ret.check_read_access(caller_id)):
-                return ret
-        else:
-            ret = self.get_obj_from_store(item_id)
-            if ret is not None:
-                self.mem[item_id] = ret
-            if override or (ret is not None and ret.check_read_access(caller_id)):
-                return ret
+        ret = self.get_obj_from_store(item_id)
+        if override or (ret is not None and ret.check_read_access(caller_id)):
+            return ret
 
     def has_obj(self, item_id):
         """
         Checks for object existance
         """
-        if item_id in self.mem.keys():
-            return True
-        else:
-            return self.has_obj_in_store(item_id)
+        return self.has_obj_in_store(item_id)
 
     def save_obj(self, caller_id, item, persist=False):
         """Save item to session cache, then to store"""
         if item.check_write_access(caller_id):
-            self.mem[item.id] = item
+            self.commit_obj_to_redis(item)
             if persist:
                 self.save_obj_to_store(item)
 
     def destroy_obj(self, caller_id, item, persist=False):
         """Destroy item from session cache then  store"""
         if item.check_write_access(caller_id):
-            self.mem[item.id] = None
-            del self.mem[item.id]
+            self.destroy_obj_from_redis(item.id.urn)
             if persist:
                 self.destroy_obj_from_store(item)
 
@@ -83,22 +75,13 @@ class mem_hook(task_hook):
         """
         Get global config from session cache by id, then try store
         """
-        if name in self.mem["global"].keys():
-            return self.mem["global"][name]
-        else:
-            ret = self.get_glob_from_store(name)
-            if name is not None:
-                self.mem["global"][name] = ret
-            return ret
+        return self.get_glob_from_store(name)
 
     def has_glob(self, name):
         """
         Checks for global config existance
         """
-        if name in self.mem["global"].keys():
-            return True
-        else:
-            return self.has_glob_in_store(name)
+        return self.has_glob_in_store(name)
 
     def resolve_glob(self, name, default=None):
         """
@@ -111,7 +94,7 @@ class mem_hook(task_hook):
 
     def save_glob(self, name, value, persist=True):
         """Save global config to session cache, then to store"""
-        self.mem["global"][name] = value
+        self.commit_glob_to_redis(name, value)
         if persist:
             self.save_glob_to_store(name, value)
 
@@ -125,8 +108,7 @@ class mem_hook(task_hook):
 
     def destroy_glob(self, name, persist=True):
         """Destroy global config from session cache then store"""
-        self.mem["global"][name] = None
-        del self.mem["global"][name]
+        self.destroy_glob_from_redis(name)
         if persist:
             self.destroy_glob_from_store(name)
 
@@ -137,45 +119,138 @@ class mem_hook(task_hook):
         """
         mem_hook.__init__(self)
 
+    def has_obj_in_redis(self, key):
+        if key in self.mem.keys():
+            return self.mem[key]
+
+        if self.redis_running():
+            return self.task_redis().exists(key)
+
+        return False
+
+    def has_glob_in_redis(self, key):
+        if key in self.mem["global"].keys():
+            return self.mem[key]
+
+        if self.redis_running():
+            return self.task_redis().exists(key)
+
+        return False
+
+    def get_obj_from_redis(self, item_id):
+        if item_id in self.mem:
+            return self.mem[item_id]
+
+        if self.redis_running():
+            loaded_obj = self.task_redis().get(item_id.urn)
+            if loaded_obj:
+                jdict = json.loads(loaded_obj)
+                j_type = jdict["j_type"]
+                j_master = jdict["j_master"]
+                class_for_type = find_class_and_import(j_type, core_mod)
+                ret_obj = class_for_type(h=self, m_id=j_master, auto_save=False)
+                ret_obj.json_load(loaded_obj)
+                self.mem[item_id] = ret_obj
+                return ret_obj
+
+        return None
+
+    def get_glob_from_redis(self, name):
+        if name in self.mem["global"]:
+            return self.mem["global"][name]
+
+        if self.redis_running():
+            return self.task_redis().get(name)
+
+        return None
+
+    def commit_glob_to_redis(self, name, value):
+        if self.redis_running():
+            self.task_redis().set(name, value)
+        self.mem["global"][name] = value
+
+    def commit_obj_to_redis(self, item):
+        if self.redis_running():
+            self.task_redis().set(item.id.urn, item.json(detailed=True))
+        self.mem[item.id.urn] = item
+
+    def destroy_glob_from_redis(self, name):
+        if self.redis_running():
+            self.task_redis().delete(name)
+        if name in self.mem["global"]:
+            self.mem["global"].pop(name)
+
+    def destroy_obj_from_redis(self, name):
+
+        if name in self.save_obj_list:
+            self.save_obj_list.remove(name)
+
+        if name in self.save_glob_dict.keys():
+            self.save_glob_dict.pop(name)
+
+        if self.redis_running():
+            self.task_redis().delete(name)
+        if name in self.mem:
+            self.mem.pop(name)
+
     def get_obj_from_store(self, item_id):
         """
         Get item from externally hooked general store by id
         """
+        return self.get_obj_from_redis(item_id)
 
     def has_obj_in_store(self, item_id):
         """
         Checks for object existance in store
         """
-        return False
+        return self.has_obj_in_redis(item_id.urn)
 
     def save_obj_to_store(self, item):
-        """Save item to externally hooked general store"""
+        # import traceback as tb; tb.print_stack();  # noqa
+        self.save_obj_list.add(item)
 
     def destroy_obj_from_store(self, item):
         """Destroy item to externally hooked general store"""
+        self.destroy_obj_from_redis(item.id.urn)
 
     def get_glob_from_store(self, name):
         """
         Get global config from externally hooked general store by name
         """
+        return self.get_glob_from_redis(name)
 
     def has_glob_in_store(self, name):
         """
         Checks for global config existance in store
         """
-        return False
+        return self.has_glob_in_redis(name)
 
     def save_glob_to_store(self, name, value):
         """Save global config to externally hooked general store"""
+        self.save_glob_dict[name] = value
 
     def list_glob_from_store(self):
         """Get list of global config to externally hooked general store"""
+        # if self.redis_running():
+        #     logger.warning("Globals can not (yet) be listed from Redis!")
+        #     return []
+        # else:
+        return list(self.mem["global"].keys())
 
     def destroy_glob_from_store(self, name):
         """Destroy global config to externally hooked general store"""
+        self.destroy_obj_from_redis(name)
 
     def commit(self):
-        """Write through all saves to store"""
+        if not self.skip_redis_update:
+            for i in self.save_obj_list:
+                self.commit_obj_to_redis(i)
+
+        for i in self.save_glob_dict.keys():
+            self.commit_glob_to_redis(name=i, value=self.save_glob_dict[i])
+
+        self.save_obj_list = set()
+        self.save_glob_dict = {}
 
     # Utilities
     def get_object_distribution(self):

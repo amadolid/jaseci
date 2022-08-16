@@ -10,7 +10,7 @@ from jaseci.utils import utils
 from jaseci.utils.utils import logger
 import jaseci as core_mod
 from jaseci.utils.mem_hook import mem_hook, json_str_to_jsci_dict
-from jaseci_serv.jaseci_serv.settings import REDIS_HOST, TASK_QUIET
+from jaseci_serv.jaseci_serv.settings import TASK_QUIET
 from redis import Redis
 import uuid
 import json
@@ -31,62 +31,19 @@ def find_class_and_import(j_type, core_mod):
         return utils.find_class_and_import(j_type, core_mod)
 
 
-class redis_cache:
-    """Redis sideline cache"""
-
-    def __init__(self, red):
-        self.red = red
-
-    def get(self, urn):
-        try:
-            return self.red.get(urn)
-        except Exception:
-            return None
-
-    def set(self, urn, value):
-        try:
-            return self.red.set(urn, value)
-        except TypeError:
-            logger.error(f"Item {value} is not JSON serializable for redis store!")
-            logger.error(f"Item details: {value.serialize()}", exc_info=True)
-        except Exception:
-            return None
-
-    def delete(self, urn):
-        try:
-            return self.red.delete(urn)
-        except Exception:
-            return None
-
-
 class orm_hook(mem_hook):
     """
     Hooks Django ORM database for Jaseci objects to Jaseci's core engine.
     """
 
-    def __init__(
-        self, objects, globs, red=Redis(host=REDIS_HOST, decode_responses=True)
-    ):
+    def __init__(self, objects, globs):
         self.objects = objects
         self.globs = globs
-        self.red = redis_cache(red)
-        self.skip_redis_update = False
-        self.save_obj_list = set()
-        self.save_glob_dict = {}
         super().__init__()
 
     def get_obj_from_store(self, item_id):
-        loaded_obj = self.red.get(item_id.urn)
-        if loaded_obj:
-            jdict = json.loads(loaded_obj)
-            j_type = jdict["j_type"]
-            j_master = jdict["j_master"]
-            class_for_type = find_class_and_import(j_type, core_mod)
-            ret_obj = class_for_type(h=self, m_id=j_master, auto_save=False)
-            ret_obj.json_load(loaded_obj)
-
-            return ret_obj
-        else:
+        loaded_obj = self.get_obj_from_redis(item_id)
+        if not loaded_obj:
             try:
                 loaded_obj = self.objects.get(jid=item_id)
             except ObjectDoesNotExist:
@@ -107,24 +64,18 @@ class orm_hook(mem_hook):
             obj_fields = json_str_to_jsci_dict(loaded_obj.jsci_obj, ret_obj)
             for i in obj_fields.keys():
                 setattr(ret_obj, i, obj_fields[i])
-
-            self.red.set(ret_obj.id.urn, ret_obj.json(detailed=True))
+            self.commit_obj_to_redis(ret_obj)
             return ret_obj
+        return loaded_obj
 
     def has_obj_in_store(self, item_id):
         """
         Checks for object existance in store
         """
-        if self.red.get(item_id.urn):
-            return True
-        return self.objects.filter(jid=item_id).count()
-
-    def save_obj_to_store(self, item):
-        # import traceback as tb; tb.print_stack();  # noqa
-        self.save_obj_list.add(item)
-
-    def commit_obj_to_redis(self, item):
-        self.red.set(item.id.urn, item.json(detailed=True))
+        return (
+            self.has_obj_in_redis(item_id.urn)
+            or self.objects.filter(jid=item_id).count()
+        )
 
     def commit_obj(self, item):
         item_from_db, created = self.objects.get_or_create(jid=item.id)
@@ -133,24 +84,20 @@ class orm_hook(mem_hook):
         item_from_db.save()
 
     def destroy_obj_from_store(self, item):
+        self.destroy_obj_from_redis(item.id.urn)
         try:
             self.objects.get(jid=item.id).delete()
         except ObjectDoesNotExist:
             # NOTE: Should look at this at some point
             # logger.error("Object does not exists so delete aborted!")
             pass
-        self.red.delete(item.id.urn)
-        if item in self.save_obj_list:
-            self.save_obj_list.remove(item)
 
     def get_glob_from_store(self, name):
         """
         Get global config from externally hooked general store by name
         """
-        loaded_val = self.red.get(name)
-        if loaded_val:
-            return loaded_val
-        else:
+        loaded_val = self.get_glob_from_redis(name)
+        if not loaded_val:
             try:
                 loaded_val = self.globs.get(name=name).value
             except ObjectDoesNotExist:
@@ -159,20 +106,15 @@ class orm_hook(mem_hook):
                 )
                 return None
 
-            self.red.set(name, loaded_val)
+            self.commit_glob_to_redis(name, loaded_val)
             return loaded_val
+        return loaded_val
 
     def has_glob_in_store(self, name):
         """
         Checks for global config existance in store
         """
-        if self.red.get(name):
-            return True
-        return self.globs.filter(name=name).count()
-
-    def save_glob_to_store(self, name, value):
-        """Save global config to externally hooked general store"""
-        self.save_glob_dict[name] = value
+        return self.has_glob_in_redis(name) or self.globs.filter(name=name).count()
 
     def list_glob_from_store(self):
         """Get list of global config to externally hooked general store"""
@@ -180,19 +122,14 @@ class orm_hook(mem_hook):
 
     def destroy_glob_from_store(self, name):
         """Destroy global config to externally hooked general store"""
+        self.destroy_obj_from_redis(name)
         try:
             self.globs.get(name=name).delete()
         except ObjectDoesNotExist:
             pass
-        self.red.delete(name)
-        if name in self.save_glob_dict.keys():
-            del self.save_glob_dict[name]
 
     def commit_glob(self, name, value):
-        try:
-            self.red.set(name, value)
-        except Exception as e:
-            logger.error(str(f"Couldn't save {name} to redis! {e}"), exc_info=True)
+        self.commit_glob_to_redis(name, value)
         item_from_db, created = self.globs.get_or_create(name=name)
         item_from_db.value = value
         item_from_db.save()
@@ -209,8 +146,6 @@ class orm_hook(mem_hook):
         for i in self.save_obj_list:
             if not self.skip_redis_update:
                 self.commit_obj_to_redis(i)
-            else:
-                self.skip_redis_update = False
             self.commit_obj(i)
         self.save_obj_list = set()
         for i in self.save_glob_dict.keys():

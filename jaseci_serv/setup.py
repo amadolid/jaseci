@@ -17,7 +17,7 @@ setup(
         "sphinx>=2.4.3,<2.5.0",
         "django-cors-headers",
         "tblib",
-        "django-celery-results>=2.3",
+        "django-celery-results>=2.3,<2.4",
         "django-celery-beat>=2.2",
     ],
     package_data={

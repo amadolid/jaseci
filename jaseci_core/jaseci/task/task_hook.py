@@ -37,7 +37,7 @@ class task_hook:
     worker = None
     scheduler = None
     # -1 Failed : 0 Not Started : 1 Running
-    state = 0
+    state = -1
     quiet = False
 
     # ----------------- REGISTERED TASK ----------------- #
@@ -50,14 +50,16 @@ class task_hook:
     redis = None
 
     def __init__(self):
-
         self.allowed_scheduler = True
 
-        if task_hook.state != -1 and task_hook.app is None:
+        if task_hook.state < 0 and task_hook.app is None:
+            task_hook.state = 0
 
             task_hook.main_hook = self
 
             try:
+
+                self.__redis()
                 self.__celery()
 
                 if task_hook.inspect.ping() is None:
@@ -67,16 +69,22 @@ class task_hook:
                         self.__scheduler()
                     task_hook.state = 1
             except Exception as e:
-                task_hook.state = -1
                 if not (task_hook.quiet):
                     logger.error(f"Celery initialization failed! Error: '{e}'")
                 task_hook.app = None
+                task_hook.redis = None
                 task_hook.terminate_worker()
                 task_hook.terminate_scheduler()
 
     #################################################
     # ---------------- INITIALIZER ---------------- #
     #################################################
+
+    def __redis(self):
+        from jaseci.actions.live_actions import get_global_actions
+
+        task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
+        task_hook.main_hook.global_action_list = get_global_actions(task_hook.main_hook)
 
     def __celery(self):
         task_hook.app = Celery("celery")
@@ -115,6 +123,14 @@ class task_hook:
     def task_quiet(self, quiet=QUIET):
         task_hook.quiet = quiet
 
+    # ---------------- REDIS RELATED ---------------- #
+
+    def task_redis(self):
+        return task_hook.redis
+
+    def redis_running(self):
+        return not (task_hook.redis is None)
+
     # ---------------- QUEUE RELATED ---------------- #
 
     def inspect_tasks(self):
@@ -139,43 +155,22 @@ class task_hook:
     #############################################
 
     def get_element(jid):
-        from ..actor.walker import walker
+        return task_hook.main_hook.get_obj_from_store(UUID(jid))
 
-        if not (task_hook.redis is None) and jid in task_hook.shared_mem:
-            kwargs = task_hook.shared_mem.pop(jid)
-            namespaces = kwargs.pop("namespaces")
-            wlk = walker(h=task_hook.main_hook, **kwargs)
-            wlk.namespaces = namespaces
-            return wlk
-        else:
-            return task_hook.main_hook.get_obj("bypass", UUID(jid), True)
-
-    def add_queue(self, wlk):
+    def add_queue(self, wlk, nd, *args):
         queue_id = str(uuid4())
 
-        if not (task_hook.redis is None):
-            jid, meta = wlk.dismantle()
-            task_hook.shared_mem.update({jid: meta})
-
         task_hook.shared_mem.update(
-            {queue_id: {"wlk": wlk.jid, "proc": wlk._async_procedure}}
+            {queue_id: {"wlk": wlk.id.urn, "nd": nd.id.urn, "arg": args}}
         )
         return task_hook.queue.delay(queue_id).task_id
 
     def consume_queue(queue_id):
         que = task_hook.shared_mem.pop(queue_id)
         wlk = task_hook.get_element(que["wlk"])
-
-        for proc in que["proc"]:
-            if proc[0] == "run":
-                if not (proc[1][0] is None):
-                    # parse start_node
-                    proc[1][0] = task_hook.get_element(proc[1][0])
-                resp = getattr(wlk, proc[0])(*proc[1])
-            else:
-                out = getattr(wlk, proc[0])(*proc[1])
-                if proc[2]:
-                    wlk = out
+        nd = task_hook.get_element(que["nd"])
+        resp = wlk.run(nd, *que["arg"])
+        wlk.destroy()
 
         return resp
 
@@ -206,7 +201,6 @@ class task_hook:
         """Add celery config"""
         self.allowed_scheduler = False
         task_hook.app.conf.update(**CELERY_DEFAULT_CONFIGS)
-        task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
         task_hook.quiet = QUIET
 
 

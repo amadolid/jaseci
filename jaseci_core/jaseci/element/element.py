@@ -187,6 +187,10 @@ class element(hookable):
                                 self._m_id, uuid.UUID(jdict[i][j])
                             ).serialize(deep - 1)
                         )
+
+        if hasattr(self, "code_ir"):
+            jdict["code_ir"] = getattr(self, "code_ir")
+
         return jdict
 
     def json(self, deep=0, detailed=False):
@@ -206,6 +210,9 @@ class element(hookable):
         """Loads self from dict"""
         for i in jdict.keys():
             setattr(self, i, jdict[i])
+
+        if "code_ir" in jdict:
+            self.apply_ir(jdict.pop("code_ir"))
 
     def get_deep_obj_list(self, objs=None):
         """Recursively get all contained Jaseci objects and return id_list"""
