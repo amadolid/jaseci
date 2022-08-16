@@ -108,6 +108,7 @@ def get_global_actions(hook):
                     persist=False,
                 ).jid
             )
+
     return global_action_list
 
 

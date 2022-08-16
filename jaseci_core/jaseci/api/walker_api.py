@@ -43,8 +43,8 @@ class walker_api:
         res = self.walker_execute(
             wlk=walk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=False
         )
-        walk.destroy()
-        return walk.build_response(res)
+        # walk.destroy()
+        return res
 
     @interface.public_api(cli_args=["wlk"])
     def walker_summon(
@@ -71,7 +71,7 @@ class walker_api:
             wlk=walk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=False
         )
         walk.destroy()
-        return walk.build_response(res)
+        return res
 
     @interface.private_api(cli_args=["code"])
     def walker_register(
@@ -228,7 +228,7 @@ class walker_api:
             wlk=wlk, prime=nd, ctx=ctx, _req_ctx=_req_ctx, profiling=profiling
         )
         wlk.register_yield_or_destroy(self.yielded_walkers_ids)
-        return wlk.build_response(res)
+        return res
 
     @interface.private_api(cli_args=["name"], url_args=["name"])
     def wapi(

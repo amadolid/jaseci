@@ -38,10 +38,7 @@ class walker(element, jac_code, walker_interp, anchored):
         self.current_step = 0
         self.in_entry_exit = False
         self.step_limit = 10000
-
         self._async = False
-        self._async_procedure = []
-
         anchored.__init__(self)
         element.__init__(self, *args, **kwargs)
         jac_code.__init__(self, code_ir=code_ir)
@@ -87,7 +84,6 @@ class walker(element, jac_code, walker_interp, anchored):
                 )
             )
             return False
-
         self.current_node = self.next_node_ids.pop_first_obj()
         self.run_walker(jac_ast=self._jac_ast)
         if self.current_step < 200:
@@ -133,18 +129,11 @@ class walker(element, jac_code, walker_interp, anchored):
 
     def run(self, start_node=None, prime_ctx=None, request_ctx=None, profiling=False):
         """Executes Walker to completion"""
-
-        if self.check_async():
-            self.async_procedure(
-                "run",
-                [
-                    None if start_node is None else start_node.jid,
-                    prime_ctx,
-                    request_ctx,
-                    profiling,
-                ],
+        if self._h.task_hook_ready() and self._async in walker.valid_async:
+            task_id = self._h.add_queue(
+                self, start_node, prime_ctx, request_ctx, profiling
             )
-            return None
+            return {"task_id": task_id}
 
         if profiling:
             pr = cProfile.Profile()
@@ -229,67 +218,16 @@ class walker(element, jac_code, walker_interp, anchored):
         """
         Destroys self from memory and persistent storage
         """
-        if self.check_async():
-            self.async_procedure("destroy")
-            return
-
         for i in self.activity_action_ids.obj_list():
             i.destroy()
         walker_interp.destroy(self)
         super().destroy()
 
-    def duplicate(self, persist_dup: bool = False):
-        if self.check_async():
-            self.async_procedure("duplicate", [persist_dup], True)
-            return self
-        else:
-            return super().duplicate(persist_dup)
-
-    def refresh(self):
-        if self.check_async():
-            self.async_procedure("refresh")
-        else:
-            super().refresh()
-
-    def set_master(self, m_id):
-        if self.check_async():
-            self.async_procedure("set_master", [m_id])
-        else:
-            super().set_master(m_id)
-
     def register_yield_or_destroy(self, yield_ids):
         """Helper for auto destroying walkers"""
-        if self.check_async():
-            self.async_procedure("register_yield_or_destroy", [yield_ids.obj_list()])
-            return
-
         if not self.yielded:
             if self.jid in yield_ids:
                 yield_ids.remove_obj(self)
             self.destroy()
         else:
             yield_ids.add_obj(self, silent=True)
-
-    def check_async(self):
-        return self._h.task_hook_ready() and self._async in walker.valid_async
-
-    def build_response(self, response):
-        if self.check_async():
-            return self.trigger_async()
-        return response
-
-    def async_procedure(self, method, params=[], override=False):
-        self._async_procedure.append([method, params, override])
-
-    def trigger_async(self):
-        task_id = self._h.add_queue(self)
-        return {"task_id": task_id}
-
-    def dismantle(self):
-        return self.jid, {
-            "m_id": self._m_id,
-            "code_ir": self.code_ir,
-            "name": self.name,
-            "kind": self.kind,
-            "namespaces": self.namespaces,
-        }
