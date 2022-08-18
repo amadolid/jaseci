@@ -81,9 +81,15 @@ class task_hook:
     #################################################
 
     def __redis(self):
+        task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
+        self.clear_redis()
+
+    def clear_redis(self):
         from jaseci.actions.live_actions import get_global_actions
 
-        task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
+        if self.redis_running():
+            task_hook.redis.flushdb()
+
         task_hook.main_hook.global_action_list = get_global_actions(task_hook.main_hook)
 
     def __celery(self):

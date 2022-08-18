@@ -312,10 +312,10 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
         gph = self.master._h.get_obj(self.master.j_master, uuid.UUID(res.data["jid"]))
         payload = {"op": "sentinel_register", "name": "Something"}
         res = self.client.post(reverse(f'jac_api:{payload["op"]}'), payload)
-        self.assertIn(gph.id, gph._h.mem.keys())
+        self.assertIn(gph.id.urn, gph._h.mem.keys())
         payload = {"op": "graph_delete", "gph": gph.id.urn}
         res = self.client.post(reverse(f'jac_api:{payload["op"]}'), payload)
-        self.assertNotIn(gph.id, gph._h.mem.keys())
+        self.assertNotIn(gph.id.urn, gph._h.mem.keys())
 
     def test_jac_api_get_graph_dot(self):
         """Test API for getting graph in dot str"""
@@ -336,12 +336,12 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
         sent = self.master._h.get_obj(
             self.master.j_master, uuid.UUID(res.data[0]["jid"])
         )
-        self.assertIn(gph.id, gph._h.mem.keys())
-        self.assertIn(sent.id, gph._h.mem.keys())
+        self.assertIn(gph.id.urn, gph._h.mem.keys())
+        self.assertIn(sent.id.urn, gph._h.mem.keys())
         payload = {"op": "sentinel_delete", "snt": sent.id.urn}
         res = self.client.post(reverse(f'jac_api:{payload["op"]}'), payload)
-        self.assertIn(gph.id, gph._h.mem.keys())
-        self.assertNotIn(sent.id, gph._h.mem.keys())
+        self.assertIn(gph.id.urn, gph._h.mem.keys())
+        self.assertNotIn(sent.id.urn, gph._h.mem.keys())
 
     def test_jac_api_get_jac_code(self):
         """Test API for deleting a sentinel"""

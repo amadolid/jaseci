@@ -84,7 +84,7 @@ class orm_hook(mem_hook):
         item_from_db.save()
 
     def destroy_obj_from_store(self, item):
-        self.destroy_obj_from_redis(item.id.urn)
+        self.destroy_obj_from_redis(item.id.urn, item)
         try:
             self.objects.get(jid=item.id).delete()
         except ObjectDoesNotExist:
@@ -146,6 +146,8 @@ class orm_hook(mem_hook):
         for i in self.save_obj_list:
             if not self.skip_redis_update:
                 self.commit_obj_to_redis(i)
+            else:
+                self.skip_redis_update = False
             self.commit_obj(i)
         self.save_obj_list = set()
         for i in self.save_glob_dict.keys():

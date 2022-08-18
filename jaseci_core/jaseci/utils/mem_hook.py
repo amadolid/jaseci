@@ -40,7 +40,7 @@ class mem_hook(task_hook):
         self.save_glob_dict = {}
         self.skip_redis_update = False
         self.global_action_list = get_global_actions(self)
-        super().__init__()
+        task_hook.__init__(self)
 
     def get_obj(self, caller_id, item_id, override=False):
         """
@@ -118,6 +118,7 @@ class mem_hook(task_hook):
         through other means than methods of this class
         """
         mem_hook.__init__(self)
+        self.clear_redis()
 
     def has_obj_in_redis(self, key):
         if key in self.mem.keys():
@@ -138,8 +139,8 @@ class mem_hook(task_hook):
         return False
 
     def get_obj_from_redis(self, item_id):
-        if item_id in self.mem:
-            return self.mem[item_id]
+        if item_id.urn in self.mem:
+            return self.mem[item_id.urn]
 
         if self.redis_running():
             loaded_obj = self.task_redis().get(item_id.urn)
@@ -150,7 +151,7 @@ class mem_hook(task_hook):
                 class_for_type = find_class_and_import(j_type, core_mod)
                 ret_obj = class_for_type(h=self, m_id=j_master, auto_save=False)
                 ret_obj.json_load(loaded_obj)
-                self.mem[item_id] = ret_obj
+                self.mem[item_id.urn] = ret_obj
                 return ret_obj
 
         return None
@@ -165,33 +166,34 @@ class mem_hook(task_hook):
         return None
 
     def commit_glob_to_redis(self, name, value):
+        self.mem["global"][name] = value
         if self.redis_running():
             self.task_redis().set(name, value)
-        self.mem["global"][name] = value
 
     def commit_obj_to_redis(self, item):
+        self.mem[item.id.urn] = item
         if self.redis_running():
             self.task_redis().set(item.id.urn, item.json(detailed=True))
-        self.mem[item.id.urn] = item
 
     def destroy_glob_from_redis(self, name):
-        if self.redis_running():
-            self.task_redis().delete(name)
         if name in self.mem["global"]:
             self.mem["global"].pop(name)
+        if self.redis_running():
+            self.task_redis().delete(name)
 
-    def destroy_obj_from_redis(self, name):
+    def destroy_obj_from_redis(self, name, elem=None):
 
-        if name in self.save_obj_list:
-            self.save_obj_list.remove(name)
+        if not (elem is None) and elem in self.save_obj_list:
+            self.save_obj_list.remove(elem)
 
         if name in self.save_glob_dict.keys():
             self.save_glob_dict.pop(name)
 
-        if self.redis_running():
-            self.task_redis().delete(name)
         if name in self.mem:
             self.mem.pop(name)
+
+        if self.redis_running():
+            self.task_redis().delete(name)
 
     def get_obj_from_store(self, item_id):
         """

@@ -4,7 +4,6 @@ from jaseci.utils.utils import TestCaseHelper
 from django.test import TestCase
 
 from jaseci_serv.base.models import JaseciObject
-from jaseci_serv.base.tests.mock_redis import mock_redis
 from jaseci.graph import node
 from jaseci.graph.graph import graph
 from jaseci.actor.sentinel import sentinel
@@ -28,8 +27,6 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
             password="testpass",
             name="some dude",
         )
-        self._h = mem_hook()
-        self.r = mock_redis()
 
     def tearDown(self):
         super().tearDown()
@@ -53,8 +50,8 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
         temp_id = node.node(m_id=user.master.urn, h=user._h).id
 
         user._h.commit()
-        del user._h.mem[temp_id]
-        user._h.red.delete(temp_id.urn)
+        del user._h.mem[temp_id.urn]
+        user._h.task_redis().delete(temp_id.urn)
 
         load_test = JaseciObject.objects.filter(jid=temp_id).first()
 
@@ -76,8 +73,8 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
         temp_id = node.node(m_id="anon", h=user._h).id
 
         user._h.commit()
-        del user._h.mem[temp_id]
-        user._h.red.delete(temp_id.urn)
+        del user._h.mem[temp_id.urn]
+        user._h.task_redis().delete(temp_id.urn)
 
         load_test = JaseciObject.objects.filter(jid=temp_id).first()
 
@@ -133,14 +130,15 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
 
     def test_redis_connection(self):
         """Test redis connection"""
-        r = self.r
-        r.set("test", "this is a test")
-        value = str(r.get("test"))
-        self.assertEqual(value, "this is a test")
+
+        self.assertTrue(self.user._h.redis_running())
+
+        self.user._h.task_redis().set("test", "this is a test")
+        self.assertEqual(self.user._h.task_redis().get("test"), "this is a test")
 
     def test_redis_saving(self):
         """Test that redis hooks are set up correctly for saving"""
-        tnode = node.node(m_id="anon", h=redis_hook(red=self.r))
+        tnode = node.node(m_id="anon", h=self.user._h)
         tnode.name = "GOBBY"
         tnode.save()  # Jaseci object save
         tnode._h.commit()
@@ -151,17 +149,15 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
         """
         Test that redis hooks are set up correctly for loading single server
         """
-        r = self.r
-        nd = node.node(m_id="anon", h=redis_hook(red=r))
+        nd = node.node(m_id="anon", h=self.user._h)
         temp_id = nd.id
         nd._h.commit()
-        new_hook = redis_hook(red=r)
-        load_test = new_hook.get_obj("anon", temp_id)
+        load_test = nd._h.get_obj("anon", temp_id)
 
         load_test.kind = "Fasho!"
         load_test.save()
-        new_hook.commit()
-        otnode = redis_hook(red=r).get_obj(load_test._m_id, load_test.id)
+        load_test._h.commit()
+        otnode = load_test._h.get_obj(load_test._m_id, load_test.id)
         self.assertEqual(load_test.kind, otnode.kind)
 
     def test_redis_transacting(self):
@@ -170,30 +166,28 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
         then deleting, also tests that '_id' and '_ids' conventions handle
         uuid types loading from db
         """
-        nd = node.node(m_id="anon", h=redis_hook(red=self.r))
+        nd = node.node(m_id="anon", h=self.user._h)
         temp_id = nd.id
         nd._h.commit()
 
-        load_test = redis_hook(red=self.r).get_obj("anon", temp_id)
+        load_test = nd._h.get_obj("anon", temp_id)
 
         load_test.kind = "Fasheezzy!"
         load_test.save()  # Jaseci model save
         load_test._h.commit()
 
-        otnode = redis_hook(red=self.r).get_obj(load_test._m_id, load_test.id)
+        otnode = nd._h.get_obj(load_test._m_id, load_test.id)
         self.assertEqual(load_test.kind, otnode.kind)
 
         otnode.name = "Rizzoou"
-        oedge = otnode.attach_outbound(node.node(m_id="anon", h=redis_hook(red=self.r)))
+        oedge = otnode.attach_outbound(node.node(m_id="anon", h=self.user._h))
         otnode.save()  # Jaseci object save
         otnode._h.commit()
-        oload_test = redis_hook(red=self.r).get_obj("anon", otnode.id)
+        oload_test = otnode._h.get_obj("anon", otnode.id)
         self.assertEqual(oload_test.name, otnode.name)
         # Below tests loading hex uuid strings and converting to uuid type
         newobj = otnode._h.get_obj_from_store(oload_test.id)
         self.assertIn(oedge[0], newobj.edge_ids.obj_list())
 
         otnode.destroy()
-        self.assertIsNone(
-            redis_hook(red=self.r).get_obj(oload_test._m_id, oload_test.id)
-        )
+        self.assertIsNone(newobj._h.get_obj(oload_test._m_id, oload_test.id))
