@@ -535,7 +535,7 @@ walker get_long_active_items {
       }
       # Select items that have been in backlog for more than a week
       num_days = spawn here walker::days_in_backlog;
-      if (num_days >= long_days): old_list += [[&here, num_days]];
+      if (num_days >= long_days): old_list += [[here, num_days]];
 
       take -[parent]-> node::workette;
   }

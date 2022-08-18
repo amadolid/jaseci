@@ -1,3 +1,4 @@
+from .json_handler import JaseciJsonDecoder
 from .id_list import id_list
 from .utils import logger, find_class_and_import
 import jaseci as core_mod
@@ -145,7 +146,7 @@ class mem_hook(task_hook):
         if self.redis_running():
             loaded_obj = self.task_redis().get(item_id.urn)
             if loaded_obj:
-                jdict = json.loads(loaded_obj)
+                jdict = json.loads(loaded_obj, cls=JaseciJsonDecoder)
                 j_type = jdict["j_type"]
                 j_master = jdict["j_master"]
                 class_for_type = find_class_and_import(j_type, core_mod)
