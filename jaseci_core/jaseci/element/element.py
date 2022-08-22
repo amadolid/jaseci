@@ -14,8 +14,8 @@ import copy
 import json
 from jaseci.utils.id_list import id_list
 from jaseci.utils.utils import logger, log_var_out
+from jaseci.utils.json_handler import json_str_to_jsci_dict
 from jaseci.utils.mem_hook import mem_hook
-from jaseci.utils.mem_hook import json_str_to_jsci_dict
 from jaseci.element.obj_mixins import hookable
 from jaseci.utils.json_handler import JaseciJsonEncoder
 
@@ -188,9 +188,6 @@ class element(hookable):
                             ).serialize(deep - 1)
                         )
 
-        if hasattr(self, "code_ir"):
-            jdict["code_ir"] = getattr(self, "code_ir")
-
         return jdict
 
     def json(self, deep=0, detailed=False):
@@ -214,7 +211,7 @@ class element(hookable):
             setattr(self, i, jdict[i])
 
         if "code_ir" in jdict:
-            self.apply_ir(jdict.pop("code_ir"))
+            self.apply_ir(self.code_ir)
 
     def get_deep_obj_list(self, objs=None):
         """Recursively get all contained Jaseci objects and return id_list"""

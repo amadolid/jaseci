@@ -7,8 +7,6 @@ from jaseci_serv.base.models import JaseciObject
 from jaseci.graph import node
 from jaseci.graph.graph import graph
 from jaseci.actor.sentinel import sentinel
-from jaseci.utils.mem_hook import mem_hook
-from jaseci.utils.redis_hook import redis_hook
 import jaseci.tests.jac_test_code as jtc
 
 

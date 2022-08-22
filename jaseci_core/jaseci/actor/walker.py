@@ -219,10 +219,11 @@ class walker(element, jac_code, walker_interp, anchored):
         """
         Destroys self from memory and persistent storage
         """
-        for i in self.activity_action_ids.obj_list():
-            i.destroy()
-        walker_interp.destroy(self)
-        super().destroy()
+        if not self._h.task_hook_ready() or self._async not in walker.valid_async:
+            for i in self.activity_action_ids.obj_list():
+                i.destroy()
+            walker_interp.destroy(self)
+            super().destroy()
 
     def register_yield_or_destroy(self, yield_ids):
         """Helper for auto destroying walkers"""
