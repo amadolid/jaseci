@@ -1,5 +1,8 @@
+import json
 from json import JSONDecoder, JSONEncoder
 from uuid import UUID
+from jaseci.utils.id_list import id_list
+from jaseci.utils.utils import logger
 
 
 class JaseciJsonEncoder(JSONEncoder):
@@ -43,3 +46,22 @@ class JaseciJsonDecoder(JSONDecoder):
         from jaseci.task.task_hook import task_hook
 
         return task_hook.main_hook.get_obj_from_store(UUID(urn))
+
+
+def json_str_to_jsci_dict(input_str, parent_obj=None):
+    """
+    Helper function to convert JSON strings to dictionarys with _ids list
+    conversions from hex to UUID
+
+    ret_obj is the owning object for id_list objects
+    """
+
+    try:
+        obj_fields = json.loads(input_str)
+    except ValueError:
+        logger.error(str(f"Invalid jsci_obj string {input_str} on {parent_obj.id.urn}"))
+        obj_fields = {}
+    for i in obj_fields.keys():
+        if str(i).endswith("_ids") and isinstance(obj_fields[i], list):
+            obj_fields[i] = id_list(parent_obj=parent_obj, in_list=obj_fields[i])
+    return obj_fields

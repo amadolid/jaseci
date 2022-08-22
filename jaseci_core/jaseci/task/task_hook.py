@@ -6,7 +6,6 @@ from uuid import UUID, uuid4
 from ..utils.utils import logger
 from .tasks import queue, schedule_queue
 from celery import Celery
-from redis import Redis
 
 ################################################
 # ----------------- DEFAULTS ----------------- #
@@ -40,181 +39,157 @@ class task_hook:
     state = -1
     quiet = False
 
-    # ----------------- REGISTERED TASK ----------------- #
+    # --------------- REGISTERED TASK --------------- #
     queue = None
     schedule_queue = None
 
     # ----------------- DATA SOURCE ----------------- #
     main_hook = None
     shared_mem = None
-    redis = None
 
     def __init__(self):
-        self.allowed_scheduler = True
 
-        if task_hook.state < 0 and task_hook.app is None:
-            task_hook.state = 0
+        if th.state < 0 and th.app is None:
+            th.state = 0
 
-            task_hook.main_hook = self
+            th.main_hook = self
 
             try:
-
-                self.__redis()
                 self.__celery()
 
-                if task_hook.inspect.ping() is None:
+                if th.inspect.ping() is None:
                     self.__tasks()
                     self.__worker()
-                    if self.allowed_scheduler:
-                        self.__scheduler()
-                    task_hook.state = 1
+                    self.__scheduler()
+                    th.state = 1
             except Exception as e:
-                if not (task_hook.quiet):
-                    logger.error(f"Celery initialization failed! Error: '{e}'")
-                task_hook.app = None
-                task_hook.redis = None
-                task_hook.terminate_worker()
-                task_hook.terminate_scheduler()
+                if not (th.quiet):
+                    logger.error(
+                        f"Skipping Celery due to initialization failure! Error: '{e}'"
+                    )
 
-    #################################################
-    # ---------------- INITIALIZER ---------------- #
-    #################################################
+                th.app = None
+                th.terminate_worker()
+                th.terminate_scheduler()
 
-    def __redis(self):
-        task_hook.redis = Redis(host=REDIS_HOST, db=REDIS_DB, decode_responses=True)
-        self.clear_redis()
-
-    def clear_redis(self):
-        from jaseci.actions.live_actions import get_global_actions
-
-        if self.redis_running():
-            task_hook.redis.flushdb()
-
-        task_hook.main_hook.global_action_list = get_global_actions(task_hook.main_hook)
+    ###################################################
+    #                   INITIALIZER                   #
+    ###################################################
 
     def __celery(self):
-        task_hook.app = Celery("celery")
-        self.celery_config()
-        task_hook.inspect = task_hook.app.control.inspect()
-        task_hook.shared_mem = Manager().dict()
+        th.app = Celery("celery")
+        self.task_config()
+        th.inspect = th.app.control.inspect()
+        th.shared_mem = Manager().dict()
 
     def __worker(self):
-        task_hook.worker = Process(
-            target=task_hook.app.Worker(quiet=task_hook.quiet).start
-        )
-        task_hook.worker.daemon = True
-        task_hook.worker.start()
+        th.worker = Process(target=th.app.Worker(quiet=th.quiet).start)
+        th.worker.daemon = True
+        th.worker.start()
 
     def __scheduler(self):
-        task_hook.scheduler = Process(
-            target=task_hook.app.Beat(quiet=task_hook.quiet).run
-        )
-        task_hook.scheduler.daemon = True
-        task_hook.scheduler.start()
+        th.scheduler = Process(target=th.app.Beat(quiet=th.quiet).run)
+        th.scheduler.daemon = True
+        th.scheduler.start()
 
     def __tasks(self):
-        task_hook.queue = task_hook.app.register_task(queue())
-        task_hook.schedule_queue = task_hook.app.register_task(schedule_queue())
+        th.queue = th.app.register_task(queue())
+        th.schedule_queue = th.app.register_task(schedule_queue())
 
-    ##########################################################
-    # ---------------- COMMON GETTER/SETTER ---------------- #
-    ##########################################################
+    ###################################################
+    #              COMMON GETTER/SETTER               #
+    ###################################################
 
     def task_app(self):
-        return task_hook.app
+        return th.app
 
     def task_hook_ready(self):
-        return task_hook.state == 1 and not (task_hook.app is None)
+        return th.state == 1 and not (th.app is None)
 
     def task_quiet(self, quiet=QUIET):
-        task_hook.quiet = quiet
-
-    # ---------------- REDIS RELATED ---------------- #
-
-    def task_redis(self):
-        return task_hook.redis
-
-    def redis_running(self):
-        return not (task_hook.redis is None)
+        th.quiet = quiet
 
     # ---------------- QUEUE RELATED ---------------- #
 
     def inspect_tasks(self):
         return {
-            "scheduled": task_hook.inspect.scheduled(),
-            "active": task_hook.inspect.active(),
-            "reserved": task_hook.inspect.reserved(),
+            "scheduled": th.inspect.scheduled(),
+            "active": th.inspect.active(),
+            "reserved": th.inspect.reserved(),
         }
 
-    # ORM_HOOK OVERRIDE
+    # --------------- ORM OVERRIDDEN ---------------- #
     def get_by_task_id(self, task_id):
         ret = {"status": "NOT_STARTED"}
-        task = task_hook.redis.get(f"{PREFIX}{task_id}")
+        task = self.redis.get(f"{PREFIX}{task_id}")
         if task and "status" in task:
             ret["status"] = task["status"]
             if ret["status"] == "SUCESS":
                 ret["result"] = task["result"]
         return ret
 
-    #############################################
-    # ---------------- QUEUING ---------------- #
-    #############################################
+    ###################################################
+    #                     QUEUING                     #
+    ###################################################
 
     def get_element(jid):
-        return task_hook.main_hook.get_obj_from_store(UUID(jid))
+        return th.main_hook.get_obj_from_store(UUID(jid))
 
     def add_queue(self, wlk, nd, *args):
         queue_id = str(uuid4())
 
-        task_hook.shared_mem.update(
+        th.shared_mem.update(
             {queue_id: {"wlk": wlk.id.urn, "nd": nd.id.urn, "arg": args}}
         )
-        return task_hook.queue.delay(queue_id).task_id
+        return th.queue.delay(queue_id).task_id
 
     def consume_queue(queue_id):
-        que = task_hook.shared_mem.pop(queue_id)
-        wlk = task_hook.get_element(que["wlk"])
-        nd = task_hook.get_element(que["nd"])
+        que = th.shared_mem.pop(queue_id)
+        wlk = th.get_element(que["wlk"])
+        nd = th.get_element(que["nd"])
         resp = wlk.run(nd, *que["arg"])
         wlk.destroy()
 
         return resp
 
-    #############################################
-    # ---------------- CLEANER ---------------- #
-    #############################################
+    ###################################################
+    #                     CLEANER                     #
+    ###################################################
 
     def terminate_worker():
-        if not (task_hook.worker is None):
-            if not (task_hook.quiet):
+        if not (th.worker is None):
+            if not (th.quiet):
                 logger.warn("Terminating task worker ...")
-            task_hook.worker.terminate()
-            task_hook.worker = None
+            th.worker.terminate()
+            th.worker = None
 
     def terminate_scheduler():
-        if not (task_hook.scheduler is None):
-            if not (task_hook.quiet):
+        if not (th.scheduler is None):
+            if not (th.quiet):
                 logger.warn("Terminating task scheduler ...")
-            task_hook.scheduler.terminate()
-            task_hook.scheduler = None
+            th.scheduler.terminate()
+            th.scheduler = None
 
-    ############################################
-    # ---------------- CONFIG ---------------- #
-    ############################################
+    ###################################################
+    #                     CONFIG                      #
+    ###################################################
 
     # ORM_HOOK OVERRIDE
-    def celery_config(self):
+    def task_config(self):
         """Add celery config"""
-        self.allowed_scheduler = False
-        task_hook.app.conf.update(**CELERY_DEFAULT_CONFIGS)
-        task_hook.quiet = QUIET
+        th.app.conf.update(**CELERY_DEFAULT_CONFIGS)
+        self.__scheduler = lambda: None
+        th.quiet = QUIET
 
 
-# --------------------------------------------- #
+# ----------------------------------------------- #
 
-#######################################################
-# ----------------- PROCESS CLEANER ----------------- #
-#######################################################
+th = task_hook
+
+
+###################################################
+#                 PROCESS CLEANER                 #
+###################################################
 
 EXITING = False
 
@@ -224,8 +199,8 @@ def terminate_gracefully(sig, frame):
 
     if not EXITING:
         EXITING = True
-        task_hook.terminate_worker()
-        task_hook.terminate_scheduler()
+        th.terminate_worker()
+        th.terminate_scheduler()
         logger.warn("Exitting gracefully ...")
         sys.exit(0)
 
