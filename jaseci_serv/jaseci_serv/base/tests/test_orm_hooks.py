@@ -1,6 +1,7 @@
 from django.contrib.auth import get_user_model
 
 from jaseci.utils.utils import TestCaseHelper
+from jaseci.utils.redis_hook import redis_hook as rh
 from django.test import TestCase
 
 from jaseci_serv.base.models import JaseciObject
@@ -49,7 +50,7 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
 
         user._h.commit()
         del user._h.mem[temp_id.urn]
-        user._h.task_redis().delete(temp_id.urn)
+        rh.app.delete(temp_id.urn)
 
         load_test = JaseciObject.objects.filter(jid=temp_id).first()
 
@@ -72,7 +73,7 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
 
         user._h.commit()
         del user._h.mem[temp_id.urn]
-        user._h.task_redis().delete(temp_id.urn)
+        rh.app.delete(temp_id.urn)
 
         load_test = JaseciObject.objects.filter(jid=temp_id).first()
 
@@ -129,10 +130,10 @@ class jaseci_engine_orm_tests_private(TestCaseHelper, TestCase):
     def test_redis_connection(self):
         """Test redis connection"""
 
-        self.assertTrue(self.user._h.redis_running())
+        self.assertTrue(rh.is_running())
 
-        self.user._h.task_redis().set("test", "this is a test")
-        self.assertEqual(self.user._h.task_redis().get("test"), "this is a test")
+        rh.app.set("test", "this is a test")
+        self.assertEqual(rh.app.get("test"), "this is a test")
 
     def test_redis_saving(self):
         """Test that redis hooks are set up correctly for saving"""

@@ -170,8 +170,8 @@ class mem_hook(task_hook):
     def commit_glob_to_cache(self, name, value):
         self.mem["global"][name] = value
 
-    def decommit_glob_from_cache(self, name, value):
-        self.mem["global"][name] = value
+    def decommit_glob_from_cache(self, name):
+        self.mem["global"].pop(name)
 
     # --------------------- OBJ --------------------- #
 
@@ -179,7 +179,7 @@ class mem_hook(task_hook):
         self.mem[item.id.urn] = item
 
     def decommit_obj_from_cache(self, item):
-        self.mem[item.id.urn] = item
+        self.mem.pop(item.id.urn)
 
     ####################################################
     # ------------------ UTILITIES ------------------- #
