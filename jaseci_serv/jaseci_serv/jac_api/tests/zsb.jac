@@ -266,7 +266,6 @@ walker simple_custom_payload_with_file {
 }
 
 walker for_loop_dict {
-
     with entry {
         testing = {
             "test1": 1,
@@ -291,5 +290,19 @@ walker for_loop_dict {
         for key, val in testing {
             report key.str + " : " + val.str;
         }
+    }
+}
+
+walker var_as_key_for_dict {
+    with entry {
+        key = "key1";
+        not_str_key = 1;
+        testing = {
+            key: key,
+            "key2": 2,
+            not_str_key: not_str_key
+        };
+
+        report testing;
     }
 }

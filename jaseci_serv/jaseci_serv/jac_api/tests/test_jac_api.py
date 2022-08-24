@@ -1680,3 +1680,23 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
                 "2 : 7",
             ],
         )
+
+    def test_var_as_key_for_dict(self):
+        """Test multipart custom payload (non ctx format) with additional file"""
+        zsb_file = open(os.path.dirname(__file__) + "/zsb.jac").read()
+        payload = {"op": "sentinel_register", "name": "zsb", "code": zsb_file}
+        res = self.client.post(
+            reverse(f'jac_api:{payload["op"]}'), payload, format="json"
+        ).data
+
+        payload = {
+            "op": "walker_run",
+            "name": "var_as_key_for_dict",
+        }
+        res = self.client.post(
+            reverse(f'jac_api:{payload["op"]}'), payload, format="json"
+        ).data
+
+        self.assertEqual(res["report"], [{"key1": "key1", "key2": 2}])
+
+        self.assertIn("Key is not str type : <class 'int'>!", res["errors"][0])
