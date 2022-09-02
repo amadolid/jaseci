@@ -15,6 +15,7 @@ import jaseci as core_mod
 from jaseci_serv.jaseci_serv.settings import (
     TASK_QUIET,
     TASK_ENABLED,
+    TASK_CONFIG,
     REDIS_ENABLED,
     REDIS_HOST,
     REDIS_PORT,
@@ -179,8 +180,14 @@ class orm_hook(redis_hook):
 
     def task_config(self):
         if TASK_ENABLED:
-            self.task_app().config_from_object("jaseci_serv.jaseci_serv.settings")
-            self.task_quiet(TASK_QUIET)
+            configs = self.get_glob("TASK_CONFIG")
+            if configs is None:
+                configs = TASK_CONFIG
+            configs = json.loads(configs)
+            self.task_app().conf.update(**configs)
+
+            quiet = self.get_glob("TASK_QUIET")
+            self.task_quiet(TASK_QUIET if quiet is None else quiet == "True")
         else:
             self.disable_task()
 

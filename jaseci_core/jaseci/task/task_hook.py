@@ -1,3 +1,4 @@
+import json
 import signal
 import sys
 from multiprocessing import Manager, Process
@@ -11,15 +12,11 @@ from celery import Celery
 # ----------------- DEFAULTS ----------------- #
 ################################################
 
-QUIET = True
-PREFIX = "celery-task-meta-"
-REDIS_HOST = "localhost"
-REDIS_PORT = 6379
-REDIS_DB = 1
-REDIS_URL = f"redis://{REDIS_HOST}:{REDIS_PORT}/{REDIS_DB}"
-CELERY_DEFAULT_CONFIGS = {
-    "broker_url": REDIS_URL,
-    "result_backend": REDIS_URL,
+TASK_QUIET = True
+TASK_PREFIX = "celery-task-meta-"
+TASK_CONFIG = {
+    "broker_url": "redis://localhost:6379/1",
+    "result_backend": "redis://localhost:6379/1",
     "broker_connection_retry_on_startup": True,
     "task_track_started": True,
 }
@@ -112,7 +109,7 @@ class task_hook:
     def task_hook_ready(self):
         return th.state == 1 and not (th.app is None)
 
-    def task_quiet(self, quiet=QUIET):
+    def task_quiet(self, quiet=True):
         th.quiet = quiet
 
     def __inspect_ping(self):
@@ -130,7 +127,7 @@ class task_hook:
     # --------------- ORM OVERRIDDEN ---------------- #
     def get_by_task_id(self, task_id):
         ret = {"status": "NOT_STARTED"}
-        task = self.redis.get(f"{PREFIX}{task_id}")
+        task = self.redis.get(f"{TASK_PREFIX}{task_id}")
         if task and "status" in task:
             ret["status"] = task["status"]
             if ret["status"] == "SUCESS":
@@ -165,19 +162,27 @@ class task_hook:
     #                     CLEANER                     #
     ###################################################
 
-    def terminate_worker():
+    def terminate_worker(self=None):
         if not (th.worker is None):
             if not (th.quiet):
                 logger.warn("Terminating task worker ...")
             th.worker.terminate()
             th.worker = None
 
-    def terminate_scheduler():
+    def terminate_scheduler(self=None):
         if not (th.scheduler is None):
             if not (th.quiet):
                 logger.warn("Terminating task scheduler ...")
             th.scheduler.terminate()
             th.scheduler = None
+
+    def task_reset(self):
+        self.terminate_worker()
+        self.terminate_scheduler()
+        th.app = None
+        th.inspect = None
+        th.state = -1
+        task_hook.__init__(self)
 
     ###################################################
     #                     CONFIG                      #
@@ -186,9 +191,16 @@ class task_hook:
     # ORM_HOOK OVERRIDE
     def task_config(self):
         """Add celery config"""
-        th.app.conf.update(**CELERY_DEFAULT_CONFIGS)
+        configs = self.get_glob("TASK_CONFIG")
+        if configs is None:
+            configs = TASK_CONFIG
+        configs = json.loads(configs)
+        th.app.conf.update(**configs)
+
+        quiet = self.get_glob("TASK_QUIET")
+        th.quiet = TASK_QUIET if quiet is None else quiet == "True"
+
         self.__scheduler = lambda: None
-        th.quiet = QUIET
 
     def disable_task(self):
         th.app = None
