@@ -1,4 +1,3 @@
-import json
 import signal
 import sys
 from multiprocessing import Manager, Process
@@ -59,12 +58,6 @@ class task_hook:
 
             try:
                 self.__celery()
-
-                if self.__inspect_ping():
-                    self.__tasks()
-                    self.__worker()
-                    self.__scheduler()
-                    th.state = AS.RUNNING
             except Exception as e:
                 if not (th.quiet):
                     logger.error(
@@ -89,6 +82,12 @@ class task_hook:
             th.quiet = configs.pop("quiet", False)
             th.app.conf.update(**configs)
             th.inspect = th.app.control.inspect()
+
+            if self.__inspect_ping():
+                self.__tasks()
+                self.__worker()
+                self.__scheduler()
+                th.state = AS.RUNNING
         else:
             th.state = AS.DISABLED
 
@@ -133,6 +132,7 @@ class task_hook:
         }
 
     # --------------- ORM OVERRIDDEN ---------------- #
+
     def get_by_task_id(self, task_id):
         ret = {"status": "NOT_STARTED"}
         task = self.redis.get(f"{TASK_PREFIX}{task_id}")
@@ -190,7 +190,7 @@ class task_hook:
         th.app = None
         th.inspect = None
         th.state = AS.NOT_STARTED
-        task_hook.__init__(self)
+        th.__init__(self)
 
     ###################################################
     #                     CONFIG                      #
@@ -210,7 +210,7 @@ class task_hook:
     def generate_basic_master():
 
         if th.basic_master is None:
-            th.basic_master = task_hook.main_hook.generate_basic_master()
+            th.basic_master = th.main_hook.generate_basic_master()
 
         return th.basic_master
 

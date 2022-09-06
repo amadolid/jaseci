@@ -1,9 +1,10 @@
 from json import dumps, loads
+from jaseci.utils.email_hook import email_hook
 from jaseci.utils.utils import find_class_and_import
 from jaseci.task.task_hook import task_hook
 
 
-class mem_hook(task_hook):
+class mem_hook(task_hook, email_hook):
     """
     Set of virtual functions to be used as hooks to allow access to
     the complete set of items across jaseci object types. This class contains
@@ -19,6 +20,7 @@ class mem_hook(task_hook):
         self.save_glob_dict = {}
         self.global_action_list = get_global_actions(self)
         task_hook.__init__(self)
+        email_hook.__init__(self)
 
     ####################################################
     #               COMMON GETTER/SETTER               #

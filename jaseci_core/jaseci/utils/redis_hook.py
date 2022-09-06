@@ -6,7 +6,7 @@ import jaseci as core_mod
 from jaseci.utils.app_state import AppState as AS
 from jaseci.utils.utils import logger
 from jaseci.utils.mem_hook import mem_hook
-from redis import Redis, RedisError
+from redis import Redis
 import json
 
 from .json_handler import JaseciJsonDecoder

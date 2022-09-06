@@ -5,6 +5,7 @@ core engine.
 FIX: Serious permissions work needed
 """
 from django.core.exceptions import ObjectDoesNotExist
+from django.core import mail
 
 from jaseci.utils import utils
 
@@ -12,7 +13,8 @@ from jaseci.utils.redis_hook import redis_hook
 from jaseci.utils.utils import logger
 from jaseci.utils.json_handler import json_str_to_jsci_dict
 import jaseci as core_mod
-from jaseci_serv.jaseci_serv.settings import TASK_CONFIG, REDIS_CONFIG
+from jaseci_serv.base.mail import email_config
+from jaseci_serv.jaseci_serv.settings import TASK_CONFIG, REDIS_CONFIG, EMAIL_CONFIG
 import uuid
 import json
 
@@ -123,6 +125,26 @@ class orm_hook(redis_hook):
         except ObjectDoesNotExist:
             pass
 
+    ####################################################
+    #                    OVERRIDEN                     #
+    ####################################################
+
+    # ------------------- EMAILER -------------------- #
+
+    def emailer_connect(self, configs):
+        backend = configs.get("backend", "locmem")
+
+        server = mail.get_connection(
+            backend=f"django.core.mail.backends.{backend}.EmailBackend",
+            host=configs.get("host"),
+            port=configs.get("port"),
+            username=configs.get("user"),
+            password=configs.get("pass"),
+            use_tls=configs.get("tls"),
+        )
+
+        return email_config(server, configs["templates"])
+
     # -------------------- TASK --------------------- #
 
     def get_by_task_id(self, task_id):
@@ -186,6 +208,11 @@ class orm_hook(redis_hook):
 
     def get_redis_config(self):
         return self.build_config("REDIS_CONFIG", REDIS_CONFIG)
+
+    # ----------------- EMAIL HOOK ------------------ #
+
+    def get_email_config(self):
+        return self.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
 
     ###################################################
     #                  CLASS CONTROL                  #
