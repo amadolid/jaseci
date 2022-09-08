@@ -1,10 +1,11 @@
 from json import dumps, loads
-from jaseci.utils.email_hook import email_hook
+from jaseci.app.mail.mail_app import mail_app
+from jaseci.app.redis.redis_app import redis_app
+from jaseci.app.task.task_app import task_app
 from jaseci.utils.utils import find_class_and_import
-from jaseci.task.task_hook import task_hook
 
 
-class mem_hook(task_hook, email_hook):
+class mem_hook:
     """
     Set of virtual functions to be used as hooks to allow access to
     the complete set of items across jaseci object types. This class contains
@@ -19,8 +20,16 @@ class mem_hook(task_hook, email_hook):
         self.save_obj_list = set()
         self.save_glob_dict = {}
         self.global_action_list = get_global_actions(self)
-        task_hook.__init__(self)
-        email_hook.__init__(self)
+        self.build_apps()
+
+    ####################################################
+    #                       APPS                       #
+    ####################################################
+
+    def build_apps(self):
+        self.redis = redis_app(self)
+        self.task = task_app(self)
+        self.mail = mail_app(self)
 
     ####################################################
     #               COMMON GETTER/SETTER               #
@@ -213,8 +222,3 @@ class mem_hook(task_hook, email_hook):
 
     def find_class_and_import(self, j_type, mod):
         return find_class_and_import(j_type, mod)
-
-    def generate_basic_master(self):
-        from jaseci.element.master import master
-
-        return master(h=self, persist=False)

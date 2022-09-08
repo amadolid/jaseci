@@ -73,8 +73,8 @@ class super_api:
 
         if refresh:
             if name == "TASK_CONFIG":
-                hook.task_reset()
+                hook.task.reset(hook)
             elif name == "REDIS_CONFIG":
-                hook.redis_reset()
+                hook.redis.reset(hook)
             elif name == "EMAIL_CONFIG":
-                hook.emailer_reset()
+                hook.mail.reset(hook)

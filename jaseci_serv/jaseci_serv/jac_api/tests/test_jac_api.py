@@ -858,7 +858,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
 
     def test_master_create_linked_survives_ORM(self):
         """Test master create operation"""
-        self.user.get_master()._h.clear_mem_cache()
+        self.user.get_master()._h.clear_cache()
         payload = {
             "op": "master_create",
             "name": "yo@gmail.com",
@@ -1133,7 +1133,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
         res = self.sclient.post(
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
         )
-        self.user._h.clear_mem_cache()
+        self.user._h.clear_cache()
         payload = {"op": "walker_run", "name": "init"}
         res = self.client.post(
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
@@ -1298,7 +1298,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
         )
         ret1 = res.data
-        self.user.get_master()._h.clear_mem_cache()
+        self.user.get_master()._h.clear_cache()
         payload = {"op": "walker_run", "name": "asim_bug_check2"}
         res = self.client.post(
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
@@ -1318,7 +1318,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
         )
         ret1 = res.data
-        self.user.get_master()._h.clear_mem_cache()
+        self.user.get_master()._h.clear_cache()
         payload = {"op": "walker_run", "name": "asim_bug_check2"}
         res = self.client.post(
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
@@ -1338,7 +1338,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"
         )
         ret1 = res.data
-        self.user.get_master()._h.clear_mem_cache()
+        self.user.get_master()._h.clear_cache()
         payload = {"op": "walker_run", "name": "asim_bug_check2"}
         res = self.client.post(
             reverse(f'jac_api:{payload["op"]}'), payload, format="json"

@@ -5,7 +5,7 @@ core engine.
 FIX: Serious permissions work needed
 """
 from django.core.exceptions import ObjectDoesNotExist
-from django.core import mail
+from jaseci.app.redis.redis_app import redis_app
 
 from jaseci.utils import utils
 
@@ -13,12 +13,9 @@ from jaseci.utils.redis_hook import redis_hook
 from jaseci.utils.utils import logger
 from jaseci.utils.json_handler import json_str_to_jsci_dict
 import jaseci as core_mod
-from jaseci_serv.base.mail import email_config
-from jaseci_serv.jaseci_serv.settings import TASK_CONFIG, REDIS_CONFIG, EMAIL_CONFIG
+from jaseci_serv.app.mail.mail_app import mail_app
+from jaseci_serv.app.task.task_app import task_app
 import uuid
-import json
-
-from django_celery_results.models import TaskResult
 
 
 class orm_hook(redis_hook):
@@ -30,6 +27,15 @@ class orm_hook(redis_hook):
         self.objects = objects
         self.globs = globs
         super().__init__()
+
+    ####################################################
+    #                       APPS                       #
+    ####################################################
+
+    def build_apps(self):
+        self.redis = redis_app(self)
+        self.task = task_app(self)
+        self.mail = mail_app(self)
 
     ####################################################
     #                DATASOURCE METHOD                 #
@@ -126,45 +132,6 @@ class orm_hook(redis_hook):
             pass
 
     ####################################################
-    #                    OVERRIDEN                     #
-    ####################################################
-
-    # ------------------- EMAILER -------------------- #
-
-    def emailer_connect(self, configs):
-        user = configs.get("user")
-        backend = configs.get("backend", "smtp")
-
-        self.emailer_sender(configs.get("sender", user))
-
-        server = mail.get_connection(
-            backend=f"django.core.mail.backends.{backend}.EmailBackend",
-            host=configs.get("host"),
-            port=configs.get("port"),
-            username=user,
-            password=configs.get("pass"),
-            use_tls=configs.get("tls"),
-        )
-
-        return email_config(server, configs["templates"])
-
-    # -------------------- TASK --------------------- #
-
-    def get_by_task_id(self, task_id):
-        task = self.task_app().AsyncResult(task_id)
-
-        ret = {"status": task.state}
-
-        if task.ready():
-            task_result = TaskResult.objects.get(task_id=task_id).result
-            try:
-                ret["result"] = json.loads(task_result)
-            except ValueError as e:
-                ret["result"] = task_result
-
-        return ret
-
-    ####################################################
     #                    COMMITTER                     #
     ####################################################
 
@@ -183,13 +150,6 @@ class orm_hook(redis_hook):
 
     def commit(self):
         """Write through all saves to store"""
-        # dist = {}
-        # for i in self.save_obj_list:
-        #     if (type(i).__name__ in dist.keys()):
-        #         dist[type(i).__name__] += 1
-        #     else:
-        #         dist[type(i).__name__] = 1
-        # print(dist)
         for i in self.save_obj_list:
             self.commit_obj(i)
         self.save_obj_list = set()
@@ -197,25 +157,6 @@ class orm_hook(redis_hook):
         for k, v in self.save_glob_dict.items():
             self.commit_glob(k, v)
         self.save_glob_dict = {}
-
-    ###################################################
-    #                     CONFIGS                     #
-    ###################################################
-
-    # ------------------ TASK HOOK ------------------ #
-
-    def get_task_config(self):
-        return self.build_config("TASK_CONFIG", TASK_CONFIG)
-
-    # ----------------- REDIS HOOK ------------------ #
-
-    def get_redis_config(self):
-        return self.build_config("REDIS_CONFIG", REDIS_CONFIG)
-
-    # ----------------- EMAIL HOOK ------------------ #
-
-    def get_email_config(self):
-        return self.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
 
     ###################################################
     #                  CLASS CONTROL                  #
@@ -232,8 +173,3 @@ class orm_hook(redis_hook):
             return super_master
         else:
             return utils.find_class_and_import(j_type, core_mod)
-
-    def generate_basic_master(self):
-        from jaseci_serv.base.models import master
-
-        return master(h=self, persist=False)

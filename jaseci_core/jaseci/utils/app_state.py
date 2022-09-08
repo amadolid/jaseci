@@ -10,3 +10,6 @@ class AppState(Enum):
 
     def is_ready(self):
         return self == AppState.NOT_STARTED
+
+    def is_running(self):
+        return self == AppState.RUNNING

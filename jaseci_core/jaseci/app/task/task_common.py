@@ -1,29 +1,31 @@
+from multiprocessing import Process
 import re
-
 from copy import deepcopy
 from typing import Tuple
 from requests import post, get
 from requests.exceptions import HTTPError
 from celery import Task
+from celery.app.control import Inspect
 
 DEFAULT_MSG = "Skipping scheduled walker!"
 
 
 class queue(Task):
     def run(self, queue_id):
-        from .task_hook import task_hook
+        from jaseci.utils.redis_hook import redis_hook
+        from jaseci_serv.app.task.task_app import task_app
 
-        ret = task_hook.consume_queue(queue_id)
+        ret = task_app.consume_queue(queue_id, redis_hook())
 
         return ret
 
 
 class scheduled_walker(Task):
     def run(self, name, ctx, nd=None, snt=None, mst=None):
-        from .task_hook import task_hook
+        from jaseci_serv.app.task.task_app import task_app
 
         if mst:
-            mst = task_hook.get_element(mst)
+            mst = task_app.get_element(mst)
         else:
             return f"{DEFAULT_MSG} mst (Master) is required!"
 
@@ -33,25 +35,25 @@ class scheduled_walker(Task):
         try:
             if not snt:
                 if mst.active_snt_id == "global":
-                    global_snt_id = task_hook.main_hook.get_glob("GLOB_SENTINEL")
-                    snt = task_hook.get_element(global_snt_id)
+                    global_snt_id = task_app.main_hook.get_glob("GLOB_SENTINEL")
+                    snt = task_app.get_element(global_snt_id)
                 elif mst.active_snt_id:
-                    snt = task_hook.get_element(mst.active_snt_id)
+                    snt = task_app.get_element(mst.active_snt_id)
             elif snt in mst.alias_map:
-                snt = task_hook.get_element(mst.alias_map[snt])
+                snt = task_app.get_element(mst.alias_map[snt])
             else:
-                snt = task_hook.get_element(snt)
+                snt = task_app.get_element(snt)
 
             if not snt:
                 return f"{DEFAULT_MSG} Invalid Sentinel!"
 
             if not nd:
                 if mst.active_gph_id:
-                    nd = task_hook.get_element(mst.active_gph_id)
+                    nd = task_app.get_element(mst.active_gph_id)
             elif nd in mst.alias_map:
-                nd = task_hook.get_element(mst.alias_map[nd])
+                nd = task_app.get_element(mst.alias_map[nd])
             else:
-                nd = task_hook.get_element(nd)
+                nd = task_app.get_element(nd)
 
             if not nd:
                 return f"{DEFAULT_MSG} Invalid Node!"
@@ -177,15 +179,15 @@ class scheduled_sequence(Task):
             holder[0][self.json_escape.sub("_", req[params])] = holder[1]
 
     def trigger_interface(self, req: dict):
-        from .task_hook import task_hook
+        from jaseci_serv.app.task.task_app import task_app
 
         master = req.get("master")
 
         if master is None:
-            caller = task_hook.generate_basic_master()
+            caller = task_app.generate_basic_master()
             trigger_type = "public"
         else:
-            caller = task_hook.get_element(master)
+            caller = task_app.get_element(master)
             trigger_type = "general"
 
         api = req.get("api")
@@ -279,3 +281,69 @@ class scheduled_sequence(Task):
                 break
 
         return persistence
+
+
+c1 = queue
+c2 = scheduled_walker
+c3 = scheduled_sequence
+
+
+class task_properties:
+    def __init__(self, prop):
+        if not hasattr(prop, "_modified"):
+            setattr(prop, "_inspect", None)
+            setattr(prop, "_worker", None)
+            setattr(prop, "_scheduler", None)
+
+            # --------------- REGISTERED TASK --------------- #
+            setattr(prop, "_queue", None)
+            setattr(prop, "_scheduled_walker", None)
+            setattr(prop, "_scheduled_sequence", None)
+
+    @property
+    def inspect(self) -> Inspect:
+        return self.cls._inspect
+
+    @inspect.setter
+    def inspect(self, val: Inspect):
+        self.cls._inspect = val
+
+    @property
+    def worker(self) -> Process:
+        return self.cls._worker
+
+    @worker.setter
+    def worker(self, val: Process):
+        self.cls._worker = val
+
+    @property
+    def scheduler(self) -> Process:
+        return self.cls._scheduler
+
+    @scheduler.setter
+    def scheduler(self, val: Process):
+        self.cls._scheduler = val
+
+    @property
+    def queue(self) -> c1:
+        return self.cls._queue
+
+    @queue.setter
+    def queue(self, val: c1):
+        self.cls._queue = val
+
+    @property
+    def scheduled_walker(self) -> c2:
+        return self.cls._scheduled_walker
+
+    @scheduled_walker.setter
+    def scheduled_walker(self, val: c2):
+        self.cls._scheduled_walker = val
+
+    @property
+    def scheduled_sequence(self) -> c3:
+        return self.cls._scheduled_sequence
+
+    @scheduled_sequence.setter
+    def scheduled_sequence(self, val: c3):
+        self.cls._scheduled_sequence = val

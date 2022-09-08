@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 
 from jaseci.utils.utils import TestCaseHelper
-from jaseci.utils.redis_hook import redis_hook as rh
 from django.test import TestCase
 
 from jaseci_serv.base.models import GlobalVars
@@ -46,8 +45,8 @@ class jaseci_engine_orm_config_tests_private(TestCaseHelper, TestCase):
         h.commit()
 
         del user._h.mem["global"]["GOOBY1"]
-        if rh.redis_running():
-            rh.app.delete("GOOBY1")
+        if h.redis.is_running():
+            h.redis.delete("GOOBY1")
         self.assertNotIn("GOOBY1", user._h.mem["global"].keys())
 
         load_test = GlobalVars.objects.filter(name="GOOBY1").first()
@@ -66,9 +65,9 @@ class jaseci_engine_orm_config_tests_private(TestCaseHelper, TestCase):
         h.save_glob("GOOBY3", "MOOBY3")
         h.commit()
 
-        user._h.clear_mem_cache()
-        if rh.redis_running():
-            rh.app.delete("GOOBY1")
+        h.clear_cache()
+        if h.redis.is_running():
+            h.redis.delete("GOOBY1")
         self.assertEqual(len(user._h.mem["global"].keys()), 0)
         self.assertNotIn("GOOBY1", user._h.mem["global"].keys())
 
