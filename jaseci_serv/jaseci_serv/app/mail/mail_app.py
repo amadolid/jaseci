@@ -24,9 +24,8 @@ class mail_app(ma):
 
         return emailer(server, sender, configs["templates"])
 
-    def get_email_config(self):
-        """Add email config"""
-        return self.hook.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
+    def get_config(self, hook) -> dict:
+        return hook.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
 
 
 # ----------------------------------------------- #

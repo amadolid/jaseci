@@ -1,8 +1,11 @@
 import json
 from json import JSONDecoder, JSONEncoder
 from uuid import UUID
+from jaseci.app.common_app import hook_app
 from jaseci.utils.id_list import id_list
 from jaseci.utils.utils import logger
+
+ha = hook_app()
 
 
 class JaseciJsonEncoder(JSONEncoder):
@@ -43,9 +46,7 @@ class JaseciJsonDecoder(JSONDecoder):
                 self.transform(obj[key], idx)
 
     def convert(self, urn):
-        from jaseci.task.task_hook import task_hook
-
-        return task_hook.main_hook.get_obj_from_store(UUID(urn))
+        return ha.app().get_obj_from_store(UUID(urn))
 
 
 def json_str_to_jsci_dict(input_str, parent_obj=None):

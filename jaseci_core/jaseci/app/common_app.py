@@ -2,9 +2,7 @@ from jaseci.utils.app_state import AppState as AS
 
 
 class common_app:
-    def __init__(self, cls, hook=None):
-        self.hook = hook
-
+    def __init__(self, cls):
         self.cls = cls
         if not hasattr(self.cls, "_app"):
             setattr(self.cls, "_app", None)
@@ -58,3 +56,17 @@ class common_app:
 class proxy_app(common_app):
     def __init__(self):
         super().__init__(proxy_app)
+
+
+class hook_app(common_app):
+    def __init__(self):
+        super().__init__(hook_app)
+
+        if self.is_ready():
+            self.state = AS.RUNNING
+            self.app = self.build_hook
+
+    def build_hook(self):
+        from jaseci.utils.redis_hook import redis_hook
+
+        return redis_hook()

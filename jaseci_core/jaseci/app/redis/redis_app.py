@@ -25,20 +25,20 @@ class redis_app(common_app):
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(redis_app, hook)
+        super().__init__(redis_app)
 
         try:
             if self.is_ready():
                 self.state = AS.STARTED
 
-                self.__redis()
+                self.__redis(hook)
         except Exception:
             logger.exception("Skipping Redis due to initialization failure!")
             self.app = None
             self.state = AS.FAILED
 
-    def __redis(self):
-        configs = self.get_config()
+    def __redis(self, hook):
+        configs = self.get_config(hook)
         enabled = configs.pop("enabled", True)
 
         if enabled:
@@ -94,8 +94,8 @@ class redis_app(common_app):
     #                     CONFIG                      #
     ###################################################
 
-    def get_config(self) -> dict:
-        return self.hook.build_config("REDIS_CONFIG", REDIS_CONFIG)
+    def get_config(self, hook) -> dict:
+        return hook.build_config("REDIS_CONFIG", REDIS_CONFIG)
 
 
 # ----------------------------------------------- #

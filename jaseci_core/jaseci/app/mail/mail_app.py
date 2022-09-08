@@ -48,23 +48,23 @@ class mail_app(common_app):
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(mail_app, hook)
+        super().__init__(mail_app)
 
         if self.is_ready():
             self.state = AS.STARTED
 
             try:
-                self.__mail()
+                self.__mail(hook)
             except Exception:
                 logger.exception("Skipping Mail setup due to initialization failure!")
                 self.app = None
                 self.state = AS.FAILED
 
-    def __mail(self):
-        configs = self.get_config()
+    def __mail(self, hook):
+        configs = self.get_config(hook)
         enabled = configs.get("enabled", True)
         if enabled:
-            self.__convert_config(configs)
+            self.__convert_config(hook, configs)
             self.app = self.connect(configs)
             self.state = AS.RUNNING
         else:
@@ -73,18 +73,19 @@ class mail_app(common_app):
     # ----------- BACKWARD COMPATIBILITY ------------ #
     # ---------------- TO BE REMOVED ---------------- #
 
-    def __convert(self, holder, mapping: dict):
+    def __convert(self, hook, holder, mapping: dict):
         for k, v in mapping.items():
-            conf = self.hook.get_glob(k)
+            conf = hook.get_glob(k)
             if not (conf is None):
                 holder[v] = conf
         return holder
 
-    def __convert_config(self, configs: dict):
+    def __convert_config(self, hook, configs: dict):
         version = configs.get("version", 2)
         migrate = configs.pop("migrate", False)
         if version == 1 or migrate:
             self.__convert(
+                hook,
                 configs,
                 {
                     "EMAIL_BACKEND": "backend",
@@ -101,6 +102,7 @@ class mail_app(common_app):
                 configs["templates"] = {}
 
             self.__convert(
+                hook,
                 configs["templates"],
                 {
                     "EMAIL_ACTIVATION_SUBJ": "activation_subj",
@@ -119,7 +121,7 @@ class mail_app(common_app):
             )
 
             if migrate:
-                self.hook.save_glob("EMAIL_CONFIG", dumps(configs))
+                hook.save_glob("EMAIL_CONFIG", dumps(configs))
 
     ###################################################
     #                     CLEANER                     #
@@ -155,8 +157,8 @@ class mail_app(common_app):
 
         return emailer(server, sender)
 
-    def get_config(self) -> dict:
-        return self.hook.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
+    def get_config(self, hook) -> dict:
+        return hook.build_config("EMAIL_CONFIG", EMAIL_CONFIG)
 
 
 # ----------------------------------------------- #

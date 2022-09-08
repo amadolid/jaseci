@@ -24,5 +24,5 @@ class task_app(ta):
 
         return ret
 
-    def get_config(self) -> dict:
-        return self.hook.build_config("TASK_CONFIG", TASK_CONFIG)
+    def get_config(self, hook) -> dict:
+        return hook.build_config("TASK_CONFIG", TASK_CONFIG)

@@ -2,6 +2,7 @@ from multiprocessing import Process
 import re
 from copy import deepcopy
 from typing import Tuple
+from jaseci.app.common_app import hook_app
 from requests import post, get
 from requests.exceptions import HTTPError
 from celery import Task
@@ -12,10 +13,9 @@ DEFAULT_MSG = "Skipping scheduled walker!"
 
 class queue(Task):
     def run(self, queue_id):
-        from jaseci.utils.redis_hook import redis_hook
         from jaseci_serv.app.task.task_app import task_app
 
-        ret = task_app.consume_queue(queue_id, redis_hook())
+        ret = task_app.consume_queue(queue_id, hook_app().app())
 
         return ret
 
@@ -290,7 +290,7 @@ c3 = scheduled_sequence
 
 class task_properties:
     def __init__(self, prop):
-        if not hasattr(prop, "_modified"):
+        if not hasattr(prop, "_inspect"):
             setattr(prop, "_inspect", None)
             setattr(prop, "_worker", None)
             setattr(prop, "_scheduler", None)

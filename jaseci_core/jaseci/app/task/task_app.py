@@ -37,7 +37,7 @@ class task_app(common_app, task_properties):
     ###################################################
 
     def __init__(self, hook=None):
-        common_app.__init__(self, task_app, hook)
+        common_app.__init__(self, task_app)
         task_properties.__init__(self, self.cls)
 
         if self.is_ready():
@@ -46,7 +46,7 @@ class task_app(common_app, task_properties):
             self.main_hook = self
 
             try:
-                self.__task()
+                self.__task(hook)
             except Exception:
                 if not (self.quiet):
                     logger.exception("Skipping Celery due to initialization failure!")
@@ -56,8 +56,8 @@ class task_app(common_app, task_properties):
                 self.terminate_worker()
                 self.terminate_scheduler()
 
-    def __task(self):
-        configs = self.get_config()
+    def __task(self, hook):
+        configs = self.get_config(hook)
         enabled = configs.pop("enabled", True)
 
         if enabled:
@@ -85,7 +85,7 @@ class task_app(common_app, task_properties):
         self.scheduler.start()
 
     def __tasks(self):
-        self.register_queue()
+        self.queue = self.app.register_task(queue())
         self.scheduled_walker = self.app.register_task(scheduled_walker())
         self.scheduled_sequence = self.app.register_task(scheduled_sequence())
 
@@ -155,9 +155,6 @@ class task_app(common_app, task_properties):
     #                    OVERRIDDEN                    #
     ####################################################
 
-    def register_queue(self):
-        self.queue = self.app.register_task(queue())
-
     def get_by_task_id(self, task_id):
         ret = {"status": "NOT_STARTED"}
         task = self.hook.redis.get(f"{TASK_PREFIX}{task_id}")
@@ -167,9 +164,9 @@ class task_app(common_app, task_properties):
                 ret["result"] = task["result"]
         return ret
 
-    def get_config(self) -> dict:
+    def get_config(self, hook) -> dict:
         self.__scheduler = lambda: None
-        return self.hook.build_config("TASK_CONFIG", TASK_CONFIG)
+        return hook.build_config("TASK_CONFIG", TASK_CONFIG)
 
 
 # ----------------------------------------------- #

@@ -1,4 +1,5 @@
 from json import dumps, loads
+from jaseci.app.common_app import hook_app
 from jaseci.app.mail.mail_app import mail_app
 from jaseci.app.redis.redis_app import redis_app
 from jaseci.app.task.task_app import task_app
@@ -30,6 +31,7 @@ class mem_hook:
         self.redis = redis_app(self)
         self.task = task_app(self)
         self.mail = mail_app(self)
+        self.hook = hook_app()
 
     ####################################################
     #               COMMON GETTER/SETTER               #
