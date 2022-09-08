@@ -132,13 +132,16 @@ class orm_hook(redis_hook):
     # ------------------- EMAILER -------------------- #
 
     def emailer_connect(self, configs):
-        backend = configs.get("backend", "locmem")
+        user = configs.get("user")
+        backend = configs.get("backend", "smtp")
+
+        self.emailer_sender(configs.get("sender", user))
 
         server = mail.get_connection(
             backend=f"django.core.mail.backends.{backend}.EmailBackend",
             host=configs.get("host"),
             port=configs.get("port"),
-            username=configs.get("user"),
+            username=user,
             password=configs.get("pass"),
             use_tls=configs.get("tls"),
         )

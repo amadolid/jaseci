@@ -58,10 +58,10 @@ class task_hook:
 
             try:
                 self.__celery()
-            except Exception as e:
+            except Exception:
                 if not (th.quiet):
-                    logger.error(
-                        f"Skipping Celery due to initialization failure! Error: '{e}'"
+                    logger.exception(
+                        "Skipping Celery due to " "initialization failure!"
                     )
 
                 th.app = None

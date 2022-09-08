@@ -2,12 +2,12 @@
 This module includes code related to configuring Jaseci's mail serving
 """
 from django.core import mail
-from jaseci.utils.email_hook import email_hook as eh
+from jaseci.utils.email_hook import email_hook as eh, email_config as ec
 
 
-class email_config:
+class email_config(ec):
     def __init__(self, server, templates):
-        self.server = server
+        super().__init__(server)
 
         self.activ_subj = templates["activation_subj"]
         self.activ_body = templates["activation_body"]
@@ -65,7 +65,6 @@ class email_config:
         subject: str = "Jaseci Email",
         body: tuple = ("", ""),
     ):
-
         msg = mail.EmailMultiAlternatives(
             subject=subject,
             body=body[0],

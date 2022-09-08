@@ -1,3 +1,4 @@
+from json import dumps
 import ssl
 from smtplib import SMTP, SMTP_SSL
 from email.mime.multipart import MIMEMultipart
@@ -11,6 +12,7 @@ from jaseci.utils.utils import logger
 
 EMAIL_CONFIG = {
     "enabled": True,
+    "version": 2,
     "tls": True,
     "host": "smtp.gmail.com",
     "port": 587,
@@ -51,10 +53,9 @@ class email_hook:
 
             try:
                 self.__emailer()
-            except Exception as e:
-                logger.error(
-                    f"Skipping Emailer setup due to "
-                    f"initialization failure! Error: '{e}'"
+            except Exception:
+                logger.exception(
+                    "Skipping Emailer setup due to " "initialization failure!"
                 )
                 eh.app = None
                 eh.state = AS.FAILED
@@ -65,12 +66,64 @@ class email_hook:
 
     def __emailer(self):
         configs = self.get_email_config()
-        enabled = configs.pop("enabled", True)
+        enabled = configs.get("enabled", True)
         if enabled:
+            self.__convert_config(configs)
             eh.app = self.emailer_connect(configs)
             eh.state = AS.RUNNING
         else:
             eh.state = AS.DISABLED
+
+    # ----------- BACKWARD COMPATIBILITY ------------ #
+    # ---------------- TO BE REMOVED ---------------- #
+
+    def __convert(self, holder, mapping: dict):
+        for k, v in mapping.items():
+            conf = self.get_glob(k)
+            if not (conf is None):
+                holder[v] = conf
+        return holder
+
+    def __convert_config(self, configs: dict):
+        version = configs.get("version", 2)
+        migrate = configs.pop("migrate", False)
+        if version == 1 or migrate:
+            self.__convert(
+                configs,
+                {
+                    "EMAIL_BACKEND": "backend",
+                    "EMAIL_HOST": "host",
+                    "EMAIL_PORT": "port",
+                    "EMAIL_HOST_USER": "user",
+                    "EMAIL_HOST_PASSWORD": "pass",
+                    "EMAIL_DEFAULT_FROM": "sender",
+                    "EMAIL_USE_TLS": "tls",
+                },
+            )
+
+            if "templates" not in configs:
+                configs["templates"] = {}
+
+            self.__convert(
+                configs["templates"],
+                {
+                    "EMAIL_ACTIVATION_SUBJ": "activation_subj",
+                    "EMAIL_ACTIVATION_BODY": "activation_body",
+                    "EMAIL_ACTIVATION_HTML_BODY": "activation_html_body",
+                    "EMAIL_RESETPASS_SUBJ": "resetpass_subj",
+                    "EMAIL_RESETPASS_BODY": "resetpass_body",
+                    "EMAIL_RESETPASS_HTML_BODY": "resetpass_html_body",
+                },
+            )
+
+            configs["tls"] = (
+                configs["tls"].lower() == "true"
+                if type(configs["tls"]) is str
+                else configs["tls"]
+            )
+
+            if migrate:
+                self.save_glob("EMAIL_CONFIG", dumps(configs))
 
     ###################################################
     #              COMMON GETTER/SETTER               #
@@ -78,6 +131,9 @@ class email_hook:
 
     def emailer():
         return eh.app
+
+    def emailer_sender(self, sender):
+        eh.sender = sender
 
     def emailer_running(self=None):
         return eh.state == AS.RUNNING and not (eh.app is None)

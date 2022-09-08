@@ -35,10 +35,8 @@ class redis_hook(mem_hook):
                 rh.state = AS.STARTED
 
                 self.__redis()
-        except Exception as e:
-            logger.error(
-                f"Skipping Redis due to initialization failure! Error: '{str(e)}'"
-            )
+        except Exception:
+            logger.exception(f"Skipping Redis due to " f"initialization failure!")
             rh.app = None
             rh.state = AS.FAILED
 

@@ -144,6 +144,7 @@ TASK_CONFIG = {
 # EMAIL_HOOK
 EMAIL_CONFIG = {
     "enabled": True,
+    "version": 1,
     "tls": True,
     "host": "smtp.gmail.com",
     "port": 587,
@@ -164,6 +165,7 @@ EMAIL_CONFIG = {
         "resetpass_body": "Your Jaseci password reset token is: {{token}}",
         "resetpass_html_body": "Your Jaseci password reset" "token is: {{token}}",
     },
+    "migrate": False,
 }
 
 if "test" in sys.argv or "test_coverage" in sys.argv:
