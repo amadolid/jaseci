@@ -16,12 +16,12 @@ from .json_handler import JaseciJsonDecoder
 
 
 class redis_hook(mem_hook):
-    def __init__(self):
+    def __init__(self, allow_apps=True):
 
         # proxy redis, to be overriden by build_apps
         self.redis = proxy_app()
 
-        super().__init__()
+        super().__init__(allow_apps)
 
     ####################################################
     #        DATASOURCE METHOD (TO BE OVERRIDE)        #

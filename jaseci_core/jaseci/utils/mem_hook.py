@@ -14,24 +14,26 @@ class mem_hook:
     to the objects. They return jaseci core types.
     """
 
-    def __init__(self):
+    def __init__(self, allow_apps=True):
         from jaseci.actions.live_actions import get_global_actions
 
         self.mem = {"global": {}}
         self.save_obj_list = set()
         self.save_glob_dict = {}
         self.global_action_list = get_global_actions(self)
-        self.build_apps()
+
+        if allow_apps:
+            self.build_apps()
 
     ####################################################
     #                       APPS                       #
     ####################################################
 
     def build_apps(self):
+        hook_app()
         self.redis = redis_app(self)
         self.task = task_app(self)
         self.mail = mail_app(self)
-        self.hook = hook_app()
 
     ####################################################
     #               COMMON GETTER/SETTER               #

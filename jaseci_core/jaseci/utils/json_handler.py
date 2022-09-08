@@ -5,8 +5,6 @@ from jaseci.app.common_app import hook_app
 from jaseci.utils.id_list import id_list
 from jaseci.utils.utils import logger
 
-ha = hook_app()
-
 
 class JaseciJsonEncoder(JSONEncoder):
     def default(self, obj):
@@ -46,7 +44,7 @@ class JaseciJsonDecoder(JSONDecoder):
                 self.transform(obj[key], idx)
 
     def convert(self, urn):
-        return ha.app().get_obj_from_store(UUID(urn))
+        return hook_app().app["hook"]().get_obj_from_store(UUID(urn))
 
 
 def json_str_to_jsci_dict(input_str, parent_obj=None):

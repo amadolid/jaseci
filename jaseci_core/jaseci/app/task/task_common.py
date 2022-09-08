@@ -2,6 +2,7 @@ from multiprocessing import Process
 import re
 from copy import deepcopy
 from typing import Tuple
+from uuid import UUID
 from jaseci.app.common_app import hook_app
 from requests import post, get
 from requests.exceptions import HTTPError
@@ -12,20 +13,23 @@ DEFAULT_MSG = "Skipping scheduled walker!"
 
 
 class queue(Task):
-    def run(self, queue_id):
+    def run(self, wlk, nd, args):
         from jaseci_serv.app.task.task_app import task_app
 
-        ret = task_app.consume_queue(queue_id, hook_app().app())
-
-        return ret
+        return task_app.consume_queue(wlk, nd, args, hook_app().app["hook"]())
 
 
 class scheduled_walker(Task):
+    def get_obj(self, jid):
+        return self.hook.get_obj_from_store(UUID(jid))
+
     def run(self, name, ctx, nd=None, snt=None, mst=None):
         from jaseci_serv.app.task.task_app import task_app
 
+        self.hook = hook_app().app["hook"]()
+
         if mst:
-            mst = task_app.get_element(mst)
+            mst = self.get_obj(mst)
         else:
             return f"{DEFAULT_MSG} mst (Master) is required!"
 
@@ -35,25 +39,25 @@ class scheduled_walker(Task):
         try:
             if not snt:
                 if mst.active_snt_id == "global":
-                    global_snt_id = task_app.main_hook.get_glob("GLOB_SENTINEL")
-                    snt = task_app.get_element(global_snt_id)
+                    global_snt_id = self.hook.get_glob("GLOB_SENTINEL")
+                    snt = self.get_obj(global_snt_id)
                 elif mst.active_snt_id:
-                    snt = task_app.get_element(mst.active_snt_id)
+                    snt = self.get_obj(mst.active_snt_id)
             elif snt in mst.alias_map:
-                snt = task_app.get_element(mst.alias_map[snt])
+                snt = self.get_obj(mst.alias_map[snt])
             else:
-                snt = task_app.get_element(snt)
+                snt = self.get_obj(snt)
 
             if not snt:
                 return f"{DEFAULT_MSG} Invalid Sentinel!"
 
             if not nd:
                 if mst.active_gph_id:
-                    nd = task_app.get_element(mst.active_gph_id)
+                    nd = self.get_obj(mst.active_gph_id)
             elif nd in mst.alias_map:
-                nd = task_app.get_element(mst.alias_map[nd])
+                nd = self.get_obj(mst.alias_map[nd])
             else:
-                nd = task_app.get_element(nd)
+                nd = self.get_obj(nd)
 
             if not nd:
                 return f"{DEFAULT_MSG} Invalid Node!"
@@ -182,12 +186,12 @@ class scheduled_sequence(Task):
         from jaseci_serv.app.task.task_app import task_app
 
         master = req.get("master")
-
+        app = hook_app().app
         if master is None:
-            caller = task_app.generate_basic_master()
+            caller = app["master"]()
             trigger_type = "public"
         else:
-            caller = task_app.get_element(master)
+            caller = app["hook"]().get_obj_from_store(master)
             trigger_type = "general"
 
         api = req.get("api")

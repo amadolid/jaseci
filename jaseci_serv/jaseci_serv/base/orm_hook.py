@@ -18,6 +18,8 @@ from jaseci_serv.app.mail.mail_app import mail_app
 from jaseci_serv.app.task.task_app import task_app
 import uuid
 
+from jaseci_serv.jaseci_serv.settings import ALLOW_APPS
+
 
 class orm_hook(redis_hook):
     """
@@ -27,17 +29,17 @@ class orm_hook(redis_hook):
     def __init__(self, objects, globs):
         self.objects = objects
         self.globs = globs
-        super().__init__()
+        super().__init__(ALLOW_APPS)
 
     ####################################################
     #                       APPS                       #
     ####################################################
 
     def build_apps(self):
+        hook_app()
         self.redis = redis_app(self)
         self.task = task_app(self)
         self.mail = mail_app(self)
-        self.hook = hook_app()
 
     ####################################################
     #                DATASOURCE METHOD                 #

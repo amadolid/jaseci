@@ -64,9 +64,17 @@ class hook_app(common_app):
 
         if self.is_ready():
             self.state = AS.RUNNING
-            self.app = self.build_hook
+            self.app = {
+                "hook": self.build_hook,
+                "master": self.build_master,
+            }
 
     def build_hook(self):
         from jaseci.utils.redis_hook import redis_hook
 
         return redis_hook()
+
+    def build_master(self):
+        from jaseci.element.master import master
+
+        return master(h=self.build_hook(), persist=False)

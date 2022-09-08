@@ -121,10 +121,11 @@ else:
         }
     }
 
+ALLOW_APPS = "test" in sys.argv or "runserver" in sys.argv
+
 # REDIS
 REDIS_CONFIG = {
-    "enabled": os.getenv("REDIS_ENABLED", "True") == "True"
-    and ("test" in sys.argv or "runserver" in sys.argv),
+    "enabled": True,
     "host": os.getenv("REDIS_HOST", "localhost"),
     "port": os.getenv("REDIS_PORT", "6379"),
     "db": os.getenv("REDIS_DB", "1"),
@@ -132,7 +133,7 @@ REDIS_CONFIG = {
 
 # TASK_HOOK
 TASK_CONFIG = {
-    "enabled": True and ("test" in sys.argv or "runserver" in sys.argv),
+    "enabled": True,
     "quiet": False,
     "broker_url": f"redis://{REDIS_CONFIG.get('host')}:{REDIS_CONFIG['port']}/{REDIS_CONFIG['db']}",
     "beat_scheduler": "django_celery_beat.schedulers:DatabaseScheduler",

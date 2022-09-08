@@ -10,8 +10,8 @@ from jaseci.app.task.task_app import task_app as ta
 
 
 class task_app(ta):
-    def get_by_task_id(self, task_id):
-        task = self.task().AsyncResult(task_id)
+    def get_by_task_id(self, task_id, hook=None):
+        task = self.app.AsyncResult(task_id)
 
         ret = {"status": task.state}
 

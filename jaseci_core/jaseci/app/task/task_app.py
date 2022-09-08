@@ -43,8 +43,6 @@ class task_app(common_app, task_properties):
         if self.is_ready():
             self.state = AS.STARTED
 
-            self.main_hook = self
-
             try:
                 self.__task(hook)
             except Exception:
@@ -110,19 +108,12 @@ class task_app(common_app, task_properties):
     ###################################################
 
     def add_queue(self, wlk, nd, *args):
-        queue_id = str(uuid4())
+        return self.queue.delay(wlk.id.urn, nd.id.urn, args).task_id
 
-        task_app.shared_mem.update(
-            {queue_id: {"wlk": wlk.id.urn, "nd": nd.id.urn, "arg": args}}
-        )
-        return self.queue.delay(queue_id).task_id
-
-    def consume_queue(queue_id, hook):
-        que = task_app.shared_mem.pop(queue_id)
-
-        wlk = hook.get_obj_from_store(UUID(que["wlk"]))
-        nd = hook.get_obj_from_store(UUID(que["nd"]))
-        resp = wlk.run(nd, *que["arg"])
+    def consume_queue(wlk, nd, args, hook):
+        wlk = hook.get_obj_from_store(UUID(wlk))
+        nd = hook.get_obj_from_store(UUID(nd))
+        resp = wlk.run(nd, *args)
         wlk.destroy()
 
         return resp
@@ -155,9 +146,9 @@ class task_app(common_app, task_properties):
     #                    OVERRIDDEN                    #
     ####################################################
 
-    def get_by_task_id(self, task_id):
+    def get_by_task_id(self, task_id, hook):
         ret = {"status": "NOT_STARTED"}
-        task = self.hook.redis.get(f"{TASK_PREFIX}{task_id}")
+        task = hook.redis.get(f"{TASK_PREFIX}{task_id}")
         if task and "status" in task:
             ret["status"] = task["status"]
             if ret["status"] == "SUCESS":

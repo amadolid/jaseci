@@ -22,4 +22,4 @@ class queue_api:
         if not task_id:
             return self._h.task.inspect_tasks()
         else:
-            return self._h.task.get_by_task_id(task_id)
+            return self._h.task.get_by_task_id(task_id, self._h)
