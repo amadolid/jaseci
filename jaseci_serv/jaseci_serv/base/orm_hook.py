@@ -14,6 +14,7 @@ from jaseci.utils.utils import logger
 from jaseci.utils.json_handler import json_str_to_jsci_dict
 import jaseci as core_mod
 from jaseci_serv.app.common_app import hook_app
+from jaseci_serv.app.mail.mail_app import mail_app
 from jaseci_serv.app.task.task_app import task_app
 import uuid
 
@@ -38,6 +39,7 @@ class orm_hook(redis_hook):
         hook_app()
         self.redis = redis_app(self)
         self.task = task_app(self)
+        self.mail = mail_app(self)
 
     ####################################################
     #                DATASOURCE METHOD                 #
