@@ -1,12 +1,12 @@
 from django.contrib.auth import get_user_model, authenticate
 from django.utils.translation import ugettext_lazy as _
+from jaseci_serv.base.mail import email_config
 
 from rest_framework import serializers
 import base64
 from django.urls import reverse
 from django.dispatch import receiver
 from django_rest_passwordreset.signals import reset_password_token_created
-from jaseci_serv.base.mail import email_config
 
 
 def send_activation_email(request, email):
