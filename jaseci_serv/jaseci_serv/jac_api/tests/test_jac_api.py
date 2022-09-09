@@ -235,7 +235,9 @@ class PublicJacApiTests(TestCaseHelper, TestCase):
 
         task_id = res.data["task_id"]
 
-        res = self.auth_client.get(reverse(f"jac_api:queue") + f"?task_id={task_id}")
+        res = self.auth_client.get(
+            reverse(f"jac_api:walker_queue_check") + f"?task_id={task_id}"
+        )
 
         self.assertEqual("SUCCESS", res.data["status"])
 
@@ -1477,7 +1479,9 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
         self.assertTrue("task_id" in res)
         task_id = res["task_id"]
 
-        res = self.client.get(reverse(f"jac_api:queue") + f"?task_id={task_id}").data
+        res = self.client.get(
+            reverse(f"jac_api:walker_queue_check") + f"?task_id={task_id}"
+        ).data
 
         self.assertEqual("SUCCESS", res["status"])
         self.assertEquals({"sample": "sample"}, res["result"]["report"][0]["ctx"])

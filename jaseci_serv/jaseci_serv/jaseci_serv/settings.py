@@ -121,8 +121,6 @@ else:
         }
     }
 
-ALLOW_APPS = "test" in sys.argv or "runserver" in sys.argv
-
 # REDIS
 REDIS_CONFIG = {
     "enabled": True,

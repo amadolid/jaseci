@@ -3,7 +3,6 @@ import re
 from copy import deepcopy
 from typing import Tuple
 from uuid import UUID
-from jaseci.app.common_app import meta_app
 from requests import post, get
 from requests.exceptions import HTTPError
 from celery import Task
@@ -14,8 +13,9 @@ DEFAULT_MSG = "Skipping scheduled walker!"
 
 class queue(Task):
     def run(self, wlk, nd, args):
+        from jaseci.svcs.meta_svc import meta_svc
 
-        hook = meta_app().hook()
+        hook = meta_svc().hook()
 
         wlk = hook.get_obj_from_store(UUID(wlk))
         nd = hook.get_obj_from_store(UUID(nd))
@@ -31,7 +31,7 @@ class scheduled_walker(Task):
 
     def run(self, name, ctx, nd=None, snt=None, mst=None):
 
-        self.hook = meta_app().hook()
+        self.hook = meta_svc().hook()
 
         if mst:
             mst = self.get_obj(mst)
@@ -190,7 +190,7 @@ class scheduled_sequence(Task):
     def trigger_interface(self, req: dict):
 
         master = req.get("master")
-        app = meta_app()
+        app = meta_svc()
         if master is None:
             caller = app.master()
             trigger_type = "public"

@@ -1,8 +1,7 @@
 import signal
 import sys
-from multiprocessing import Manager, Process
-from uuid import UUID, uuid4
-from jaseci.app.common_app import common_app
+from multiprocessing import Process
+from jaseci.svcs.common_svc import common_svc
 from jaseci.utils.app_state import AppState as AS
 from jaseci.utils.utils import logger
 from .task_common import task_properties, queue, scheduled_walker, scheduled_sequence
@@ -28,32 +27,34 @@ TASK_CONFIG = {
 #################################################
 
 
-class task_app(common_app, task_properties):
+class task_svc(common_svc, task_properties):
 
     ###################################################
     #                   INITIALIZER                   #
     ###################################################
 
     def __init__(self, hook=None):
-        common_app.__init__(self, task_app)
+        common_svc.__init__(self, task_svc)
         task_properties.__init__(self, self.cls)
 
-        if self.is_ready():
-            self.state = AS.STARTED
-
-            try:
+        try:
+            if self.is_ready():
+                self.state = AS.STARTED
                 self.__task(hook)
-            except Exception as e:
-                if not (self.quiet):
-                    logger.error(
-                        "Skipping Celery due to initialization failure!\n"
-                        f"{e.__class__.__name__}: {e}"
-                    )
+        except Exception as e:
+            if not (self.quiet):
+                logger.error(
+                    "Skipping Celery due to initialization failure!\n"
+                    f"{e.__class__.__name__}: {e}"
+                )
 
-                self.app = None
-                self.state = AS.FAILED
-                self.terminate_worker()
-                self.terminate_scheduler()
+            self.app = None
+            self.state = AS.FAILED
+            self.terminate_worker()
+            self.terminate_scheduler()
+
+        if hook:
+            hook.task = self
 
     def __task(self, hook):
         configs = self.get_config(hook)

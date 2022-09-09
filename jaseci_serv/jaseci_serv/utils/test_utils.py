@@ -1,5 +1,5 @@
 import unittest
-from jaseci.app.redis.redis_app import redis_app
+from jaseci_serv.svcs.redis.redis_svc import redis_svc
 
 
 def skip_without_redis(test):
@@ -9,7 +9,7 @@ def skip_without_redis(test):
 
     def skipper(*args, **kwargs):
 
-        if not redis_app().is_running():
+        if not redis_svc().is_running():
             raise unittest.SkipTest("No Redis!")
 
     return skipper

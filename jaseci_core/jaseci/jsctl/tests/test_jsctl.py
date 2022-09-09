@@ -129,8 +129,8 @@ class jsctl_test(TestCaseHelper, TestCase):
         self.call(
             "sentinel register jaseci/jsctl/tests/zsb.jac -name zsb -set_active true"
         )
-        self.call("config set CONFIG_EXAMPLE -value TEST -do_check False")
-        self.call("config set APPLE -value Grape2 -do_check False")
+        self.call('config set CONFIG_EXAMPLE -value "TEST" -do_check False')
+        self.call('config set APPLE -value "Grape2" -do_check False')
         self.call('config set "Banana" -value "Grape" -do_check False')
         self.call('config set "Pear" -value "Banana" -do_check False')
         r = self.call("config get APPLE -do_check False")

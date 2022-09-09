@@ -2,7 +2,7 @@
 This module includes code related to hooking Jaseci's Redis to the
 core engine.
 """
-from jaseci.app.common_app import common_app
+from jaseci.svcs.common_svc import common_svc
 from jaseci.utils.app_state import AppState as AS
 from jaseci.utils.utils import logger
 from redis import Redis
@@ -18,19 +18,18 @@ REDIS_CONFIG = {"enabled": True, "host": "localhost", "port": "6379", "db": "1"}
 #################################################
 
 
-class redis_app(common_app):
+class redis_svc(common_svc):
 
     ###################################################
     #                   INITIALIZER                   #
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(redis_app)
+        super().__init__(redis_svc)
 
         try:
             if self.is_ready():
                 self.state = AS.STARTED
-
                 self.__redis(hook)
         except Exception as e:
             logger.error(
@@ -39,6 +38,9 @@ class redis_app(common_app):
             )
             self.app = None
             self.state = AS.FAILED
+
+        if hook:
+            hook.redis = self
 
     def __redis(self, hook):
         configs = self.get_config(hook)

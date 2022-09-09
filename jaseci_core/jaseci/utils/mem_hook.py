@@ -1,8 +1,5 @@
 from json import dumps, loads
-from jaseci.app.common_app import meta_app
-from jaseci.app.mail.mail_app import mail_app
-from jaseci.app.redis.redis_app import redis_app
-from jaseci.app.task.task_app import task_app
+from jaseci.svcs.meta_svc import meta_svc
 from jaseci.utils.utils import find_class_and_import
 
 
@@ -14,7 +11,7 @@ class mem_hook:
     to the objects. They return jaseci core types.
     """
 
-    def __init__(self, allow_apps=True):
+    def __init__(self):
         from jaseci.actions.live_actions import get_global_actions
 
         self.mem = {"global": {}}
@@ -22,22 +19,7 @@ class mem_hook:
         self.save_glob_dict = {}
         self.global_action_list = get_global_actions(self)
 
-        self.__meta__()
-
-        if allow_apps:
-            self.build_apps()
-
-    ####################################################
-    #                       APPS                       #
-    ####################################################
-
-    def __meta__(self):
-        self._meta = meta_app()
-
-    def build_apps(self):
-        self.redis = redis_app(self)
-        self.task = task_app(self)
-        self.mail = mail_app(self)
+        meta_svc(self)
 
     ####################################################
     #               COMMON GETTER/SETTER               #

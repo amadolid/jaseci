@@ -12,7 +12,7 @@ class queue_api:
     """
 
     @interface.private_api(allowed_methods=["get"])
-    def queue(self, task_id: str = ""):
+    def walker_queue_check(self, task_id: str = ""):
         """
         Monitor Queues
         """

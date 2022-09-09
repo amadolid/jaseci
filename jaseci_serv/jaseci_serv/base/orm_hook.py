@@ -5,7 +5,6 @@ core engine.
 FIX: Serious permissions work needed
 """
 from django.core.exceptions import ObjectDoesNotExist
-from jaseci.app.redis.redis_app import redis_app
 
 from jaseci.utils import utils
 
@@ -13,12 +12,7 @@ from jaseci.utils.redis_hook import redis_hook
 from jaseci.utils.utils import logger
 from jaseci.utils.json_handler import json_str_to_jsci_dict
 import jaseci as core_mod
-from jaseci_serv.app.common_app import meta_app
-from jaseci_serv.app.mail.mail_app import mail_app
-from jaseci_serv.app.task.task_app import task_app
 import uuid
-
-from jaseci_serv.jaseci_serv.settings import ALLOW_APPS
 
 
 class orm_hook(redis_hook):
@@ -29,19 +23,7 @@ class orm_hook(redis_hook):
     def __init__(self, objects, globs):
         self.objects = objects
         self.globs = globs
-        super().__init__(ALLOW_APPS)
-
-    ####################################################
-    #                       APPS                       #
-    ####################################################
-
-    def __meta__(self):
-        self._meta = meta_app()
-
-    def build_apps(self):
-        self.redis = redis_app(self)
-        self.task = task_app(self)
-        self.mail = mail_app(self)
+        super().__init__()
 
     ####################################################
     #                DATASOURCE METHOD                 #
@@ -60,7 +42,6 @@ class orm_hook(redis_hook):
                     exc_info=True,
                 )
                 return None
-
             class_for_type = self.find_class_and_import(loaded_obj.j_type, core_mod)
             ret_obj = class_for_type(
                 h=self, m_id=loaded_obj.j_master.urn, auto_save=False

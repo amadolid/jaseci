@@ -1,5 +1,5 @@
 from django.core import mail
-from jaseci.app.mail.mail_app import mail_app as ma, emailer as em
+from jaseci.svcs.mail.mail_svc import mail_svc as ms, emailer as em
 from jaseci_serv.jaseci_serv.settings import EMAIL_CONFIG
 
 #################################################
@@ -7,7 +7,7 @@ from jaseci_serv.jaseci_serv.settings import EMAIL_CONFIG
 #################################################
 
 
-class mail_app(ma):
+class mail_svc(ms):
     def connect(self, configs):
         user = configs.get("user")
         backend = configs.get("backend", "smtp")

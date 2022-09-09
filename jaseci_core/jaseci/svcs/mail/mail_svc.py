@@ -3,7 +3,7 @@ import ssl
 from smtplib import SMTP, SMTP_SSL
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from jaseci.app.common_app import common_app
+from jaseci.svcs.common_svc import common_svc
 from jaseci.utils.app_state import AppState as AS
 from jaseci.utils.utils import logger
 
@@ -41,27 +41,29 @@ EMAIL_CONFIG = {
 #################################################
 
 
-class mail_app(common_app):
+class mail_svc(common_svc):
 
     ###################################################
     #                   INITIALIZER                   #
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(mail_app)
+        super().__init__(mail_svc)
 
-        if self.is_ready():
-            self.state = AS.STARTED
-
-            try:
+        try:
+            if self.is_ready():
+                self.state = AS.STARTED
                 self.__mail(hook)
-            except Exception as e:
-                logger.error(
-                    "Skipping Mail setup due to initialization failure!\n"
-                    f"{e.__class__.__name__}: {e}"
-                )
-                self.app = None
-                self.state = AS.FAILED
+        except Exception as e:
+            logger.error(
+                "Skipping Mail setup due to initialization failure!\n"
+                f"{e.__class__.__name__}: {e}"
+            )
+            self.app = None
+            self.state = AS.FAILED
+
+        if hook:
+            hook.mail = self
 
     def __mail(self, hook):
         configs = self.get_config(hook)
