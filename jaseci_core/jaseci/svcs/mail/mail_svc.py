@@ -62,9 +62,6 @@ class mail_svc(common_svc):
             self.app = None
             self.state = AS.FAILED
 
-        if hook:
-            hook.mail = self
-
     def __mail(self, hook):
         configs = self.get_config(hook)
         enabled = configs.get("enabled", True)

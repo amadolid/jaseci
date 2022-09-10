@@ -31,14 +31,14 @@ class config_api:
         return self._h.get_glob(name)
 
     @interface.admin_api(cli_args=["name"])
-    def config_set(self, name: str, value: dict or str, do_check: bool = True):
+    def config_set(self, name: str, value: str or dict, do_check: bool = True):
         """
         Set a config
         """
         if do_check and not self.name_check(name):
             return self.name_error(name)
 
-        if type(value) is dict:
+        if not (value is None) and type(value) is dict:
             value = dumps(value)
 
         self._h.save_glob(name, value)

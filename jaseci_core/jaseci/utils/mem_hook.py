@@ -1,5 +1,4 @@
 from json import dumps, loads
-from jaseci.svcs.meta_svc import meta_svc
 from jaseci.utils.utils import find_class_and_import
 
 
@@ -18,8 +17,6 @@ class mem_hook:
         self.save_obj_list = set()
         self.save_glob_dict = {}
         self.global_action_list = get_global_actions(self)
-
-        meta_svc(self)
 
     ####################################################
     #               COMMON GETTER/SETTER               #

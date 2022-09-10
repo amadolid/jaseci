@@ -13,9 +13,6 @@ from jaseci.element.master import master as core_master
 from jaseci.element.super_master import super_master as core_super
 from jaseci.api.interface import interface
 from jaseci_serv.svcs.meta_svc import meta_svc
-from jaseci_serv.svcs.mail.mail_svc import mail_svc
-from jaseci_serv.svcs.redis.redis_svc import redis_svc
-from jaseci_serv.svcs.task.task_svc import task_svc
 
 
 class master(core_master):

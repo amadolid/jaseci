@@ -21,7 +21,6 @@ class mail_svc(ms):
             password=configs.get("pass"),
             use_tls=configs.get("tls"),
         )
-
         return emailer(server, sender, configs["templates"])
 
     def get_config(self, hook) -> dict:

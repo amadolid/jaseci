@@ -30,6 +30,7 @@ class scheduled_walker(Task):
         return self.hook.get_obj_from_store(UUID(jid))
 
     def run(self, name, ctx, nd=None, snt=None, mst=None):
+        from jaseci.svcs.meta_svc import meta_svc
 
         self.hook = meta_svc().hook()
 
@@ -188,6 +189,7 @@ class scheduled_sequence(Task):
             holder[0][self.json_escape.sub("_", req[params])] = holder[1]
 
     def trigger_interface(self, req: dict):
+        from jaseci.svcs.meta_svc import meta_svc
 
         master = req.get("master")
         app = meta_svc()

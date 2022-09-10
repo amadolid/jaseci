@@ -14,29 +14,40 @@ class meta_svc(common_svc):
             self.app = {
                 "hook": self.build_hook,
                 "master": self.build_master,
+                "super_master": self.build_super_master,
             }
 
-        self.services(hook)
-
-    def services(self, _hook):
-        if _hook is None:
-            _hook = self.hook()
-        redis_svc(_hook)
-        task_svc(_hook)
-        mail_svc(_hook)
-
     def hook(self):
-        return self.app["hook"]()
+        h = self.app["hook"]()
+        h.redis = redis_svc(h)
+        h.task = task_svc(h)
+        h.mail = mail_svc(h)
+        return h
 
-    def master(self):
-        return self.app["master"]()
+    def __common(self, t, *args, **kwargs):
+
+        if not kwargs.get("h", None):
+            kwargs["h"] = self.hook()
+
+        return self.app[t](*args, **kwargs)
+
+    def master(self, *args, **kwargs):
+        return self.__common("master", *args, **kwargs)
+
+    def super_master(self, *args, **kwargs):
+        return self.__common("super_master", *args, **kwargs)
 
     def build_hook(self):
         from jaseci.utils.redis_hook import redis_hook
 
         return redis_hook()
 
-    def build_master(self):
+    def build_master(self, *args, **kwargs):
         from jaseci.element.master import master
 
-        return master(h=self.build_hook(), persist=False)
+        return master(*args, **kwargs)
+
+    def build_super_master(self, *args, **kwargs):
+        from jaseci.element.super_master import super_master
+
+        return super_master(*args, **kwargs)

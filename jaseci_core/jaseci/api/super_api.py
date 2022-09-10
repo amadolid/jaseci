@@ -1,7 +1,6 @@
 """
 Super (master) api as a mixin
 """
-from json import dumps
 from jaseci.api.interface import interface
 from jaseci.element.master import master
 

@@ -4,7 +4,12 @@ from multiprocessing import Process
 from jaseci.svcs.common_svc import common_svc
 from jaseci.utils.app_state import AppState as AS
 from jaseci.utils.utils import logger
-from .task_common import task_properties, queue, scheduled_walker, scheduled_sequence
+from jaseci.svcs.task.task_common import (
+    task_properties,
+    queue,
+    scheduled_walker,
+    scheduled_sequence,
+)
 from celery import Celery
 
 ################################################
@@ -52,9 +57,6 @@ class task_svc(common_svc, task_properties):
             self.state = AS.FAILED
             self.terminate_worker()
             self.terminate_scheduler()
-
-        if hook:
-            hook.task = self
 
     def __task(self, hook):
         configs = self.get_config(hook)

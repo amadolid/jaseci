@@ -117,7 +117,7 @@ Any walker that can be called with `is_async` field
             "method": "POST",
             "api": "http://localhost:8000/user/token/",
             "body": {
-                "email": "alexie.madolid@bcstechnology.com.au",
+                "email": "dummy@dummy.com",
                 "password": "Bcstech123!"
             },
 
@@ -162,7 +162,7 @@ Any walker that can be called with `is_async` field
 
                             // optional constraints
                             // can be remove if not needed
-                            "eq": "alexie.madolid+testing3@bcstechnology.com.au",
+                            "eq": "dummy+testing3@dummy.com",
                             "ne": null, "gt": null, "gte": null,
                             "lt": null, "lte": null, "regex": null
 
@@ -171,7 +171,7 @@ Any walker that can be called with `is_async` field
                         "and": [{
                             "by": "$.user",
                             "condition": {
-                                "eq": "alexie.madolid+testing2@bcstechnology.com.au"
+                                "eq": "dummy+testing2@dummy.com"
                             }
                         }, {
                             "by": "$.jid",

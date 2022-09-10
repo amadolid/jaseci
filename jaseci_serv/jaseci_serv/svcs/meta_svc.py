@@ -5,12 +5,12 @@ from jaseci_serv.svcs.mail.mail_svc import mail_svc
 
 
 class meta_svc(ms):
-    def services(self, _hook):
-        if _hook is None:
-            _hook = self.hook()
-        redis_svc(_hook)
-        task_svc(_hook)
-        mail_svc(_hook)
+    def hook(self):
+        h = self.app["hook"]()
+        h.redis = redis_svc(h)
+        h.task = task_svc(h)
+        h.mail = mail_svc(h)
+        return h
 
     def build_hook(self):
         from jaseci_serv.base.models import GlobalVars, JaseciObject
@@ -18,7 +18,12 @@ class meta_svc(ms):
 
         return orm_hook(objects=JaseciObject.objects, globs=GlobalVars.objects)
 
-    def build_master(self):
+    def build_master(self, *args, **kwargs):
         from jaseci_serv.base.models import master
 
-        return master(h=self.build_hook(), persist=False)
+        return master(*args, **kwargs)
+
+    def build_super_master(self, *args, **kwargs):
+        from jaseci_serv.base.models import super_master
+
+        return super_master(*args, **kwargs)
