@@ -43,6 +43,7 @@ class ArchitypeInterp(Interp):
                 )
 
         kid = self.set_cur_ast(jac_ast)
+
         self.push_scope(JacScope(parent=self, has_obj=self, action_sets=[]))
         if kid[0].name == "KW_NODE":
             item = Node(
@@ -74,6 +75,7 @@ class ArchitypeInterp(Interp):
                 name=kid[1].token_text(),
                 kind=kid[0].token_text(),
                 parent=self.parent(),
+                is_async=self.is_async,
             )
             if kid[2].name == "namespaces":
                 item.namespaces = self.run_namespaces(jac_ast.kid[2])

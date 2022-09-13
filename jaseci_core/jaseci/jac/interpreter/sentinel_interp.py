@@ -64,14 +64,24 @@ class SentinelInterp(Interp):
             KW_NODE NAME (COLON NAME)* (COLON INT)? attr_block
             | KW_EDGE NAME (COLON NAME)* attr_block
             | KW_GRAPH NAME graph_block
-            | KW_WALKER NAME namespaces? walker_block;
+            | KW_ASYNC? KW_WALKER NAME namespaces? walker_block;
         """
         kid = self.set_cur_ast(jac_ast)
+
+        is_async = kid[0].name == "KW_ASYNC" and bool(kid.pop(0))
+
         name = kid[1].token_text()
         kind = kid[0].token_text()
+
         arch = Architype(
-            m_id=self._m_id, h=self._h, code_ir=jac_ast, name=name, kind=kind
+            m_id=self._m_id,
+            h=self._h,
+            code_ir=jac_ast,
+            name=name,
+            kind=kind,
+            is_async=is_async,
         )
+
         if len(kid) > 2 and kid[2].name == "COLON":
             for i in kid[2:]:
                 if i.name == "NAME":

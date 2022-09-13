@@ -591,3 +591,22 @@ continue_issue = """
         }
     }
 """
+
+async_syntax = """
+async walker simple_async_second_layer {
+    has anchor val1, val2 = 2;
+    with entry {
+        report val1;
+        report val2;
+    }
+}
+
+async walker simple_async {
+    with entry {
+        task1 = spawn here await walker::simple_async_second_layer(val1 = 1);
+        task2 = spawn here walker::simple_async_second_layer(val1 = 2);
+        report task1;
+        report task2;
+    }
+}
+"""
