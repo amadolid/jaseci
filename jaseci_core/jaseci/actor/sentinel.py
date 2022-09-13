@@ -107,7 +107,7 @@ class Sentinel(Element, JacCode, SentinelInterp):
         if not src_walk:
             logger.error(str(f"{self.name}: Unable to spawn walker {name}!"))
             return None
-        src_walk._async = is_async
+        src_walk.is_async = src_walk.is_async or is_async
         new_walk = src_walk.duplicate()
         if caller:
             new_walk.set_master(caller._m_id)
