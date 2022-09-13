@@ -213,6 +213,10 @@ class MemoryHook:
     ###################################################
 
     def find_class_and_import(self, j_type, mod):
+        if j_type == "super_master":
+            from jaseci.element.super_master import SuperMaster
+
+            return SuperMaster
         return find_class_and_import(j_type, mod)
 
     def clear_cache(self):
