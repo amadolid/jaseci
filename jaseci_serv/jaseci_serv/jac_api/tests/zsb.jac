@@ -239,6 +239,39 @@ walker simple {
     }
 }
 
+async walker simple_async_second_layer {
+    has anchor val1, val2 = 2;
+    with entry {
+        report val1;
+        // task2 report [1]
+
+        report val2;
+        // task2 report [1, 2]
+
+        report global.info['request_context']["body"];
+        // task2 report [1, 2, globsbody]
+    }
+}
+
+async walker simple_async {
+    with entry {
+        task1 = spawn here await walker::simple_async_second_layer(val1 = 1);
+        // report [1, 2, globsbody]
+
+        task2 = spawn here walker::simple_async_second_layer(val1 = 1);
+        // report [1, 2, globsbody]
+
+        report task1;
+        // report [ val1 = 1, val2 = 2, globsbody, anchor = 1]
+
+        report global.info['request_context']["body"];
+        // report [ val1 = 1, val2 = 2, globsbody, anchor = 1, globsbody]
+
+        report task2.task_id;
+        // report [ val1 = 1, val2 = 2, globsbody, anchor = 1, globsbody, task_id = uuid]
+    }
+}
+
 walker simple_with_file {
     has fileTypeField;
 

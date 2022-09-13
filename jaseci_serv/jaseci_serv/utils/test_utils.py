@@ -11,5 +11,6 @@ def skip_without_redis(test):
 
         if not redis_svc().is_running():
             raise unittest.SkipTest("No Redis!")
+        test(*args, **kwargs)
 
     return skipper

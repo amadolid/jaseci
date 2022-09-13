@@ -22,9 +22,7 @@ import cProfile
 class walker(element, jac_code, walker_interp, anchored):
     """Walker class for Jaseci"""
 
-    valid_async = [True, "true"]
-
-    def __init__(self, code_ir=None, *args, **kwargs):
+    def __init__(self, code_ir=None, is_async=False, *args, **kwargs):
         self.yielded = False
         self.activity_action_ids = id_list(self)
         self.namespaces = []
@@ -38,7 +36,8 @@ class walker(element, jac_code, walker_interp, anchored):
         self.current_step = 0
         self.in_entry_exit = False
         self.step_limit = 10000
-        self._async = False
+        self.is_async = is_async
+        self._to_await = False
         anchored.__init__(self)
         element.__init__(self, *args, **kwargs)
         jac_code.__init__(self, code_ir=code_ir)
@@ -130,9 +129,21 @@ class walker(element, jac_code, walker_interp, anchored):
 
     def run(self, start_node=None, prime_ctx=None, request_ctx=None, profiling=False):
         """Executes Walker to completion"""
-        if self._h.task.is_running() and self._async in walker.valid_async:
+        if self._h.task.is_running() and self.is_async and not (self._to_await):
+            start_node = (
+                start_node
+                if not (start_node is None)
+                else (
+                    self.next_node_ids.pop_first_obj() if self.next_node_ids else None
+                )
+            )
+
             task_id = self._h.task.add_queue(
-                self, start_node, prime_ctx, request_ctx, profiling
+                self,
+                start_node,
+                prime_ctx or self.context,
+                request_ctx or self.request_context,
+                profiling,
             )
             return {"task_id": task_id}
 
@@ -222,7 +233,7 @@ class walker(element, jac_code, walker_interp, anchored):
         """
         Destroys self from memory and persistent storage
         """
-        if not self._h.task.is_running() or self._async not in walker.valid_async:
+        if not self._h.task.is_running() or not self.is_async or self._to_await:
             for i in self.activity_action_ids.obj_list():
                 i.destroy()
             walker_interp.destroy(self)
