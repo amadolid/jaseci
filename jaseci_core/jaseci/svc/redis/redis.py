@@ -1,3 +1,4 @@
+from json import dumps, loads
 from redis import Redis
 
 from jaseci.svc import CommonService, ServiceState as Ss
@@ -77,8 +78,14 @@ class RedisService(CommonService):
     #                     CONFIG                      #
     ###################################################
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("REDIS_CONFIG", REDIS_CONFIG)
+
+    def update_config(self, hook, host):
+        config = loads(hook.get_glob("REDIS_CONFIG"))
+        config["host"] = host
+        hook.save_glob("REDIS_CONFIG", dumps(config))
+        hook.commit()
 
 
 # ----------------------------------------------- #

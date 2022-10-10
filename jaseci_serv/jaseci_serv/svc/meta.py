@@ -1,6 +1,12 @@
 from jaseci.svc import MetaService as Ms
-from jaseci.svc import KubernetesService, PromotheusService
-from jaseci_serv.svc import MailService, RedisService, TaskService
+from jaseci.svc.jsorc.jsorc import JsOrcService
+from jaseci_serv.svc import (
+    MailService,
+    RedisService,
+    TaskService,
+    KubernetesService,
+    PromotheusService,
+)
 from jaseci_serv.jaseci_serv.configs import RUN_SVCS
 
 
@@ -35,3 +41,4 @@ class MetaService(Ms):
         self.add_service_builder("mail", MailService)
         self.add_service_builder("kube", KubernetesService)
         self.add_service_builder("promon", PromotheusService)
+        self.add_service_builder("jsorc", JsOrcService)

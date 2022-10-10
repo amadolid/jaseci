@@ -19,7 +19,7 @@ class KubernetesService(CommonService):
 
         if enabled:
             self.quiet = configs.pop("quiet", False)
-            self.app = Kube(configs.get("config"))
+            self.app = Kube(configs.pop("in_cluster", True), configs.get("config"))
             self.state = Ss.RUNNING
         else:
             self.state = Ss.DISABLED
@@ -28,13 +28,18 @@ class KubernetesService(CommonService):
     #                    OVERRIDDEN                    #
     ####################################################
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("KUBE_CONFIG", KUBE_CONFIG)
 
 
 class Kube:
-    def __init__(self, conf):
-        config.load_incluster_config()
+    def __init__(self, in_cluster: bool, conf: dict):
+
+        if in_cluster:
+            config.load_incluster_config()
+        else:
+            config.load_kube_config()
+
         self.client = ApiClient(conf)
         self.core = CoreV1Api(conf)
         self.api = AppsV1Api(self.client)
@@ -42,11 +47,17 @@ class Kube:
 
         self.defaults()
 
-    def call(self, namespace, conf):
-        if conf["kind"].startswith("ClusterRole"):
-            self.create_apis[conf["kind"]](body=conf)
+    def create(self, api, namespace, conf):
+        if api.startswith("ClusterRole"):
+            self.create_apis[api](body=conf)
         else:
-            self.create_apis[conf["kind"]](namespace=namespace, body=conf)
+            self.create_apis[api](namespace=namespace, body=conf)
+
+    def read(self, api: str, name: str, namespace: str = None):
+        if api.startswith("ClusterRole"):
+            return self.read_apis[api](name=name)
+        else:
+            return self.read_apis[api](name=name, namespace=namespace)
 
     def defaults(self):
         self.create_apis = {
@@ -59,4 +70,15 @@ class Kube:
             "Secret": self.core.create_namespaced_secret,
             "PersistentVolumeClaim": self.core.create_namespaced_persistent_volume_claim,
             "DaemonSet": self.api.create_namespaced_daemon_set,
+        }
+        self.read_apis = {
+            "Service": self.core.read_namespaced_service,
+            "Deployment": self.api.read_namespaced_deployment,
+            "ConfigMap": self.core.read_namespaced_config_map,
+            "ServiceAccount": self.core.read_namespaced_service_account,
+            "ClusterRole": self.auth.read_cluster_role,
+            "ClusterRoleBinding": self.auth.read_cluster_role_binding,
+            "Secret": self.core.read_namespaced_secret,
+            "PersistentVolumeClaim": self.core.read_namespaced_persistent_volume_claim,
+            "DaemonSet": self.api.read_namespaced_daemon_set,
         }

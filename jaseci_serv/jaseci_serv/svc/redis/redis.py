@@ -3,5 +3,5 @@ from jaseci_serv.jaseci_serv.configs import REDIS_CONFIG
 
 
 class RedisService(Rs):
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("REDIS_CONFIG", REDIS_CONFIG)

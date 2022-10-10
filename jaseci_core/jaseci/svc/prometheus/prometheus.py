@@ -82,5 +82,5 @@ class PromotheusService(CommonService):
     #                    OVERRIDDEN                    #
     ####################################################
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("PROMON_CONFIG", PROMON_CONFIG)

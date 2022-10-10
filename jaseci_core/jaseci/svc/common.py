@@ -1,9 +1,12 @@
+from copy import deepcopy
 import signal
 import sys
 from multiprocessing import Process
 
 from jaseci.utils.utils import logger
 from .state import ServiceState as Ss
+
+COMMON_ERROR = "Not properly configured!"
 
 
 class CommonService:
@@ -16,6 +19,7 @@ class CommonService:
             setattr(cls, "_app", None)
             setattr(cls, "_state", Ss.NOT_STARTED)
             setattr(cls, "_quiet", True)
+            setattr(cls, "_kube", {})
 
         self.__build(hook)
 
@@ -55,6 +59,14 @@ class CommonService:
     def quiet(self, val: bool):
         self.cls._quiet = val
 
+    @property
+    def kube(self) -> dict:
+        return self.cls._kube
+
+    @kube.setter
+    def kube(self, val: dict):
+        self.cls._kube = val
+
     ###################################################
     #                     BUILDER                     #
     ###################################################
@@ -73,7 +85,7 @@ class CommonService:
             self.failed()
 
     def build(self, hook=None):
-        raise Exception("Not properly configured! Please override build method!")
+        raise Exception(f"{COMMON_ERROR} Please override build method!")
 
     ###################################################
     #                     COMMONS                     #
@@ -88,14 +100,21 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
+    def get_config(self, hook) -> dict:
+        configs = self.build_config(hook)
+        self.kube = configs.pop("kube", {})
+        return configs
+
+    def build_config(self, hook) -> dict:
+        raise Exception(f"{COMMON_ERROR} Please override build_config method!")
+
     # ------------------- DAEMON -------------------- #
 
     def spawn_daemon(self, **targets):
         for name, target in targets.items():
             dae: Process = self.daemon.get(name)
             if not dae or not dae.is_alive():
-                proc = Process(target=target)
-                proc.daemon = True
+                proc = Process(target=target, daemon=True)
                 proc.start()
                 self.daemon[name] = proc
 

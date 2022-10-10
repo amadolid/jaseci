@@ -24,7 +24,7 @@ class JsOrcApi:
 
         for file in files:
             for conf in yaml.safe_load_all(b64decode(file["base64"])):
-                kube.call(namespace, conf)
+                kube.create(conf["kind"], namespace, conf)
 
     @Interface.admin_api(cli_args=["name"])
     def service_call(self, svc: str, attrs: list = []):

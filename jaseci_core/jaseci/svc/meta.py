@@ -7,7 +7,9 @@ from jaseci.svc import (
     TaskService,
     KubernetesService,
     PromotheusService,
+    JsOrcService,
 )
+from jaseci.svc.jsorc.jsorc import JsOrcService
 
 from jaseci.utils.utils import logger
 
@@ -83,6 +85,8 @@ class MetaService(CommonService, MetaProperties):
             h.promon = self.get_service("promon", h)
             h.meta = self
 
+            self.get_service("jsorc", h)
+
         return h
 
     def build_master(self, *args, **kwargs):
@@ -121,3 +125,4 @@ class MetaService(CommonService, MetaProperties):
         self.add_service_builder("mail", MailService)
         self.add_service_builder("kube", KubernetesService)
         self.add_service_builder("promon", PromotheusService)
+        self.add_service_builder("jsorc", JsOrcService)

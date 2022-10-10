@@ -3,5 +3,5 @@ from jaseci_serv.jaseci_serv.configs import KUBE_CONFIG
 
 
 class KubernetesService(Ks):
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("KUBE_CONFIG", KUBE_CONFIG)

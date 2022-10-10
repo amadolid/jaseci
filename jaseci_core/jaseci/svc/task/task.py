@@ -130,5 +130,5 @@ class TaskService(CommonService, TaskProperties):
             return False
         return True
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("TASK_CONFIG", TASK_CONFIG)

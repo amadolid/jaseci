@@ -3,5 +3,5 @@ from jaseci_serv.jaseci_serv.configs import PROMON_CONFIG
 
 
 class PromotheusService(Ps):
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("PROMON_CONFIG", PROMON_CONFIG)

@@ -5,6 +5,8 @@
 import os
 import sys
 
+from jaseci_serv.jaseci_serv.kubes import REDIS_KUBE
+
 
 RUN_SVCS = "test" in sys.argv or "runserver" in sys.argv
 
@@ -14,6 +16,7 @@ REDIS_CONFIG = {
     "host": os.getenv("REDIS_HOST", "localhost"),
     "port": os.getenv("REDIS_PORT", "6379"),
     "db": os.getenv("REDIS_DB", "1"),
+    "kube": REDIS_KUBE,
 }
 
 TASK_CONFIG = {
@@ -53,7 +56,7 @@ MAIL_CONFIG = {
     "migrate": False,
 }
 
-KUBE_CONFIG = {"enabled": True, "quiet": False, "config": None}
+KUBE_CONFIG = {"enabled": True, "quiet": False, "in_cluster": True, "config": None}
 
 PROMON_CONFIG = {"enabled": True, "quiet": False, "url": "http://localhost:9090"}
 

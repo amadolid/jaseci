@@ -8,5 +8,5 @@ from jaseci_serv.jaseci_serv.configs import TASK_CONFIG
 
 
 class TaskService(Ts):
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("TASK_CONFIG", TASK_CONFIG)
