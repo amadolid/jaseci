@@ -1,7 +1,7 @@
 from jaseci.svc import MetaService as Ms
 from jaseci.svc import KubernetesService, PromotheusService
 from jaseci_serv.svc import MailService, RedisService, TaskService
-from jaseci_serv.jaseci_serv.settings import RUN_SVCS
+from jaseci_serv.jaseci_serv.configs import RUN_SVCS
 
 
 class MetaService(Ms):
