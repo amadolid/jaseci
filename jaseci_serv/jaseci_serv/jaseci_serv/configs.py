@@ -5,7 +5,7 @@
 import os
 import sys
 
-from jaseci_serv.jaseci_serv.kubes import REDIS_KUBE
+from jaseci_serv.jaseci_serv.kubes import PROMON_KUBE, REDIS_KUBE
 
 
 RUN_SVCS = "test" in sys.argv or "runserver" in sys.argv
@@ -27,6 +27,7 @@ TASK_CONFIG = {
     "result_backend": "django-db",
     "task_track_started": True,
     "broker_connection_retry_on_startup": True,
+    "kube": {},
 }
 
 MAIL_CONFIG = {
@@ -58,7 +59,12 @@ MAIL_CONFIG = {
 
 KUBE_CONFIG = {"enabled": True, "quiet": False, "in_cluster": True, "config": None}
 
-PROMON_CONFIG = {"enabled": True, "quiet": False, "url": "http://localhost:9090"}
+PROMON_CONFIG = {
+    "enabled": True,
+    "quiet": False,
+    "url": f'http://{os.getenv("PROMON_HOST", "localhost")}:9090',
+    "kube": PROMON_KUBE,
+}
 
 if "test" in sys.argv or "test_coverage" in sys.argv:
     MAIL_CONFIG["backend"] = "locmem"

@@ -7,7 +7,7 @@ JSORC_CONFIG = {
     "quiet": False,
     "interval": 10,
     "namespace": "default",
-    "keep_alive": ["redis"],
+    "keep_alive": ["promon", "redis", "task"],
 }
 
 

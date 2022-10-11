@@ -1,10 +1,10 @@
 """
 Queue api functions as a mixin
 """
-from base64 import b64decode
-import json
-from jaseci.svc.kubernetes import Kube
 import yaml
+import json
+from base64 import b64decode
+from jaseci.svc.kubernetes import Kube
 from jaseci.api.interface import Interface
 
 
@@ -22,9 +22,17 @@ class JsOrcApi:
         kube = self._h.kube.app
         kube: Kube
 
+        res = {}
+
         for file in files:
             for conf in yaml.safe_load_all(b64decode(file["base64"])):
-                kube.create(conf["kind"], namespace, conf)
+                kind = conf["kind"]
+                kube.create(kind, namespace, conf)
+                if not res.get(kind):
+                    res[kind] = []
+                res[kind].append(conf)
+
+        return res
 
     @Interface.admin_api(cli_args=["name"])
     def service_call(self, svc: str, attrs: list = []):

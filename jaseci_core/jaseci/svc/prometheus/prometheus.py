@@ -18,6 +18,7 @@ class PromotheusService(CommonService):
         if enabled:
             self.quiet = configs.pop("quiet", False)
             self.app = PrometheusConnect(url=configs.get("url"), disable_ssl=True)
+            self.app.check_prometheus_connection()
             self.cpu = Cpu(self.app)
             self.memory = Memory(self.app)
             self.network = Network(self.app)

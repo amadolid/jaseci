@@ -154,6 +154,9 @@ spec:
             - name: REDIS_HOST
               value: jaseci-redis
 
+            - name: PROMON_HOST
+              value: jaseci-prometheus-server
+
           volumeMounts:
             - name: prod-script
               mountPath: /script

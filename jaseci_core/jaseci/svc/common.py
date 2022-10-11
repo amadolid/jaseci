@@ -18,7 +18,7 @@ class CommonService:
             setattr(cls, "_app", None)
             setattr(cls, "_state", Ss.NOT_STARTED)
             setattr(cls, "_quiet", True)
-            setattr(cls, "_kube", {})
+            setattr(cls, "_kube", None)
 
         self.__build(hook)
 

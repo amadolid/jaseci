@@ -97,11 +97,7 @@ class JsOrc:
 
         svc = self.meta.get_service(svc)
 
-        logger.info("##########################")
-        logger.info("trying to run service....")
-        if not svc.is_running() and svc.kube:
-            logger.info("##########################")
-            print("starting to run service....")
+        if not svc.is_running() and not (svc.kube is None):
             config_map = svc.kube
             pod_name = ""
             for kind, confs in config_map.items():
@@ -112,12 +108,9 @@ class JsOrc:
                     res = self.read(kind, name, namespace)
                     if hasattr(res, "status") and res.status == 404 and conf:
                         self.kube.create(kind, namespace, conf)
-
-            for item in self.kube.core.list_namespaced_pod(
-                namespace, label_selector=f"pod={pod_name}"
-            ).items:
-                if item.status.pod_ip:
-                    hook = self.meta.build_hook()
-                    svc.update_config(hook, item.status.pod_ip)
-                    svc.reset(hook)
-                break
+            if svc.kube:
+                res = self.read("Endpoints", pod_name, namespace)
+                if res.metadata:
+                    svc.reset(self.meta.build_hook())
+            else:
+                svc.reset(self.meta.build_hook())

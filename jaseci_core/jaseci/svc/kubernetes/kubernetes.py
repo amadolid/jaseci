@@ -73,6 +73,7 @@ class Kube:
         }
         self.read_apis = {
             "Service": self.core.read_namespaced_service,
+            "Endpoints": self.core.read_namespaced_endpoints,
             "Deployment": self.api.read_namespaced_deployment,
             "ConfigMap": self.core.read_namespaced_config_map,
             "ServiceAccount": self.core.read_namespaced_service_account,
