@@ -2,7 +2,6 @@ from celery import Celery
 from celery.backends.base import DisabledBackend
 
 from jaseci.svc import CommonService, ServiceState as Ss
-from jaseci.utils.utils import logger
 from .common import (
     TASK_CONFIG,
     Queue,
@@ -54,10 +53,9 @@ class TaskService(CommonService, TaskProperties):
             self.state = Ss.RUNNING
 
             # ------------------ PROCESS ------------------- #
-
             self.spawn_daemon(
                 worker=self.app.Worker(quiet=self.quiet).start,
-                scheduler=self.app.Beat(quiet=self.quiet).run,
+                scheduler=self.app.Beat(socket_timeout=None, quiet=self.quiet).run,
             )
         else:
             self.state = Ss.DISABLED
@@ -120,14 +118,6 @@ class TaskService(CommonService, TaskProperties):
     ####################################################
 
     def contraints(self, hook=None):
-        if not (hook is None) and hook.redis.has_failed():
-            if not (self.quiet):
-                logger.error(
-                    "Redis is not yet running reason "
-                    "for skipping Celery initialization!"
-                )
-            self.state = Ss.FAILED
-            return False
         return True
 
     def build_config(self, hook) -> dict:

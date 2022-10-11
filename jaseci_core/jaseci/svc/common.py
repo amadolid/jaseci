@@ -121,7 +121,7 @@ class CommonService:
         for name in names:
             dae: ClosableThread = self.daemon.pop(name, None)
             if not (dae is None) and dae.is_alive():
-                logger.warn(f"Terminating {name} ...")
+                logger.info(f"Terminating {name} ...")
                 dae.force_close()
 
     # --------------- TO BE OVERRIDEN --------------- #

@@ -108,7 +108,8 @@ class JsOrc:
                     res = self.read(kind, name, namespace)
                     if hasattr(res, "status") and res.status == 404 and conf:
                         self.kube.create(kind, namespace, conf)
-            if svc.kube:
+
+            if config_map:
                 res = self.read("Endpoints", pod_name, namespace)
                 if res.metadata:
                     svc.reset(self.meta.build_hook())
