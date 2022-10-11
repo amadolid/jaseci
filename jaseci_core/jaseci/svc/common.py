@@ -1,7 +1,6 @@
-from copy import deepcopy
-import signal
-import sys
-from multiprocessing import Process
+import threading
+from threading import Thread
+from ctypes import c_long, py_object, pythonapi
 
 from jaseci.utils.utils import logger
 from .state import ServiceState as Ss
@@ -112,18 +111,18 @@ class CommonService:
 
     def spawn_daemon(self, **targets):
         for name, target in targets.items():
-            dae: Process = self.daemon.get(name)
+            dae: ClosableThread = self.daemon.get(name)
             if not dae or not dae.is_alive():
-                proc = Process(target=target, daemon=True)
-                proc.start()
-                self.daemon[name] = proc
+                thread = ClosableThread(target=target, daemon=True)
+                thread.start()
+                self.daemon[name] = thread
 
     def terminate_daemon(self, *names):
         for name in names:
-            dae: Process = self.daemon.pop(name, None)
+            dae: ClosableThread = self.daemon.pop(name, None)
             if not (dae is None) and dae.is_alive():
                 logger.warn(f"Terminating {name} ...")
-                dae.terminate()
+                dae.force_close()
 
     # --------------- TO BE OVERRIDEN --------------- #
 
@@ -212,12 +211,25 @@ class MetaProperties:
 
 
 ###################################################
-#                 PROCESS CLEANER                 #
+#                  CUSTOM THREAD                  #
 ###################################################
 
 
-def force_terminate(*args):
-    sys.exit(0)
+class ClosableThread(Thread):
+    def force_close(self):
+        if self.is_alive() and not hasattr(self, "_thread_id"):
+            for tid, tobj in threading._active.items():
+                if tobj is self:
+                    self._thread_id = tid
+                    break
 
+            if (
+                pythonapi.PyThreadState_SetAsyncExc(
+                    c_long(self._thread_id), py_object(SystemExit)
+                )
+                != 1
+            ):
+                pythonapi.PyThreadState_SetAsyncExc(c_long(self._thread_id), None)
+                raise SystemError("Failed to force close running thread!")
 
-signal.signal(signal.SIGINT, force_terminate)
+        self.join()
