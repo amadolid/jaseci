@@ -30,20 +30,15 @@ class JsOrcService(CommonService, JsOrcProperties):
         enabled = configs.pop("enabled", True)
 
         if enabled:
-            if hook.kube.is_running():
-                self.quiet = configs.get("quiet", False)
-                self.interval = configs.get("interval", 10)
-                self.namespace = configs.get("namespace", "default")
-                self.keep_alive = configs.get("keep_alive", [])
+            self.quiet = configs.get("quiet", False)
+            self.interval = configs.get("interval", 10)
+            self.namespace = configs.get("namespace", "default")
+            self.keep_alive = configs.get("keep_alive", [])
 
-                self.app = JsOrc(hook.meta, hook.kube.app)
-                self.state = Ss.RUNNING
-                # self.app.check(self.namespace, "redis")
-                self.spawn_daemon(jsorc=self.interval_check)
-            else:
-                raise Exception(
-                    "JsOrc failed to initialized! KubeService is not running!"
-                )
+            self.app = JsOrc(hook.meta, hook.kube.app)
+            self.state = Ss.RUNNING
+            # self.app.check(self.namespace, "redis")
+            self.spawn_daemon(jsorc=self.interval_check)
         else:
             self.state = Ss.DISABLED
 

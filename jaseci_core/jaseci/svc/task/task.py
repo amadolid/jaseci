@@ -1,3 +1,4 @@
+from uuid import UUID, uuid4
 from celery import Celery
 from celery.backends.base import DisabledBackend
 
@@ -9,7 +10,6 @@ from .common import (
     ScheduledWalker,
     TaskProperties,
 )
-
 
 #################################################
 #                   TASK APP                   #
@@ -98,7 +98,30 @@ class TaskService(CommonService, TaskProperties):
     ###################################################
 
     def add_queue(self, wlk, nd, *args):
-        return self.queue.delay(wlk.id.urn, nd.id.urn, args).task_id
+        queue_id = str(uuid4())
+
+        self.lock.acquire()
+        self.queues.update({queue_id: {"wlk": wlk, "nd": nd, "args": args}})
+        self.lock.release()
+
+        return self.queue.delay(queue_id).task_id
+
+    def consume_queue(self, queue_id):
+        self.lock.acquire()
+        que = self.queues.pop(queue_id)
+        self.lock.release()
+
+        wlk = que.get("wlk")
+        nd = que.get("nd")
+        args = que.get("args")
+        mast = wlk._h.get_obj_from_store(UUID(wlk._m_id))
+
+        wlk._to_await = True
+
+        resp = wlk.run(nd, *args)
+        wlk.register_yield_or_destroy(mast.yielded_walkers_ids)
+
+        return {"anchor": wlk.anchor_value(), "response": resp}
 
     ###################################################
     #                     CLEANER                     #

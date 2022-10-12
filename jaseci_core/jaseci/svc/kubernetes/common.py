@@ -2,4 +2,4 @@
 #                   DEFAULTS                   #
 ################################################
 
-KUBE_CONFIG = {"enabled": True, "quiet": False, "in_cluster": True, "config": None}
+KUBE_CONFIG = {"enabled": False, "quiet": False, "in_cluster": False, "config": None}

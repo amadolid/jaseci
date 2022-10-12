@@ -78,14 +78,14 @@ class MetaService(CommonService, MetaProperties):
         params = self.hook_param
         h = self.hook(*params.get("args", []), **params.get("kwargs", {}))
         if self.run_svcs:
+            h.meta = self
+            h.mail = self.get_service("mail", h)
             h.redis = self.get_service("redis", h)
             h.task = self.get_service("task", h)
-            h.mail = self.get_service("mail", h)
             h.kube = self.get_service("kube", h)
-            h.promon = self.get_service("promon", h)
-            h.meta = self
-
-            self.get_service("jsorc", h)
+            if h.kube.is_running():
+                h.promon = self.get_service("promon", h)
+                self.get_service("jsorc", h)
 
         return h
 
