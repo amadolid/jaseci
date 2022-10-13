@@ -35,7 +35,7 @@ class JsOrcService(CommonService, JsOrcProperties):
             self.namespace = configs.get("namespace", "default")
             self.keep_alive = configs.get("keep_alive", [])
 
-            self.app = JsOrc(hook.meta, hook.kube.app)
+            self.app = JsOrc(hook.meta, hook.kube.app, self.quiet)
             self.state = Ss.RUNNING
             # self.app.check(self.namespace, "redis")
             self.spawn_daemon(jsorc=self.interval_check)
@@ -75,17 +75,32 @@ class JsOrcService(CommonService, JsOrcProperties):
 
 
 class JsOrc:
-    def __init__(self, meta, kube: Kube):
+    def __init__(self, meta, kube: Kube, quiet: bool):
         self.meta = meta
         self.kube = kube
+        self.quiet = quiet
 
-    def read(self, api: str, name: str, namespace: str):
+    def create(self, kind: str, name: str, namespace: str, conf: dict):
         try:
-            return self.kube.read(api, name, namespace=namespace)
+            if not self.quiet:
+                logger.info(
+                    f"Creating {kind} for `{name}` with namespace `{namespace}`"
+                )
+            self.kube.create(kind, namespace, conf)
         except ApiException as e:
-            logger.exception(
-                f"Error retrieving {api} for `{name}` with namespace `{namespace}`"
-            )
+            if not self.quiet:
+                logger.error(
+                    f"Error creating {kind} for `{name}` with namespace `{namespace}`"
+                )
+
+    def read(self, kind: str, name: str, namespace: str):
+        try:
+            return self.kube.read(kind, name, namespace=namespace)
+        except ApiException as e:
+            if not self.quiet:
+                logger.error(
+                    f"Error retrieving {kind} for `{name}` with namespace `{namespace}`"
+                )
             return e
 
     def check(self, namespace, svc):
@@ -102,7 +117,7 @@ class JsOrc:
                         pod_name = name
                     res = self.read(kind, name, namespace)
                     if hasattr(res, "status") and res.status == 404 and conf:
-                        self.kube.create(kind, namespace, conf)
+                        self.create(kind, name, namespace, conf)
 
             if config_map:
                 res = self.read("Endpoints", pod_name, namespace)
