@@ -68,7 +68,9 @@ class Kube:
             "ClusterRole": self.auth.create_cluster_role,
             "ClusterRoleBinding": self.auth.create_cluster_role_binding,
             "Secret": self.core.create_namespaced_secret,
-            "PersistentVolumeClaim": self.core.create_namespaced_persistent_volume_claim,
+            "PersistentVolumeClaim": (
+                self.core.create_namespaced_persistent_volume_claim
+            ),
             "DaemonSet": self.api.create_namespaced_daemon_set,
         }
         self.read_apis = {

@@ -78,8 +78,8 @@ class CommonService:
         except Exception as e:
             if not (self.quiet):
                 logger.error(
-                    f"Skipping {self.__class__.__name__} due to initialization failure!\n"
-                    f"{e.__class__.__name__}: {e}"
+                    f"Skipping {self.__class__.__name__} due to initialization "
+                    f"failure!\n{e.__class__.__name__}: {e}"
                 )
             self.failed()
 

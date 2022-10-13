@@ -9,7 +9,6 @@ from jaseci.svc import (
     PromotheusService,
     JsOrcService,
 )
-from jaseci.svc.jsorc.jsorc import JsOrcService
 
 from jaseci.utils.utils import logger
 
