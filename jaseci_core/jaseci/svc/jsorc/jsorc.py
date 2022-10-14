@@ -80,6 +80,19 @@ class JsOrc:
         self.kube = kube
         self.quiet = quiet
 
+    def is_running(self, name: str, namespace: str):
+        try:
+            return (
+                self.kube.core.list_namespaced_pod(
+                    namespace=namespace, label_selector=f"pod={name}"
+                )
+                .items[0]
+                .status.phase
+                == "Running"
+            )
+        except Exception:
+            return False
+
     def create(self, kind: str, name: str, namespace: str, conf: dict):
         try:
             if not self.quiet:
@@ -87,7 +100,7 @@ class JsOrc:
                     f"Creating {kind} for `{name}` with namespace `{namespace}`"
                 )
             self.kube.create(kind, namespace, conf)
-        except ApiException as e:
+        except ApiException:
             if not self.quiet:
                 logger.error(
                     f"Error creating {kind} for `{name}` with namespace `{namespace}`"
@@ -119,7 +132,7 @@ class JsOrc:
                     if hasattr(res, "status") and res.status == 404 and conf:
                         self.create(kind, name, namespace, conf)
 
-            if config_map:
+            if config_map and self.is_running(pod_name, namespace):
                 res = self.read("Endpoints", pod_name, namespace)
                 if res.metadata:
                     svc.reset(self.meta.build_hook())

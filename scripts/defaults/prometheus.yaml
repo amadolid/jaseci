@@ -1209,6 +1209,7 @@ spec:
   template:
     metadata:
       labels:
+        pod: jaseci-prometheus-server
         component: "server"
         app: prometheus
         release: jaseci-prometheus

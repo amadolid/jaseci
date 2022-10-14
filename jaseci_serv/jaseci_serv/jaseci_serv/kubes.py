@@ -1072,6 +1072,7 @@ PROMON_KUBE = {
                     "release": "jaseci-prometheus",
                     "chart": "prometheus-15.10.5",
                     "heritage": "Helm",
+                    "pod": "jaseci-prometheus-server",
                 },
                 "name": "jaseci-prometheus-server",
                 "namespace": "default",
@@ -1093,6 +1094,7 @@ PROMON_KUBE = {
                             "release": "jaseci-prometheus",
                             "chart": "prometheus-15.10.5",
                             "heritage": "Helm",
+                            "pod": "jaseci-prometheus-server",
                         }
                     },
                     "spec": {
