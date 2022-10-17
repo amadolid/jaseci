@@ -2,7 +2,8 @@ from json import dumps, loads
 from redis import Redis
 
 from jaseci.svc import CommonService, ServiceState as Ss
-from .common import REDIS_CONFIG
+from .config import REDIS_CONFIG
+from .kube import REDIS_KUBE
 
 
 #################################################
@@ -17,14 +18,14 @@ class RedisService(CommonService):
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(__class__, hook)
+        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def build(self, hook=None):
-        configs = self.get_config(hook)
+    def builder(self, hook=None):
+        configs = self.build_settings(hook)
         enabled = configs.pop("enabled", True)
 
         if enabled:
@@ -79,13 +80,10 @@ class RedisService(CommonService):
     ###################################################
 
     def build_config(self, hook) -> dict:
-        return hook.build_config("REDIS_CONFIG", REDIS_CONFIG)
+        return hook.service_glob("REDIS_CONFIG", REDIS_CONFIG)
 
-    def update_config(self, hook, host):
-        config = loads(hook.get_glob("REDIS_CONFIG"))
-        config["host"] = host
-        hook.save_glob("REDIS_CONFIG", dumps(config))
-        hook.commit()
+    def build_kube(self, hook) -> dict:
+        return hook.service_glob("REDIS_KUBE", REDIS_KUBE)
 
 
 # ----------------------------------------------- #

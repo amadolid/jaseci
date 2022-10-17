@@ -4,36 +4,38 @@ from kubernetes.client.rest import ApiException
 from jaseci.utils.utils import logger
 from jaseci.svc import CommonService, ServiceState as Ss
 from jaseci.svc.kubernetes import Kube
-from .common import JSORC_CONFIG, JsOrcProperties
+from .config import JSORC_CONFIG
 
 #################################################
 #                  JASECI ORC                   #
 #################################################
 
 
-class JsOrcService(CommonService, JsOrcProperties):
+class JsOrcService(CommonService):
 
     ###################################################
     #                   INITIALIZER                   #
     ###################################################
 
     def __init__(self, hook=None):
-        JsOrcProperties.__init__(self, __class__)
-        CommonService.__init__(self, __class__, hook)
+        self.interval = 10
+        self.namespace = "default"
+        self.keep_alive = []
+
+        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def build(self, hook=None):
-        configs = self.get_config(hook)
-        enabled = configs.pop("enabled", True)
+    def builder(self, hook=None):
+        enabled = self.config.get("enabled", True)
 
         if enabled:
-            self.quiet = configs.get("quiet", False)
-            self.interval = configs.get("interval", 10)
-            self.namespace = configs.get("namespace", "default")
-            self.keep_alive = configs.get("keep_alive", [])
+            self.quiet = self.config.get("quiet", False)
+            self.interval = self.config.get("interval", 10)
+            self.namespace = self.config.get("namespace", "default")
+            self.keep_alive = self.config.get("keep_alive", [])
 
             self.app = JsOrc(hook.meta, hook.kube.app, self.quiet)
             self.state = Ss.RUNNING
@@ -44,12 +46,15 @@ class JsOrcService(CommonService, JsOrcProperties):
 
     def interval_check(self):
         while True:
-            sleep(self.interval)
             for svc in self.keep_alive:
                 try:
                     self.app.check(self.namespace, svc)
-                except Exception:
-                    logger.exception("Skipping any issue!")
+                except Exception as e:
+                    logger.error(
+                        f"Error checking {svc} !\n" f"{e.__class__.__name__}: {e}"
+                    )
+
+            sleep(self.interval)
 
     ###################################################
     #                     CLEANER                     #
@@ -68,7 +73,7 @@ class JsOrcService(CommonService, JsOrcProperties):
     ####################################################
 
     def build_config(self, hook) -> dict:
-        return hook.build_config("JSORC_CONFIG", JSORC_CONFIG)
+        return hook.service_glob("JSORC_CONFIG", JSORC_CONFIG)
 
 
 # ----------------------------------------------- #
@@ -120,21 +125,22 @@ class JsOrc:
 
         svc = self.meta.get_service(svc)
 
-        if not svc.is_running() and not (svc.kube is None):
-            config_map = svc.kube
-            pod_name = ""
-            for kind, confs in config_map.items():
-                for conf in confs:
-                    name = conf["metadata"]["name"]
-                    if kind == "Service":
-                        pod_name = name
-                    res = self.read(kind, name, namespace)
-                    if hasattr(res, "status") and res.status == 404 and conf:
-                        self.create(kind, name, namespace, conf)
+        if not svc.is_running():
+            if svc.kube:
+                config_map = svc.kube
+                pod_name = ""
+                for kind, confs in config_map.items():
+                    for conf in confs:
+                        name = conf["metadata"]["name"]
+                        if kind == "Service":
+                            pod_name = name
+                        res = self.read(kind, name, namespace)
+                        if hasattr(res, "status") and res.status == 404 and conf:
+                            self.create(kind, name, namespace, conf)
 
-            if config_map and self.is_running(pod_name, namespace):
-                res = self.read("Endpoints", pod_name, namespace)
-                if res.metadata:
-                    svc.reset(self.meta.build_hook())
+                if self.is_running(pod_name, namespace):
+                    res = self.read("Endpoints", pod_name, namespace)
+                    if res.metadata:
+                        svc.reset(self.meta.build_hook())
             else:
                 svc.reset(self.meta.build_hook())

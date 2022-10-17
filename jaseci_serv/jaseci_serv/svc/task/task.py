@@ -9,4 +9,4 @@ from jaseci_serv.jaseci_serv.configs import TASK_CONFIG
 
 class TaskService(Ts):
     def build_config(self, hook) -> dict:
-        return hook.build_config("TASK_CONFIG", TASK_CONFIG)
+        return hook.service_glob("TASK_CONFIG", TASK_CONFIG)

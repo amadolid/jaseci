@@ -16,7 +16,6 @@ REDIS_CONFIG = {
     "host": os.getenv("REDIS_HOST", "localhost"),
     "port": os.getenv("REDIS_PORT", "6379"),
     "db": os.getenv("REDIS_DB", "1"),
-    "kube": REDIS_KUBE,
 }
 
 TASK_CONFIG = {
@@ -27,7 +26,6 @@ TASK_CONFIG = {
     "result_backend": "django-db",
     "task_track_started": True,
     "broker_connection_retry_on_startup": True,
-    "kube": {},
 }
 
 MAIL_CONFIG = {
@@ -63,7 +61,6 @@ PROMON_CONFIG = {
     "enabled": True,
     "quiet": False,
     "url": f'http://{os.getenv("PROMON_HOST", "localhost")}:9090',
-    "kube": PROMON_KUBE,
 }
 
 if "test" in sys.argv or "test_coverage" in sys.argv:

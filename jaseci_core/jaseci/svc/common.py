@@ -6,21 +6,18 @@ from jaseci.utils.utils import logger
 from .state import ServiceState as Ss
 
 COMMON_ERROR = "Not properly configured!"
+DEFAULT_CONFIG = {"enabled": False}
 
 
 class CommonService:
 
     _daemon = {}
 
-    def __init__(self, cls, hook=None):
-        self.cls = cls
-        if not hasattr(cls, "_app"):
-            setattr(cls, "_app", None)
-            setattr(cls, "_state", Ss.NOT_STARTED)
-            setattr(cls, "_quiet", True)
-            setattr(cls, "_kube", None)
-
-        self.__build(hook)
+    def __init__(self, hook=None):
+        self.app = None
+        self.state = Ss.NOT_STARTED
+        self.quiet = True
+        self.build_settings(hook)
 
     ###################################################
     #                   PROPERTIES                    #
@@ -32,49 +29,15 @@ class CommonService:
     def daemon(self):
         return __class__._daemon
 
-    # ----------------------------------------------- #
-
-    @property
-    def app(self):
-        return self.cls._app
-
-    @app.setter
-    def app(self, val):
-        self.cls._app = val
-
-    @property
-    def state(self) -> Ss:
-        return self.cls._state
-
-    @state.setter
-    def state(self, val: Ss):
-        self.cls._state = val
-
-    @property
-    def quiet(self) -> bool:
-        return self.cls._quiet
-
-    @quiet.setter
-    def quiet(self, val: bool):
-        self.cls._quiet = val
-
-    @property
-    def kube(self) -> dict:
-        return self.cls._kube
-
-    @kube.setter
-    def kube(self, val: dict):
-        self.cls._kube = val
-
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def __build(self, hook=None):
+    def build(self, hook=None):
         try:
-            if self.is_ready() and self.contraints(hook):
+            if self.is_ready():
                 self.state = Ss.STARTED
-                self.build(hook)
+                self.builder(hook)
         except Exception as e:
             if not (self.quiet):
                 logger.error(
@@ -83,7 +46,9 @@ class CommonService:
                 )
             self.failed()
 
-    def build(self, hook=None):
+        return self
+
+    def builder(self, hook=None):
         raise Exception(f"{COMMON_ERROR} Please override build method!")
 
     ###################################################
@@ -99,13 +64,19 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
-    def get_config(self, hook) -> dict:
-        configs = self.build_config(hook)
-        self.kube = configs.pop("kube", {})
-        return configs
+    def build_settings(self, hook) -> dict:
+        try:
+            self.config = self.build_config(hook)
+            self.kube = self.build_kube(hook)
+        except Exception:
+            self.config = DEFAULT_CONFIG
+            self.kube = None
 
     def build_config(self, hook) -> dict:
-        raise Exception(f"{COMMON_ERROR} Please override build_config method!")
+        pass
+
+    def build_kube(self, hook) -> dict:
+        pass
 
     # ------------------- DAEMON -------------------- #
 
@@ -124,11 +95,6 @@ class CommonService:
                 logger.info(f"Terminating {name} ...")
                 dae.force_close()
 
-    # --------------- TO BE OVERRIDEN --------------- #
-
-    def contraints(self, hook=None):
-        return True
-
     ###################################################
     #                     CLEANER                     #
     ###################################################
@@ -137,6 +103,7 @@ class CommonService:
         self.app = None
         self.state = Ss.NOT_STARTED
         self.__init__(hook)
+        self.build(hook)
 
     def failed(self):
         self.app = None
@@ -145,11 +112,12 @@ class CommonService:
 
 class ProxyService(CommonService):
     def __init__(self):
-        super().__init__(ProxyService)
+        super().__init__(__class__)
 
 
 class MetaProperties:
     def __init__(self, cls):
+        self.cls = cls
         if not hasattr(cls, "_services"):
             setattr(cls, "_services", {})
             setattr(cls, "_background", {})

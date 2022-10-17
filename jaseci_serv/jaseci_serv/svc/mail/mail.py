@@ -29,7 +29,7 @@ class MailService(Ms):
         return Mailer(server, sender, configs["templates"])
 
     def build_config(self, hook) -> dict:
-        return hook.build_config("MAIL_CONFIG", MAIL_CONFIG)
+        return hook.service_glob("MAIL_CONFIG", MAIL_CONFIG)
 
 
 # ----------------------------------------------- #

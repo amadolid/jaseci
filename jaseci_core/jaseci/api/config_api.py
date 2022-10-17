@@ -62,7 +62,7 @@ class ConfigApi:
         elif name == "PROMON_CONFIG":
             hook.promon.reset(hook)
         elif name == "KUBE_CONFIG":
-            hook.promon.reset(hook)
+            hook.kube.reset(hook)
 
     @Interface.admin_api()
     def config_list(self):

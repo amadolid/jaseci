@@ -2,24 +2,25 @@ from kubernetes import config
 from kubernetes.client import ApiClient, CoreV1Api, AppsV1Api, RbacAuthorizationV1Api
 
 from jaseci.svc import CommonService, ServiceState as Ss
-from .common import KUBE_CONFIG
+from .config import KUBE_CONFIG
 
 
 class KubernetesService(CommonService):
     def __init__(self, hook=None):
-        super().__init__(__class__, hook)
+        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def build(self, hook=None):
-        configs = self.get_config(hook)
-        enabled = configs.get("enabled", True)
+    def builder(self, hook=None):
+        enabled = self.config.get("enabled", True)
 
         if enabled:
-            self.quiet = configs.pop("quiet", False)
-            self.app = Kube(configs.pop("in_cluster", True), configs.get("config"))
+            self.quiet = self.config.get("quiet", False)
+            self.app = Kube(
+                self.config.get("in_cluster", True), self.config.get("config")
+            )
             self.state = Ss.RUNNING
         else:
             self.state = Ss.DISABLED
@@ -29,7 +30,7 @@ class KubernetesService(CommonService):
     ####################################################
 
     def build_config(self, hook) -> dict:
-        return hook.build_config("KUBE_CONFIG", KUBE_CONFIG)
+        return hook.service_glob("KUBE_CONFIG", KUBE_CONFIG)
 
 
 class Kube:

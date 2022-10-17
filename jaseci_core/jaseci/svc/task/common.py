@@ -1,31 +1,11 @@
-from multiprocessing import Manager
-from multiprocessing.managers import DictProxy
 import re
 from copy import deepcopy
-from threading import Lock
 from typing import Tuple
 from uuid import UUID
 
 from celery import Task
-from celery.app.control import Inspect
 from requests import get, post
 from requests.exceptions import HTTPError
-
-
-################################################
-#                   DEFAULTS                   #
-################################################
-
-DEFAULT_MSG = "Skipping scheduled walker!"
-TASK_CONFIG = {
-    "enabled": True,
-    "quiet": True,
-    "broker_url": "redis://localhost:6379/1",
-    "result_backend": "redis://localhost:6379/1",
-    "broker_connection_retry_on_startup": True,
-    "task_track_started": True,
-    "kube": {},
-}
 
 
 class Queue(Task):
@@ -301,65 +281,3 @@ class ScheduledSequence(Task):
                 break
 
         return persistence
-
-
-class TaskProperties:
-    def __init__(self, cls):
-        if not hasattr(cls, "_queues"):
-            manager = Manager()
-            setattr(cls, "_lock", manager.Lock())
-            setattr(cls, "_queues", manager.dict())
-            setattr(cls, "_inspect", None)
-
-            # --------------- REGISTERED TASK --------------- #
-            setattr(cls, "_queue", None)
-            setattr(cls, "_scheduled_walker", None)
-            setattr(cls, "_scheduled_sequence", None)
-
-    @property
-    def lock(self) -> Lock:
-        return self.cls._lock
-
-    @lock.setter
-    def lock(self, val: Lock):
-        self.cls._lock = val
-
-    @property
-    def queues(self) -> DictProxy:
-        return self.cls._queues
-
-    @queues.setter
-    def queues(self, val: DictProxy):
-        self.cls._queues = val
-
-    @property
-    def inspect(self) -> Inspect:
-        return self.cls._inspect
-
-    @inspect.setter
-    def inspect(self, val: Inspect):
-        self.cls._inspect = val
-
-    @property
-    def queue(self) -> Queue:
-        return self.cls._queue
-
-    @queue.setter
-    def queue(self, val: Queue):
-        self.cls._queue = val
-
-    @property
-    def scheduled_walker(self) -> ScheduledWalker:
-        return self.cls._scheduled_walker
-
-    @scheduled_walker.setter
-    def scheduled_walker(self, val: ScheduledWalker):
-        self.cls._scheduled_walker = val
-
-    @property
-    def scheduled_sequence(self) -> ScheduledSequence:
-        return self.cls._scheduled_sequence
-
-    @scheduled_sequence.setter
-    def scheduled_sequence(self, val: ScheduledSequence):
-        self.cls._scheduled_sequence = val

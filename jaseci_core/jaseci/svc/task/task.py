@@ -1,37 +1,41 @@
+from multiprocessing import Manager
 from uuid import UUID, uuid4
 from celery import Celery
+from celery.app.control import Inspect
 from celery.backends.base import DisabledBackend
 
 from jaseci.svc import CommonService, ServiceState as Ss
-from .common import (
-    TASK_CONFIG,
-    Queue,
-    ScheduledSequence,
-    ScheduledWalker,
-    TaskProperties,
-)
+from .common import Queue, ScheduledWalker, ScheduledSequence
+from .config import TASK_CONFIG
 
 #################################################
 #                   TASK APP                   #
 #################################################
 
 
-class TaskService(CommonService, TaskProperties):
+class TaskService(CommonService):
 
     ###################################################
     #                   INITIALIZER                   #
     ###################################################
 
     def __init__(self, hook=None):
-        TaskProperties.__init__(self, __class__)
-        CommonService.__init__(self, __class__, hook)
+        manager = Manager()
+        self.lock = manager.Lock()
+        self.queues = manager.dict()
+        self.inspect: Inspect = None
+        self.queue: Queue = None
+        self.scheduled_walker: ScheduledWalker = None
+        self.scheduled_sequence: ScheduledSequence = None
+
+        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def build(self, hook=None):
-        configs = self.get_config(hook)
+    def builder(self, hook=None):
+        configs = self.build_settings(hook)
         enabled = configs.pop("enabled", True)
 
         if enabled:
@@ -140,8 +144,5 @@ class TaskService(CommonService, TaskProperties):
     #                    OVERRIDDEN                    #
     ####################################################
 
-    def contraints(self, hook=None):
-        return True
-
     def build_config(self, hook) -> dict:
-        return hook.build_config("TASK_CONFIG", TASK_CONFIG)
+        return hook.service_glob("TASK_CONFIG", TASK_CONFIG)
