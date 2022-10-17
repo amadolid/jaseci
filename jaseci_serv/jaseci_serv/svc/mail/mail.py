@@ -2,7 +2,7 @@ from django.core import mail
 
 from jaseci.svc import MailService as Ms
 from jaseci.svc.mail import Mailer as Em
-from jaseci_serv.jaseci_serv.settings import MAIL_CONFIG
+from jaseci_serv.jaseci_serv.configs import MAIL_CONFIG
 
 
 #################################################
@@ -24,9 +24,11 @@ class MailService(Ms):
             password=configs.get("pass"),
             use_tls=configs.get("tls"),
         )
+        server.open()
+
         return Mailer(server, sender, configs["templates"])
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("MAIL_CONFIG", MAIL_CONFIG)
 
 

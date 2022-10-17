@@ -1,7 +1,7 @@
+from json import dumps, loads
 from redis import Redis
 
 from jaseci.svc import CommonService, ServiceState as Ss
-from jaseci.utils.utils import logger
 from .common import REDIS_CONFIG
 
 
@@ -17,22 +17,13 @@ class RedisService(CommonService):
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(RedisService)
+        super().__init__(__class__, hook)
 
-        try:
-            if self.is_ready():
-                self.state = Ss.STARTED
-                self.__redis(hook)
-        except Exception as e:
-            if not (self.quiet):
-                logger.error(
-                    "Skipping Redis due to initialization failure!\n"
-                    f"{e.__class__.__name__}: {e}"
-                )
-            self.app = None
-            self.state = Ss.FAILED
+    ###################################################
+    #                     BUILDER                     #
+    ###################################################
 
-    def __redis(self, hook):
+    def build(self, hook=None):
         configs = self.get_config(hook)
         enabled = configs.pop("enabled", True)
 
@@ -79,9 +70,6 @@ class RedisService(CommonService):
     #                     CLEANER                     #
     ###################################################
 
-    def reset(self, hook):
-        self.build(hook)
-
     def clear(self):
         if self.is_running():
             self.app.flushdb()
@@ -90,8 +78,14 @@ class RedisService(CommonService):
     #                     CONFIG                      #
     ###################################################
 
-    def get_config(self, hook) -> dict:
+    def build_config(self, hook) -> dict:
         return hook.build_config("REDIS_CONFIG", REDIS_CONFIG)
+
+    def update_config(self, hook, host):
+        config = loads(hook.get_glob("REDIS_CONFIG"))
+        config["host"] = host
+        hook.save_glob("REDIS_CONFIG", dumps(config))
+        hook.commit()
 
 
 # ----------------------------------------------- #

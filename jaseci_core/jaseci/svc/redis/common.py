@@ -1,6 +1,5 @@
-################################################
-#                   DEFAULTS                   #
-################################################
+from .kube import REDIS_KUBE
+
 
 REDIS_CONFIG = {
     "enabled": True,
@@ -8,4 +7,5 @@ REDIS_CONFIG = {
     "host": "localhost",
     "port": "6379",
     "db": "1",
+    "kube": REDIS_KUBE,
 }

@@ -1,6 +1,8 @@
+from multiprocessing import Manager
+from multiprocessing.managers import DictProxy
 import re
 from copy import deepcopy
-from multiprocessing import Process
+from threading import Lock
 from typing import Tuple
 from uuid import UUID
 
@@ -9,23 +11,28 @@ from celery.app.control import Inspect
 from requests import get, post
 from requests.exceptions import HTTPError
 
+
+################################################
+#                   DEFAULTS                   #
+################################################
+
 DEFAULT_MSG = "Skipping scheduled walker!"
+TASK_CONFIG = {
+    "enabled": True,
+    "quiet": True,
+    "broker_url": "redis://localhost:6379/1",
+    "result_backend": "redis://localhost:6379/1",
+    "broker_connection_retry_on_startup": True,
+    "task_track_started": True,
+    "kube": {},
+}
 
 
 class Queue(Task):
-    def run(self, wlk, nd, args):
-        from jaseci.svc import MetaService
+    def run(self, queue_id):
+        from jaseci.svc import TaskService
 
-        hook = MetaService().build_hook()
-
-        wlk = hook.get_obj_from_store(UUID(wlk))
-        wlk._to_await = True
-
-        nd = hook.get_obj_from_store(UUID(nd))
-        resp = wlk.run(nd, *args)
-        wlk.destroy()
-
-        return {"anchor": wlk.anchor_value(), "response": resp}
+        return TaskService().consume_queue(queue_id)
 
 
 class ScheduledWalker(Task):
@@ -296,22 +303,34 @@ class ScheduledSequence(Task):
         return persistence
 
 
-c1 = Queue
-c2 = ScheduledWalker
-c3 = ScheduledSequence
-
-
 class TaskProperties:
-    def __init__(self, prop):
-        if not hasattr(prop, "_inspect"):
-            setattr(prop, "_inspect", None)
-            setattr(prop, "_worker", None)
-            setattr(prop, "_scheduler", None)
+    def __init__(self, cls):
+        if not hasattr(cls, "_queues"):
+            manager = Manager()
+            setattr(cls, "_lock", manager.Lock())
+            setattr(cls, "_queues", manager.dict())
+            setattr(cls, "_inspect", None)
 
             # --------------- REGISTERED TASK --------------- #
-            setattr(prop, "_queue", None)
-            setattr(prop, "_scheduled_walker", None)
-            setattr(prop, "_scheduled_sequence", None)
+            setattr(cls, "_queue", None)
+            setattr(cls, "_scheduled_walker", None)
+            setattr(cls, "_scheduled_sequence", None)
+
+    @property
+    def lock(self) -> Lock:
+        return self.cls._lock
+
+    @lock.setter
+    def lock(self, val: Lock):
+        self.cls._lock = val
+
+    @property
+    def queues(self) -> DictProxy:
+        return self.cls._queues
+
+    @queues.setter
+    def queues(self, val: DictProxy):
+        self.cls._queues = val
 
     @property
     def inspect(self) -> Inspect:
@@ -322,41 +341,25 @@ class TaskProperties:
         self.cls._inspect = val
 
     @property
-    def worker(self) -> Process:
-        return self.cls._worker
-
-    @worker.setter
-    def worker(self, val: Process):
-        self.cls._worker = val
-
-    @property
-    def scheduler(self) -> Process:
-        return self.cls._scheduler
-
-    @scheduler.setter
-    def scheduler(self, val: Process):
-        self.cls._scheduler = val
-
-    @property
-    def queue(self) -> c1:
+    def queue(self) -> Queue:
         return self.cls._queue
 
     @queue.setter
-    def queue(self, val: c1):
+    def queue(self, val: Queue):
         self.cls._queue = val
 
     @property
-    def scheduled_walker(self) -> c2:
+    def scheduled_walker(self) -> ScheduledWalker:
         return self.cls._scheduled_walker
 
     @scheduled_walker.setter
-    def scheduled_walker(self, val: c2):
+    def scheduled_walker(self, val: ScheduledWalker):
         self.cls._scheduled_walker = val
 
     @property
-    def scheduled_sequence(self) -> c3:
+    def scheduled_sequence(self) -> ScheduledSequence:
         return self.cls._scheduled_sequence
 
     @scheduled_sequence.setter
-    def scheduled_sequence(self, val: c3):
+    def scheduled_sequence(self, val: ScheduledSequence):
         self.cls._scheduled_sequence = val

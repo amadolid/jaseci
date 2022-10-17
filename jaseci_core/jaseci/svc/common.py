@@ -1,13 +1,38 @@
+import threading
+from threading import Thread
+from ctypes import c_long, py_object, pythonapi
+
+from jaseci.utils.utils import logger
 from .state import ServiceState as Ss
+
+COMMON_ERROR = "Not properly configured!"
 
 
 class CommonService:
-    def __init__(self, cls):
+
+    _daemon = {}
+
+    def __init__(self, cls, hook=None):
         self.cls = cls
-        if not hasattr(self.cls, "_app"):
-            setattr(self.cls, "_app", None)
-            setattr(self.cls, "_state", Ss.NOT_STARTED)
-            setattr(self.cls, "_quiet", True)
+        if not hasattr(cls, "_app"):
+            setattr(cls, "_app", None)
+            setattr(cls, "_state", Ss.NOT_STARTED)
+            setattr(cls, "_quiet", True)
+            setattr(cls, "_kube", None)
+
+        self.__build(hook)
+
+    ###################################################
+    #                   PROPERTIES                    #
+    ###################################################
+
+    # ------------------- DAEMON -------------------- #
+
+    @property
+    def daemon(self):
+        return __class__._daemon
+
+    # ----------------------------------------------- #
 
     @property
     def app(self):
@@ -33,6 +58,34 @@ class CommonService:
     def quiet(self, val: bool):
         self.cls._quiet = val
 
+    @property
+    def kube(self) -> dict:
+        return self.cls._kube
+
+    @kube.setter
+    def kube(self, val: dict):
+        self.cls._kube = val
+
+    ###################################################
+    #                     BUILDER                     #
+    ###################################################
+
+    def __build(self, hook=None):
+        try:
+            if self.is_ready() and self.contraints(hook):
+                self.state = Ss.STARTED
+                self.build(hook)
+        except Exception as e:
+            if not (self.quiet):
+                logger.error(
+                    f"Skipping {self.__class__.__name__} due to initialization "
+                    f"failure!\n{e.__class__.__name__}: {e}"
+                )
+            self.failed()
+
+    def build(self, hook=None):
+        raise Exception(f"{COMMON_ERROR} Please override build method!")
+
     ###################################################
     #                     COMMONS                     #
     ###################################################
@@ -46,14 +99,48 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
+    def get_config(self, hook) -> dict:
+        configs = self.build_config(hook)
+        self.kube = configs.pop("kube", {})
+        return configs
+
+    def build_config(self, hook) -> dict:
+        raise Exception(f"{COMMON_ERROR} Please override build_config method!")
+
+    # ------------------- DAEMON -------------------- #
+
+    def spawn_daemon(self, **targets):
+        for name, target in targets.items():
+            dae: ClosableThread = self.daemon.get(name)
+            if not dae or not dae.is_alive():
+                thread = ClosableThread(target=target, daemon=True)
+                thread.start()
+                self.daemon[name] = thread
+
+    def terminate_daemon(self, *names):
+        for name in names:
+            dae: ClosableThread = self.daemon.pop(name, None)
+            if not (dae is None) and dae.is_alive():
+                logger.info(f"Terminating {name} ...")
+                dae.force_close()
+
+    # --------------- TO BE OVERRIDEN --------------- #
+
+    def contraints(self, hook=None):
+        return True
+
     ###################################################
     #                     CLEANER                     #
     ###################################################
 
-    def build(self, hook):
+    def reset(self, hook):
         self.app = None
         self.state = Ss.NOT_STARTED
         self.__init__(hook)
+
+    def failed(self):
+        self.app = None
+        self.state = Ss.FAILED
 
 
 class ProxyService(CommonService):
@@ -62,14 +149,14 @@ class ProxyService(CommonService):
 
 
 class MetaProperties:
-    def __init__(self, prop):
-        if not hasattr(prop, "_services"):
-            setattr(prop, "_services", {})
-            setattr(prop, "_background", {})
-            setattr(prop, "_hook", None)
-            setattr(prop, "_hook_param", {})
-            setattr(prop, "_master", None)
-            setattr(prop, "_super_master", None)
+    def __init__(self, cls):
+        if not hasattr(cls, "_services"):
+            setattr(cls, "_services", {})
+            setattr(cls, "_background", {})
+            setattr(cls, "_hook", None)
+            setattr(cls, "_hook_param", {})
+            setattr(cls, "_master", None)
+            setattr(cls, "_super_master", None)
 
     @property
     def services(self) -> dict:
@@ -118,3 +205,31 @@ class MetaProperties:
     @super_master.setter
     def super_master(self, val):
         self.cls._super_master = val
+
+
+# ----------------------------------------------- #
+
+
+###################################################
+#                  CUSTOM THREAD                  #
+###################################################
+
+
+class ClosableThread(Thread):
+    def force_close(self):
+        if self.is_alive() and not hasattr(self, "_thread_id"):
+            for tid, tobj in threading._active.items():
+                if tobj is self:
+                    self._thread_id = tid
+                    break
+
+            if (
+                pythonapi.PyThreadState_SetAsyncExc(
+                    c_long(self._thread_id), py_object(SystemExit)
+                )
+                != 1
+            ):
+                pythonapi.PyThreadState_SetAsyncExc(c_long(self._thread_id), None)
+                raise SystemError("Failed to force close running thread!")
+
+        self.join()
