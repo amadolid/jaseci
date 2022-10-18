@@ -29,10 +29,7 @@ class JsOrcService(CommonService):
     ###################################################
 
     def builder(self, hook=None):
-        enabled = self.config.get("enabled", True)
-
-        if enabled:
-            self.quiet = self.config.get("quiet", False)
+        if self.enabled:
             self.interval = self.config.get("interval", 10)
             self.namespace = self.config.get("namespace", "default")
             self.keep_alive = self.config.get("keep_alive", [])

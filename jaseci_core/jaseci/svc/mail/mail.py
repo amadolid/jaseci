@@ -20,17 +20,14 @@ class MailService(CommonService):
     ###################################################
 
     def __init__(self, hook=None):
-        super().__init__(__class__, hook)
+        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
     def builder(self, hook):
-        enabled = self.config.get("enabled", True)
-
-        if enabled:
-            self.quiet = self.config.get("quiet", False)
+        if self.enabled:
             self.__convert_config(hook)
             self.app = self.connect()
             self.state = Ss.RUNNING
@@ -51,7 +48,7 @@ class MailService(CommonService):
                         holder[v] = conf
         return holder
 
-    def __convert_config(self, hook, configs: dict):
+    def __convert_config(self, hook):
         version = self.config.get("version", 2)
         migrate = self.config.get("migrate", False)
         if version == 1 or migrate:

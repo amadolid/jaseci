@@ -73,6 +73,7 @@ class OrmConfigTestsPrivate(TestCaseHelper, TestCase):
 
         # Removing default configs
         GlobalVars.objects.filter(Q(name__endswith="_CONFIG")).delete()
+        GlobalVars.objects.filter(Q(name__endswith="_KUBE")).delete()
 
         li = user._h.list_glob()
         self.assertEqual(len(li), 3)

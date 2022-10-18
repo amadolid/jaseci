@@ -15,6 +15,7 @@ class CommonService:
 
     def __init__(self, hook=None):
         self.app = None
+        self.enabled = False
         self.state = Ss.NOT_STARTED
         self.quiet = True
         self.build_settings(hook)
@@ -66,8 +67,11 @@ class CommonService:
 
     def build_settings(self, hook) -> dict:
         try:
-            self.config = self.build_config(hook)
             self.kube = self.build_kube(hook)
+            config = self.build_config(hook)
+            self.enabled = config.pop("enabled", False)
+            self.quiet = config.pop("quiet", False)
+            self.config = config
         except Exception:
             self.config = DEFAULT_CONFIG
             self.kube = None

@@ -76,16 +76,16 @@ class MetaService(CommonService, MetaProperties):
         if self.run_svcs:
             h.kube = self.get_service("kube", h)
             h.jsorc = self.get_service("jsorc", h)
-            h.promon: self.get_service("promon", h)
-            h.redis: self.get_service("redis", h)
-            h.task: self.get_service("task", h)
-            h.mail: self.get_service("mail", h)
+            h.promon = self.get_service("promon", h)
+            h.redis = self.get_service("redis", h)
+            h.task = self.get_service("task", h)
+            h.mail = self.get_service("mail", h)
 
             if h.kube.build(h) and h.kube.is_running():
                 h.jsorc.build(h)
             else:
-                h.redis.build(h)
                 h.mail.build(h)
+                h.redis.build(h)
                 h.task.build(h)
 
         return h

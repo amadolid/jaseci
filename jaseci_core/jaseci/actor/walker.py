@@ -137,6 +137,8 @@ class Walker(Element, WalkerInterp, Anchored):
                 )
             )
 
+            self._h.commit_all_cache_sync()
+
             return {
                 "is_queued": True,
                 "result": self._h.task.add_queue(

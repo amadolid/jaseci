@@ -1,5 +1,11 @@
+import os
+
+
 PROMON_CONFIG = {
-    "enabled": True,
-    "quiet": False,
-    "url": "http://jaseci-prometheus-server:9090",
+    "enabled": False,
+    "quiet": True,
+    "url": (
+        f'http://{os.getenv("PROMON_HOST", "localhost")}'
+        f':{os.getenv("PROMON_PORT", "9090")}'
+    ),
 }

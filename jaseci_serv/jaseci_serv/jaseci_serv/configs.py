@@ -21,7 +21,7 @@ REDIS_CONFIG = {
 TASK_CONFIG = {
     "enabled": True,
     "quiet": False,
-    "broker_url": f"redis://{REDIS_CONFIG.get('host')}:{REDIS_CONFIG['port']}/{REDIS_CONFIG['db']}",
+    "broker_url": f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", "6379")}/{os.getenv("REDIS_DB", "1")}',
     "beat_scheduler": "django_celery_beat.schedulers:DatabaseScheduler",
     "result_backend": "django-db",
     "task_track_started": True,
@@ -55,12 +55,20 @@ MAIL_CONFIG = {
     "migrate": False,
 }
 
-KUBE_CONFIG = {"enabled": True, "quiet": False, "in_cluster": True, "config": None}
+KUBE_CONFIG = {"enabled": False, "quiet": False, "in_cluster": False, "config": None}
+
+JSORC_CONFIG = {
+    "enabled": False,
+    "quiet": False,
+    "interval": 10,
+    "namespace": "default",
+    "keep_alive": ["promon", "redis", "task", "mail"],
+}
 
 PROMON_CONFIG = {
     "enabled": True,
     "quiet": False,
-    "url": f'http://{os.getenv("PROMON_HOST", "localhost")}:9090',
+    "url": f'http://{os.getenv("PROMON_HOST", "localhost")}:{os.getenv("PROMON_PORT", "9090")}',
 }
 
 if "test" in sys.argv or "test_coverage" in sys.argv:

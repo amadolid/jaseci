@@ -4,15 +4,25 @@ from typing import Tuple
 from uuid import UUID
 
 from celery import Task
+from jaseci.svc.task.config import DEFAULT_MSG
 from requests import get, post
 from requests.exceptions import HTTPError
 
 
 class Queue(Task):
-    def run(self, queue_id):
-        from jaseci.svc import TaskService
+    def run(self, wlk, nd, args):
+        from jaseci.svc import MetaService
 
-        return TaskService().consume_queue(queue_id)
+        hook = MetaService().build_hook()
+
+        wlk = hook.get_obj_from_store(UUID(wlk))
+        wlk._to_await = True
+
+        nd = hook.get_obj_from_store(UUID(nd))
+        resp = wlk.run(nd, *args)
+        wlk.destroy()
+
+        return {"anchor": wlk.anchor_value(), "response": resp}
 
 
 class ScheduledWalker(Task):

@@ -14,12 +14,9 @@ class KubernetesService(CommonService):
     ###################################################
 
     def builder(self, hook=None):
-        enabled = self.config.get("enabled", True)
-
-        if enabled:
-            self.quiet = self.config.get("quiet", False)
+        if self.enabled:
             self.app = Kube(
-                self.config.get("in_cluster", True), self.config.get("config")
+                self.config.get("in_cluster", False), self.config.get("config")
             )
             self.state = Ss.RUNNING
         else:
@@ -35,7 +32,6 @@ class KubernetesService(CommonService):
 
 class Kube:
     def __init__(self, in_cluster: bool, conf: dict):
-
         if in_cluster:
             config.load_incluster_config()
         else:
@@ -45,8 +41,11 @@ class Kube:
         self.core = CoreV1Api(conf)
         self.api = AppsV1Api(self.client)
         self.auth = RbacAuthorizationV1Api(self.client)
-
+        self.ping()
         self.defaults()
+
+    def ping(self):
+        self.client.call_api("/readyz", "GET")
 
     def create(self, api, namespace, conf):
         if api.startswith("ClusterRole"):

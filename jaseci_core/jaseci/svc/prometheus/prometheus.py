@@ -13,10 +13,7 @@ class PromotheusService(CommonService):
     ###################################################
 
     def builder(self, hook=None):
-        enabled = self.config.get("enabled", True)
-
-        if enabled:
-            self.quiet = self.config.get("quiet", False)
+        if self.enabled:
             self.app = PrometheusConnect(url=self.config.get("url"), disable_ssl=True)
             self.app.check_prometheus_connection()
             self.cpu = Cpu(self.app)

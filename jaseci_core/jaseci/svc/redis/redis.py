@@ -1,4 +1,3 @@
-from json import dumps, loads
 from redis import Redis
 
 from jaseci.svc import CommonService, ServiceState as Ss
@@ -25,12 +24,8 @@ class RedisService(CommonService):
     ###################################################
 
     def builder(self, hook=None):
-        configs = self.build_settings(hook)
-        enabled = configs.pop("enabled", True)
-
-        if enabled:
-            self.quiet = configs.pop("quiet", False)
-            self.app = Redis(**configs, decode_responses=True)
+        if self.enabled:
+            self.app = Redis(**self.config, decode_responses=True)
             self.app.ping()
             self.state = Ss.RUNNING
         else:

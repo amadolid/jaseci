@@ -1,11 +1,11 @@
 from jaseci.svc import MetaService as Ms
-from jaseci.svc.jsorc.jsorc import JsOrcService
 from jaseci_serv.svc import (
     MailService,
     RedisService,
     TaskService,
     KubernetesService,
     PromotheusService,
+    JsOrcService,
 )
 from jaseci_serv.jaseci_serv.configs import RUN_SVCS
 
