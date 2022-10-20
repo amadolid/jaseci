@@ -34,11 +34,11 @@ class CommonService:
     #                     BUILDER                     #
     ###################################################
 
-    def build(self, hook=None):
+    def start(self, hook=None):
         try:
             if self.is_ready():
                 self.state = Ss.STARTED
-                self.builder(hook)
+                self.run(hook)
         except Exception as e:
             if not (self.quiet):
                 logger.error(
@@ -49,7 +49,7 @@ class CommonService:
 
         return self
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         raise Exception(f"{COMMON_ERROR} Please override build method!")
 
     ###################################################
@@ -107,7 +107,7 @@ class CommonService:
         self.app = None
         self.state = Ss.NOT_STARTED
         self.__init__(hook)
-        self.build(hook)
+        self.start(hook)
 
     def failed(self):
         self.app = None

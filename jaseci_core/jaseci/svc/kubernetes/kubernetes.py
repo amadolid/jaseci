@@ -13,7 +13,7 @@ class KubernetesService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         if self.enabled:
             self.app = Kube(
                 self.config.get("in_cluster", False), self.config.get("config")

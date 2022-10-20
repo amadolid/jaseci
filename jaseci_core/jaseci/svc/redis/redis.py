@@ -23,7 +23,7 @@ class RedisService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         if self.enabled:
             self.app = Redis(**self.config, decode_responses=True)
             self.app.ping()

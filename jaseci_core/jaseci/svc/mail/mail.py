@@ -26,7 +26,7 @@ class MailService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook):
+    def run(self, hook):
         if self.enabled:
             self.__convert_config(hook)
             self.app = self.connect()

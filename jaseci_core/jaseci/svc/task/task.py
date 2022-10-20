@@ -33,7 +33,7 @@ class TaskService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         if self.enabled:
             self.app = Celery("celery")
             self.app.conf.update(**self.config)

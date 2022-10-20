@@ -12,7 +12,7 @@ class PromotheusService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         if self.enabled:
             self.app = PrometheusConnect(url=self.config.get("url"), disable_ssl=True)
             self.app.check_prometheus_connection()

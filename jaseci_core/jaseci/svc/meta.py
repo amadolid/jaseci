@@ -19,13 +19,13 @@ class MetaService(CommonService, MetaProperties):
         MetaProperties.__init__(self, __class__)
         CommonService.__init__(self)
 
-        self.build()
+        self.start()
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         self.build_classes()
         self.build_services()
         self.state = Ss.RUNNING
@@ -41,7 +41,7 @@ class MetaService(CommonService, MetaProperties):
 
         self.services[name] = svc
 
-    def run_service(self, name, background, *args, **kwargs):
+    def build_service(self, name, background, *args, **kwargs):
 
         svc = self.services.get(name)
 
@@ -60,7 +60,7 @@ class MetaService(CommonService, MetaProperties):
         svc = self.background.get(name)
 
         if not svc:
-            return self.run_service(name, True, *args, **kwargs)
+            return self.build_service(name, True, *args, **kwargs)
 
         return svc
 
@@ -81,12 +81,15 @@ class MetaService(CommonService, MetaProperties):
             h.task = self.get_service("task", h)
             h.mail = self.get_service("mail", h)
 
-            if h.kube.build(h) and h.kube.is_running():
-                h.jsorc.build(h)
-            else:
-                h.mail.build(h)
-                h.redis.build(h)
-                h.task.build(h)
+            if not (
+                h.kube.start(h)
+                and h.kube.is_running()
+                and h.jsorc.start(h)
+                and h.jsorc.is_running()
+            ):
+                h.mail.start(h)
+                h.redis.start(h)
+                h.task.start(h)
 
         return h
 

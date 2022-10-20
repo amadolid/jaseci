@@ -28,7 +28,7 @@ class JsOrcService(CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def builder(self, hook=None):
+    def run(self, hook=None):
         if self.enabled:
             self.interval = self.config.get("interval", 10)
             self.namespace = self.config.get("namespace", "default")
