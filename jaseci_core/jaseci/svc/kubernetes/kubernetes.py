@@ -6,21 +6,13 @@ from .config import KUBE_CONFIG
 
 
 class KubernetesService(CommonService):
-    def __init__(self, hook=None):
-        super().__init__(hook)
 
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
     def run(self, hook=None):
-        if self.enabled:
-            self.app = Kube(
-                self.config.get("in_cluster", False), self.config.get("config")
-            )
-            self.state = Ss.RUNNING
-        else:
-            self.state = Ss.DISABLED
+        self.app = Kube(self.config.get("in_cluster", False), self.config.get("config"))
 
     ####################################################
     #                    OVERRIDDEN                    #

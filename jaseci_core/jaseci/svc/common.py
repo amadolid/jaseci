@@ -36,9 +36,11 @@ class CommonService:
 
     def start(self, hook=None):
         try:
-            if self.is_ready():
+            if self.enabled and self.is_ready():
                 self.state = Ss.STARTED
                 self.run(hook)
+                self.state = Ss.RUNNING
+                self.post_run(hook)
         except Exception as e:
             if not (self.quiet):
                 logger.error(
@@ -50,7 +52,10 @@ class CommonService:
         return self
 
     def run(self, hook=None):
-        raise Exception(f"{COMMON_ERROR} Please override build method!")
+        raise Exception(f"{COMMON_ERROR} Please override run method!")
+
+    def post_run(self, hook=None):
+        pass
 
     ###################################################
     #                     COMMONS                     #
@@ -73,11 +78,12 @@ class CommonService:
             self.quiet = config.pop("quiet", False)
             self.config = config
         except Exception:
+            logger.exception(f"Error loading settings for {self.__class__}")
             self.config = DEFAULT_CONFIG
             self.kube = None
 
     def build_config(self, hook) -> dict:
-        pass
+        return DEFAULT_CONFIG
 
     def build_kube(self, hook) -> dict:
         pass

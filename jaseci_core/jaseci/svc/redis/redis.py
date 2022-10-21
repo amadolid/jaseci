@@ -13,23 +13,12 @@ from .kube import REDIS_KUBE
 class RedisService(CommonService):
 
     ###################################################
-    #                   INITIALIZER                   #
-    ###################################################
-
-    def __init__(self, hook=None):
-        super().__init__(hook)
-
-    ###################################################
     #                     BUILDER                     #
     ###################################################
 
     def run(self, hook=None):
-        if self.enabled:
-            self.app = Redis(**self.config, decode_responses=True)
-            self.app.ping()
-            self.state = Ss.RUNNING
-        else:
-            self.state = Ss.DISABLED
+        self.app = Redis(**self.config, decode_responses=True)
+        self.app.ping()
 
     ###################################################
     #                     COMMONS                     #
