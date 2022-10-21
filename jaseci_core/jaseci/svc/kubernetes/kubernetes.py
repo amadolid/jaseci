@@ -1,7 +1,7 @@
 from kubernetes import config
 from kubernetes.client import ApiClient, CoreV1Api, AppsV1Api, RbacAuthorizationV1Api
 
-from jaseci.svc import CommonService, ServiceState as Ss
+from jaseci.svc import CommonService
 from .config import KUBE_CONFIG
 
 

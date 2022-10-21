@@ -4,7 +4,7 @@ from email.mime.text import MIMEText
 from json import dumps
 from smtplib import SMTP, SMTP_SSL
 
-from jaseci.svc import CommonService, ServiceState as Ss
+from jaseci.svc import CommonService
 from .config import MAIL_CONFIG
 
 

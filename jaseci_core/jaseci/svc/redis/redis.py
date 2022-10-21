@@ -1,6 +1,6 @@
 from redis import Redis
 
-from jaseci.svc import CommonService, ServiceState as Ss
+from jaseci.svc import CommonService
 from .config import REDIS_CONFIG
 from .kube import REDIS_KUBE
 

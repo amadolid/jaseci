@@ -1,5 +1,5 @@
 from prometheus_api_client import PrometheusConnect
-from jaseci.svc import CommonService, ServiceState as Ss
+from jaseci.svc import CommonService
 from .config import PROMON_CONFIG
 from .kube import PROMON_KUBE
 

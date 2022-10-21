@@ -3,7 +3,7 @@ from celery import Celery
 from celery.app.control import Inspect
 from celery.backends.base import DisabledBackend
 
-from jaseci.svc import CommonService, ServiceState as Ss
+from jaseci.svc import CommonService
 from .common import Queue, ScheduledWalker, ScheduledSequence
 from .config import TASK_CONFIG
 

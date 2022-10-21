@@ -1,4 +1,4 @@
-# HOW TO USE SERVICE
+# **`HOW TO USE SERVICE`**
 
 ## `CommonService` (jaseci.svc.common)
 This class is the base for implementing service. Dev should use this class if they want to use Service's common attribute and life cycle.
@@ -98,6 +98,202 @@ This class is the base for implementing service. Dev should use this class if th
         super().reset(hook)
 ```
 
+# `MetaService` (base from `CommonService`)
+This class will now be the handler for every service class. It's attributes are different from other services as they are static variable instead of instance variable. This is to have a global handler for every services and will not reinitialize every time it was called.
+
+## `Usage`
+
+- `add_context`
+    - for adding a class that used for initalization
+```python
+        from jaseci.hook import RedisHook
+        from jaseci_serv.hook.orm import OrmHook
+
+        ms1 = MetaService()
+        ms1.add_context("hook", RedisHook, *args, **kwargs) # args/kwargs are optional
+
+        ms2 = MetaService()
+        ms2.get_context("hook")["class"] == RedisHook # True
+        ms2.get_context("hook")["args"] == args # True
+        ms2.get_context("hook")["kwargs"] == kwargs # True
+
+        ms2.add_context("hook2", RedisHook, *args, **kwargs)
+        # is equal to
+        MetaService().add_context("hook2", RedisHook, *args, **kwargs)
+
+        ms3 = MetaService()
+        ms3.add_context("hook", OrmHook, *args, **kwargs)# will override hook From RedisHook to OrmHook
+```
+
+- `get_context`
+    - for getting the class without initializing
+```python
+        from jaseci.hook import RedisHook
+
+        ms1 = MetaService()
+        ms1.add_context("hook", RedisHook, *args, **kwargs) # args/kwargs are optional
+
+        ms1.get_context("hook")["class"] == RedisHook # True
+        ms1.get_context("hook")["args"] == args # True
+        ms1.get_context("hook")["kwargs"] == kwargs # True
+```
+
+- `build_context`
+    - initialize selected context
+```python
+        ms1 = MetaService()
+        ms1.add_context("hook", RedisHook, *args, **kwargs) # args/kwargs are optional
+
+        hook = ms1.build_context("hook") # hook will be RedisHook instance
+```
+
+- `add_service_builder`
+    - for adding service class that used for initialization
+```python
+        ms1 = MetaService()
+        ms1.add_service_builder("redis", RedisService)
+```
+
+- `build_service`
+    - for getting service instance
+    - has option to make it disposable or reusable
+```python
+        ms1 = MetaService()
+        backround = False # False == disposable | True == will be reusable and will initialize only once
+        redis = ms1.build_service("redis", background, *other_args, **other_kwargs)
+```
+
+- `get_service`
+    - for getting service instance but it will assume it was on background
+    - if it's not yet initialized, it will automatically run `build_service` with `background:True`
+```python
+        ms1 = MetaService()
+        redis = ms1.get_service("redis", *other_args, **other_kwargs)
+```
+
+## `Common Builder` (uses `build_context`)
+- `build_hook`
+    = will call `build_context("hook")` but will run and add some default services such as `kube`, `jsorc`, `promon`, `redis`, `task`, `mail`
+```python
+        from jaseci.hook import RedisHook
+        from jaseci.element.master import Master
+
+        ms1 = MetaService()
+        ms1.add_context("hook", RedisHook, *args, **kwargs) # args/kwargs are optional
+
+        hook = ms1.build_hook() # hook will be RedisHook instance
+        hook.kube # kube service
+        hook.jsorc # jsorc service
+        hook.promon # promon service
+        hook.redis # redis service
+        hook.task # task service
+        hook.mail # mail service
+        hook.meta # actual meta service
+```
+
+- `build_master`
+    - will call `build_context("master")` and add `build_context("hook")` for _h
+```python
+        ###################################################
+        #       No need to add this part unless you       #
+        #        need to override populate_context        #
+        ###################################################
+        # from jaseci.hook import RedisHook
+        # from jaseci.element.master import Master
+        # ms1 = MetaService()
+        # ms1.add_context("hook", RedisHook, *args, **kwargs)
+        # ms1.add_context("master", Master, *args, **kwargs)
+        ###################################################
+        #  ---------------------------------------------- #
+        ###################################################
+
+        master = ms1.build_master() # hook will be RedisHook instance
+        master._h # hook instance
+        _h.kube # kube service
+        _h.jsorc # jsorc service
+        _h.promon # promon service
+        _h.redis # redis service
+        _h.task # task service
+        _h.mail # mail service
+        _h.meta # actual meta service
+```
+
+- `build_super_master`
+    - will call `build_context("super_master")` and add `build_context("hook")` for _h
+```python
+        ###################################################
+        #       No need to add this part unless you       #
+        #        need to override populate_context        #
+        ###################################################
+        # from jaseci.hook import RedisHook
+        # from jaseci.element.super_master import SuperMaster
+        # ms1 = MetaService()
+        # ms1.add_context("hook", RedisHook, *args, **kwargs)
+        # ms1.add_context("super_master", SuperMaster, *args, **kwargs)
+        ###################################################
+        #  ---------------------------------------------- #
+        ###################################################
+
+        master = ms1.build_master() # hook will be RedisHook instance
+        master._h # hook instance
+        _h.kube # kube service
+        _h.jsorc # jsorc service
+        _h.promon # promon service
+        _h.redis # redis service
+        _h.task # task service
+        _h.mail # mail service
+        _h.meta # actual meta service
+```
+
+# **`Example Usage`** (StripeService)
+
+```python
+
+import stripe
+from jaseci.svc import CommonService
+from .config import STRIPE_CONFIG
+
+class StripeService(Co):
+
+    def run(self):
+        self.app = stripe
+        self.app.api_key = self.config.get("key") # ex: "sk_test_4eC39HqLyjWDarjtT1zdp7dc"
+
+    def build_config(self, hook) -> dict:
+        return hook.service_glob("STRIPE_CONFIG", STRIPE_CONFIG)
 
 
+    def other_method_for_automation1():
+        print("run_payment")
 
+    def other_method_for_automation2():
+        print("run_add_user")
+
+    def other_method_for_automation3():
+        print("run_remove_user")
+
+# ----------------------------------------------- #
+
+from path.to.stripe import StripeService
+from jaseci_serv.svc import MetaService
+
+    # ...
+
+    meta = MetaService()
+    meta.add_service_build("stripe", StripeService)
+
+    # ...
+
+    # for disposable service
+    stripe_service = meta.build_service("stripe", False, hook)
+    stripe_service.app.call_any_stripe_methods()
+
+    # for reusable service
+    stripe_service1 = meta.get_service("stripe", hook)
+    stripe_service2 = meta.get_service("stripe", hook)
+    stripe_service3 = meta.get_service("stripe", hook)
+    # stripe_service1 == stripe_service2 == stripe_service3
+
+    stripe_service1.app.call_any_stripe_methods()
+    stripe_service2.other_method_for_automation2()
+    stripe_service3.app.other_method_for_automation3()
