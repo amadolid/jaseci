@@ -638,3 +638,52 @@ block_scope_check = """
         report i;
     }
 """
+
+set_of_syntax = """
+    node a {
+        has arr = [1,2,3,4,5,6];
+    }
+
+    node b {
+        has arr = [1,2,3,4,5,6];
+    }
+
+    node c {
+        has arr = [1,2,3,4,5,6];
+    }
+
+    node d {
+        has arr = [1,2,3,4,5,6];
+    }
+
+    walker simple {
+        root {
+            spawn here --> node::a();
+            spawn here --> node::b();
+            spawn here --> node::c();
+            spawn here --> node::d();
+            take --> node::a(arr subsetof [1,0,2,0,3,0,4,0,5,0,6]);
+            take --> node::b(arr supersetof [1,2,3]);
+
+            // will not be printed
+            take --> node::c(arr supersetof [1,0,2,0,3,0,4,0,5,0,6]);
+            take --> node::d(arr subsetof [1,2,3]);
+        }
+
+        a {
+            report "a";
+        }
+
+        b {
+            report "b";
+        }
+
+        c {
+            report "c";
+        }
+
+        d {
+            report "d";
+        }
+    }
+"""

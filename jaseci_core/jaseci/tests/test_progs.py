@@ -519,3 +519,12 @@ class JacTests(TestCaseHelper, TestCase):
             params={"name": "init"},
         )
         self.assertEqual(res["report"][-1], 10)
+
+    def test_set_of_syntax(self):
+        mast = self.meta.build_master()
+        res = mast.sentinel_register(name="test", code=jtp.set_of_syntax, auto_run="")
+        res = mast.general_interface_to_api(
+            api_name="walker_run",
+            params={"name": "simple", "ctx": {}},
+        )
+        self.assertEqual(res["report"], ["a", "b"])
