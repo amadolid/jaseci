@@ -51,6 +51,7 @@
   - [Multipart](docs/docs/Developing_with_JAC/Language_Features/multipart.md)
   - [Report Custom](docs/docs/Developing_with_JAC/Language_Features/report_custom.md)
   - [Walker Callback](docs/docs/Developing_with_JAC/Language_Features/walker_callback.md)
+  - [Set Filtering](docs/docs/Developing_with_JAC/Language_Features/set_filtering.md)
 
 ## Standard Actions
 
