@@ -527,4 +527,4 @@ class JacTests(TestCaseHelper, TestCase):
             api_name="walker_run",
             params={"name": "simple", "ctx": {}},
         )
-        self.assertEqual(res["report"], ["a", "b"])
+        self.assertEqual(res["report"], ["a", "b", "f"])

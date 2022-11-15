@@ -3,6 +3,8 @@
 ## **USE CASE**
 - This is to simplify that kind of structure
 
+
+### **[Current]**
 ```js
     root -> color(value=BLUE);
     root -> color(value=RED);
@@ -32,9 +34,9 @@
         take --> node::color;
         // just have a handling to stop repetition
     }
-
-
-
+```
+### **[New]**
+```js
     // the simplified version will now look like this
 
     root -> color(value=BLUE, var=[blue]);
@@ -45,16 +47,21 @@
     root -> color(value=VIOLET, var=[red,blue]);
     root -> color(value=LITE_VIOLET, var=[red,blue,white]);
 
-    // the syntax will look like this
-    // for example I need to find all colors comes from BLUE or can be created using BLUE
     root {
+
+        // I need to find all colors comes from BLUE or can be created using BLUE
         for color in --> node::color(var supersetof [blue]) {
             // BLUE GREEN VIOLET
         }
 
-        // for example I need to find all colors that I can produce using sets of colors [red, blue, white]
+        // I need to find all colors that I can produce using sets of colors [red, blue, white]
         for color in --> node::color(var subsetof [red, blue, white]) {
             // VIOLET, LITE_VIOLET
+        }
+
+        // I need to find all colors that are not present(or made of) on the list [red, blue, white]
+        for color in --> node::color(var disjointof [red, blue, white]) {
+            // YELLOW
         }
     }
 ```
