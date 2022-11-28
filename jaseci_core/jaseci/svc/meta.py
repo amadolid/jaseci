@@ -142,8 +142,12 @@ def interval_check(signum, frame):
         logger.info(
             f"Backing off for {meta.app.backoff_interval} seconds before the next interval check..."
         )
+
+        # wait interval_check to be finished before decrement
+        meta.running_interval -= 1
         meta.push_interval(meta.app.backoff_interval)
-    meta.running_interval -= 1
+    else:
+        meta.running_interval -= 1
 
 
 signal.signal(signal.SIGALRM, interval_check)
