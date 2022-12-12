@@ -2,7 +2,7 @@ import base64
 
 from django.contrib.auth import get_user_model
 from django.urls import reverse
-from jaseci_serv.utils.test_utils import skip_without_redis
+from jaseci_serv.utils.test_utils import skip_without_celery
 
 from rest_framework.test import APIClient
 from rest_framework import status
@@ -182,7 +182,7 @@ class PublicJacApiTests(TestCaseHelper, TestCase):
         self.assertEqual(res.data["updated"], True)
         self.assertEqual(res.status_code, 201)
 
-    @skip_without_redis
+    @skip_without_celery
     def test_serverside_sentinel_global_public_access_callback_async(self):
         """Test public API for walker callback"""
         zsb_file = open(os.path.dirname(__file__) + "/public.jac").read()
@@ -1441,7 +1441,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
         self.assertTrue(res["success"])
         self.assertEqual({"sample": "sample"}, res["report"][0]["ctx"])
 
-    @skip_without_redis
+    @skip_without_celery
     def test_multipart_json_file_async(self):
         """Test multipart using json file as ctx parameter"""
         zsb_file = open(os.path.dirname(__file__) + "/zsb.jac").read()
@@ -1481,7 +1481,7 @@ class PrivateJacApiTests(TestCaseHelper, TestCase):
             {"sample": "sample"}, res["result"]["response"]["report"][0]["ctx"]
         )
 
-    @skip_without_redis
+    @skip_without_celery
     def test_multipart_json_file_async_via_syntax(self):
         """Test multipart using json file as ctx parameter"""
         zsb_file = open(os.path.dirname(__file__) + "/zsb.jac").read()

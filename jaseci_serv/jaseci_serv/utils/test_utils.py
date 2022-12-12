@@ -3,15 +3,15 @@ import unittest
 from jaseci_serv.svc import MetaService
 
 
-def skip_without_redis(test):
+def skip_without_celery(test):
     """
     Skip test if expected not to work without redis.
     """
 
     def skipper(*args, **kwargs):
-        redis = MetaService().get_service("redis")
-        if not redis.is_running():
-            raise unittest.SkipTest("No Redis!")
+        task = MetaService().get_service("task")
+        if not task.is_running():
+            raise unittest.SkipTest("No Celery!")
         test(*args, **kwargs)
 
     return skipper
