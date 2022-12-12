@@ -1,5 +1,3 @@
-from .redis import RedisService
+from .redis import RedisService, ProxyRedisService
 
-__all__ = [
-    "RedisService",
-]
+__all__ = ["RedisService", "ProxyRedisService"]

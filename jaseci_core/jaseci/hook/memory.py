@@ -1,5 +1,13 @@
-from json import dumps, loads
 import sys
+from json import dumps, loads
+
+from jaseci.svc import (
+    MetaService,
+    PrometheusService,
+    RedisService,
+    TaskService,
+    MailService,
+)
 from jaseci.utils.utils import find_class_and_import
 
 
@@ -11,13 +19,27 @@ class MemoryHook:
     to the objects. They return jaseci core types.
     """
 
-    def __init__(self):
-        from jaseci.actions.live_actions import get_global_actions
-
+    def __init__(self, meta: MetaService):
         self.mem = {"global": {}}
         self._machine = None
         self.save_obj_list = set()
         self.save_glob_dict = {}
+
+        # ------------------- SERVICES ------------------- #
+        # ----- Save with typing first for reference ----- #
+        self.meta = meta
+
+        promon: PrometheusService = meta.get_service("promon", self)
+        self.promon = promon
+
+        redis: RedisService = meta.get_service("redis", self)
+        self.redis = redis
+
+        task: TaskService = meta.get_service("task", self)
+        self.task = task
+
+        mail: MailService = meta.get_service("mail", self)
+        self.mail = mail
 
     ####################################################
     #               COMMON GETTER/SETTER               #

@@ -85,14 +85,8 @@ class MetaService(CommonService, MetaProperties):
     ###################################################
 
     def build_hook(self):
-        h = self.build_context("hook")
-        h.meta = self
+        h = self.build_context("hook", meta=self)
         if self.run_svcs:
-            h.promon = self.get_service("promon", h)
-            h.redis = self.get_service("redis", h)
-            h.task = self.get_service("task", h)
-            h.mail = self.get_service("mail", h)
-
             if not self.is_automated():
                 h.mail.start(h)
                 h.redis.start(h)

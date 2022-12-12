@@ -1,6 +1,6 @@
 from redis import Redis
 
-from jaseci.svc import CommonService
+from jaseci.svc import ProxyService, CommonService
 from .config import REDIS_CONFIG
 from .manifest import REDIS_MANIFEST
 
@@ -71,3 +71,7 @@ class RedisService(CommonService):
 
 
 # ----------------------------------------------- #
+
+
+class ProxyRedisService(ProxyService, RedisService):
+    pass

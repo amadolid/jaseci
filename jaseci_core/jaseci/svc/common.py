@@ -81,7 +81,7 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
-    def build_settings(self, hook) -> dict:
+    def build_settings(self, hook):
         try:
             self.manifest = self.build_manifest(hook)
             self.manifest_meta = {}
@@ -144,8 +144,8 @@ class CommonService:
 
 
 class ProxyService(CommonService):
-    def __init__(self):
-        super().__init__(__class__)
+    def build_settings(self, hook):
+        pass
 
 
 class Kube:
@@ -271,7 +271,7 @@ class JsOrc:
 
     def build(self):
         try:
-            hook = self.build_context("hook")
+            hook = self.build_context("hook", meta=self.meta)
             config = hook.service_glob("META_CONFIG", META_CONFIG)
             if config.pop("automation", False):
                 self.kubernetes = Kube(**config.pop("kubernetes", KUBERNETES_CONFIG))
