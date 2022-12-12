@@ -1,15 +1,17 @@
 """
 General action base class with automation for hot loading
 """
-from importlib.util import spec_from_file_location, module_from_spec
-from jaseci.utils.utils import logger
-from jaseci.actions.remote_actions import ACTIONS_SPEC_LOC
-from jaseci.actions.remote_actions import serv_actions, mark_as_remote, mark_as_endpoint
 import requests
 import os
 import sys
 import inspect
 import importlib
+
+from importlib.util import spec_from_file_location, module_from_spec
+from jaseci.svc import MetaService
+from jaseci.utils.utils import logger
+from jaseci.actions.remote_actions import ACTIONS_SPEC_LOC
+from jaseci.actions.remote_actions import serv_actions, mark_as_remote, mark_as_endpoint
 
 live_actions = {}
 live_action_modules = {}
@@ -159,7 +161,8 @@ def get_global_actions():
     from jaseci.hook.memory import MemoryHook
 
     global_action_list = []
-    hook = MemoryHook()
+    hook = MetaService(run_svcs=False).build_hook()
+
     for i in live_actions.keys():
         if (
             i.startswith("std.")
