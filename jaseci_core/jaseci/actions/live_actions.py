@@ -11,7 +11,6 @@ from importlib.util import spec_from_file_location, module_from_spec
 from jaseci.utils.utils import logger
 from jaseci.actions.remote_actions import ACTIONS_SPEC_LOC
 from jaseci.actions.remote_actions import serv_actions, mark_as_remote, mark_as_endpoint
-from jaseci.svc import MetaService
 
 live_actions = {}
 live_action_modules = {}
@@ -158,6 +157,7 @@ def get_global_actions():
     Attaches globals to mem_hook
     """
     from jaseci.attr.action import Action
+    from jaseci.svc import MetaService
 
     global_action_list = []
     hook = MetaService(run_svcs=False).build_hook()

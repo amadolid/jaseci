@@ -39,6 +39,8 @@ jobs:
       - name: Verify installation
         run: |
           jsctl
+        env:
+          TASK_ENABLED: "False"
 
       - name: Install jaseci_serv and run tests
         if: always()
@@ -47,6 +49,8 @@ jobs:
           cd jaseci_serv/
           source install_live.sh
           jsserv test
+        env:
+          TASK_ENABLED: "True"
 
       - name: test jaseci_serv without redis
         run: |
