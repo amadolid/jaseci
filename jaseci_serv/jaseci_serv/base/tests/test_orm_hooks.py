@@ -10,7 +10,7 @@ from jaseci.graph import edge
 from jaseci.graph.graph import Graph
 from jaseci.actor.sentinel import Sentinel
 import jaseci.tests.jac_test_code as jtc
-from jaseci_serv.utils.test_utils import skip_without_redis
+from jaseci_serv.utils.test_utils import skip_without_celery
 import uuid
 
 # Alias for create user
@@ -132,7 +132,7 @@ class OrmPrivateTests(TestCaseHelper, TestCase):
         self.assertEqual(node2.id, new_node.jid)
         self.assertEqual(node1.id, new_jsci_node.parent().id)
 
-    @skip_without_redis
+    @skip_without_celery
     def test_redis_connection(self):
         """Test redis connection"""
 

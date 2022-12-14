@@ -5,7 +5,6 @@ core engine.
 import json
 
 import jaseci as core_mod
-from jaseci.svc import ProxyService
 from jaseci.utils.json_handler import JaseciJsonDecoder
 from .memory import MemoryHook
 
@@ -16,13 +15,9 @@ from .memory import MemoryHook
 
 
 class RedisHook(MemoryHook):
-    def __init__(self):
-
-        # proxy redis, to be overriden by build_apps
-        self.redis = ProxyService()
+    def __init__(self, meta):
         self.red_touch_count = 0
-
-        super().__init__()
+        super().__init__(meta)
 
     ####################################################
     #        DATASOURCE METHOD (TO BE OVERRIDE)        #

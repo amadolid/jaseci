@@ -81,7 +81,7 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
-    def build_settings(self, hook) -> dict:
+    def build_settings(self, hook):
         try:
             self.manifest = self.build_manifest(hook)
             self.manifest_meta = {}
@@ -144,8 +144,8 @@ class CommonService:
 
 
 class ProxyService(CommonService):
-    def __init__(self):
-        super().__init__(__class__)
+    def build_settings(self, hook):
+        pass
 
 
 class Kube:
@@ -434,6 +434,8 @@ class JsOrc:
             logger.error(f"Service {name} is not yet set!")
             return None
 
+        if not kwargs.get("hook", None):
+            kwargs["hook"] = self.build_context("hook", self)
         svc = svc(*args, **kwargs)
 
         if background:
