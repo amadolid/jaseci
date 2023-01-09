@@ -77,6 +77,11 @@ class CommonService:
     #                     COMMONS                     #
     ###################################################
 
+    def poke(self, msg="Service is disabled or not yet configured!"):
+        if self.is_running():
+            return self.app
+        raise Exception(msg)
+
     def is_ready(self):
         return self.state.is_ready() and self.app is None
 

@@ -23,11 +23,10 @@ def send_activation_email(email):
         )
     else:
         link = "invalid"
-    ma = MetaService().get_service("mail")
-    if ma.is_running():
-        ma.app.send_activation_email(email, code, link)
-    else:
-        logger.warning(MAIL_ERR_MSG)
+
+    MetaService().get_service("mail").poke(MAIL_ERR_MSG).send_activation_email(
+        email, code, link
+    )
 
 
 @receiver(reset_password_token_created)

@@ -6,8 +6,6 @@ from jaseci.utils.utils import logger
 
 @jaseci_action()
 def send(sender, recipients, subject, text, html):
-    ma = MetaService().get_service("mail")
-    if ma.is_running():
-        ma.app.send_custom_email(sender, recipients, subject, (text, html))
-    else:
-        logger.error(MAIL_ERR_MSG)
+    MetaService().get_service("mail").poke(MAIL_ERR_MSG).send_custom_email(
+        sender, recipients, subject, (text, html)
+    )
