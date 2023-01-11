@@ -12,19 +12,21 @@ __url__ = "https://jaseci.org"
 
 
 def load_standard():
-    import jaseci.actions.standard.net  # noqa
-    import jaseci.actions.standard.rand  # noqa
-    import jaseci.actions.standard.request  # noqa
-    import jaseci.actions.standard.std  # noqa
-    import jaseci.actions.standard.file  # noqa
-    import jaseci.actions.standard.vector  # noqa
-    import jaseci.actions.standard.date  # noqa
-    import jaseci.actions.standard.jaseci  # noqa
-    import jaseci.actions.standard.mail  # noqa
-    import jaseci.actions.standard.task  # noqa
-    import jaseci.actions.standard.internal  # noqa
-    import jaseci.actions.standard.zlib  # noqa
-    import jaseci.actions.standard.webtool  # noqa
+    from jaseci.actions.standard import (
+        rand,
+        request,
+        std,
+        file,
+        vector,
+        date,
+        jaseci,
+        mail,
+        elastic,
+        task,
+        internal,
+        zlib,
+        webtool,
+    )  # noqa
 
 
 load_standard()
