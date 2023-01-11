@@ -92,11 +92,13 @@ class MetaService(CommonService, MetaProperties):
             h.redis = self.get_service("redis", h)
             h.task = self.get_service("task", h)
             h.mail = self.get_service("mail", h)
+            h.elastic = self.get_service("elastic", h)
 
             if not self.is_automated():
                 h.mail.start(h)
                 h.redis.start(h)
                 h.task.start(h)
+                h.elastic.start(h)
 
         return h
 
