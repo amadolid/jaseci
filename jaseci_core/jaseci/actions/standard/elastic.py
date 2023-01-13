@@ -7,7 +7,7 @@ def elastic():
 
 
 @jaseci_action()
-def post(url: str, body: dict, index: str, suffix: str = ""):
+def post(url: str, body: dict, index: str = "", suffix: str = ""):
     return elastic().post(url, body, index, suffix)
 
 
@@ -17,7 +17,7 @@ def post_act(url: str, body: dict, suffix: str = ""):
 
 
 @jaseci_action()
-def get(url: str, body: dict, index: str, suffix: str = ""):
+def get(url: str, body: dict, index: str = "", suffix: str = ""):
     return elastic().get(url, body, index)
 
 
@@ -27,32 +27,32 @@ def get_act(url: str, body: dict, suffix: str = ""):
 
 
 @jaseci_action()
-def doc(log: dict, query: str, index: str, suffix: str = ""):
+def doc(log: dict, query: str = "", index: str = "", suffix: str = ""):
     return elastic().doc(log, query, index, suffix)
 
 
 @jaseci_action()
-def doc_activity(log: dict, query: str, suffix: str = ""):
+def doc_activity(log: dict, query: str = "", suffix: str = ""):
     return elastic().doc_activity(log, query, suffix)
 
 
 @jaseci_action()
-def search(body: dict, query: str, index: str, suffix: str = ""):
+def search(body: dict, query: str = "", index: str = "", suffix: str = ""):
     return elastic().search(body, query, index, suffix)
 
 
 @jaseci_action()
-def search_activity(body: dict, query: str, suffix: str = ""):
+def search_activity(body: dict, query: str = "", suffix: str = ""):
     return elastic().search_activity(body, query, suffix)
 
 
 @jaseci_action()
-def mapping(query: str, index: str, suffix: str = ""):
+def mapping(query: str = "", index: str = "", suffix: str = ""):
     return elastic().mapping(query, index, suffix)
 
 
 @jaseci_action()
-def mapping_activity(query: str, suffix: str = ""):
+def mapping_activity(query: str = "", suffix: str = ""):
     return elastic().mapping_activity(query, suffix)
 
 

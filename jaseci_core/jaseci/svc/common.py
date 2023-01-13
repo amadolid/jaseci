@@ -77,7 +77,7 @@ class CommonService:
     #                     COMMONS                     #
     ###################################################
 
-    def poke(self, msg: str):
+    def poke(self, msg: str = None):
         if self.is_running():
             return self.app
         raise Exception(
