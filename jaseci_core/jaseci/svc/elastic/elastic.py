@@ -92,7 +92,8 @@ class Elastic:
     def generate_from_meta(self, meta: dict, override: dict, action: str = None):
         scope = meta["scope"].local_scope
         interp = meta["interp"]
-        node = scope["here"]
+
+        node = interp.current_node
         walker = scope["visitor"]
 
         override_misc = override.get("misc")
