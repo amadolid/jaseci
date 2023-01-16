@@ -1,7 +1,3 @@
-from unittest.mock import MagicMock, Mock
-
-from jaseci.svc import MailService
-from jaseci.svc.mail import MAIL_CONFIG
 from jaseci.utils.test_core import CoreTest
 
 
@@ -9,11 +5,6 @@ class MailLibTest(CoreTest):
     """Unit tests for Jac Walker APIs"""
 
     fixture_src = __file__
-
-    def __init__(self, *args, **kwargs):
-        MAIL_CONFIG["enabled"] = True
-        MailService.connect = MagicMock(return_value=Mock())
-        super(MailLibTest, self).__init__(*args, **kwargs)
 
     def setUp(self):
         super().setUp(True)

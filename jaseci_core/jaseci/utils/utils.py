@@ -240,6 +240,16 @@ class TestCaseHelper:
     def setUp(self):
         self.logger_off()
         self.stime = time()
+
+        from unittest.mock import MagicMock, Mock
+        from jaseci.svc import MailService
+
+        mmock = MagicMock(return_value=Mock())
+
+        MailService.is_running = MagicMock(return_value=True)
+        MailService.connect = mmock
+        MailService.poke = mmock
+
         return super().setUp()
 
     def tearDown(self):
