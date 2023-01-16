@@ -56,8 +56,7 @@ def product_list(detailed: bool):
 def create_customer(
     email: str,
     name: str,
-    address: dict,
-    payment_method_id: str,
+    address: dict = {},
     metadata: dict = {},
 ):
     """create customer"""
@@ -70,8 +69,6 @@ def create_customer(
             email=email,
             name=name,
             address=address,
-            payment_method=payment_method_id,
-            invoice_settings={"default_payment_method": payment_method_id},
             metadata=metadata,
         )
     )
@@ -148,7 +145,7 @@ def update_default_payment_method(customer_id: str, payment_method_id: str):
         .get_service("stripe")
         .poke(STRIPE_ERR_MSG)
         .Customer.modify(
-            customer=customer_id,
+            sid=customer_id,
             invoice_settings={"default_payment_method": payment_method_id},
         )
     )
@@ -312,7 +309,7 @@ def create_subscription(
 
 
 @jaseci_action()
-def cancel_subscription(subscription_id: str, metadata: dict = {}):
+def cancel_subscription(subscription_id: str):
     """cancel customer subscription"""
 
     return (
