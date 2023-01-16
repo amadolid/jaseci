@@ -107,6 +107,10 @@ class Elastic:
 
         master = meta["h"].get_obj(meta["m_id"], meta["m_id"]).master_self(True)
 
+        headers = interp.request_context["headers"]
+        if headers.get("Authorization"):
+            del headers["Authorization"]
+
         activity = {
             "datetime": datetime.utcnow().isoformat(),
             "activity_action": action or walker.name.replace("_", " ").title(),
@@ -123,3 +127,30 @@ class Elastic:
         activity.update(override)
 
         return activity
+
+    def generate_from_request(self, request):
+        headers = dict(request.headers)
+        if headers.get("Authorization"):
+            del headers["Authorization"]
+
+        data = request.data.dict() if type(request.data) is not dict else request.data
+        password = data.get("password")
+        if password:
+            data["password"] = len(password) * "*"
+
+        user = request.user
+
+        return {
+            "datetime": datetime.utcnow().isoformat(),
+            "activity_action": "User Manage",
+            "activity_type": "user_manage",
+            "master_id": user.master.urn,
+            "user": {"email": user.email},
+            "request_context": {
+                "method": request.method,
+                "headers": headers,
+                "query": request.GET.dict(),
+                "body": data,
+            },
+            "data": data,
+        }
