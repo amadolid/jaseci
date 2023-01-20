@@ -6,6 +6,7 @@ from jaseci.actor.walker import Walker
 from jaseci.graph.node import Node
 from jaseci.actor.sentinel import Sentinel
 from jaseci.utils.id_list import IdList
+from jaseci.utils.utils import logger
 
 
 class WalkerApi:
@@ -254,6 +255,30 @@ class WalkerApi:
         along with the walker id and node id
         """
 
+        return self.walker_summon(
+            nd=nd,
+            wlk=wlk,
+            key=key,
+            ctx=ctx,
+            _req_ctx=_req_ctx,
+            global_sync=global_sync,
+        )
+
+    @Interface.public_api(url_args=["nd", "wlk"], allowed_methods=["post", "get"])
+    def walker_callback(
+        self,
+        nd: Node,
+        wlk: Walker,
+        key: str,
+        ctx: dict = {},
+        _req_ctx: dict = {},
+        global_sync: bool = True,
+    ):
+        """
+        Public api for running walkers, namespace key must be provided
+        along with the walker id and node id
+        """
+        logger.warning("Deprecated! Use walker_webhook instead!")
         return self.walker_summon(
             nd=nd,
             wlk=wlk,
