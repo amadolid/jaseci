@@ -19,7 +19,7 @@ import json
 from jaseci_serv.base.models import GlobalVars, JaseciObject
 
 
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 
 
 @JsOrc.repository(name="hook", priority=2)

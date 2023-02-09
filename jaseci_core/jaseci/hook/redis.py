@@ -7,7 +7,7 @@ import json
 import jaseci as core_mod
 from jaseci.utils.json_handler import JaseciJsonDecoder
 from .memory import MemoryHook
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 from jaseci.svc.redis_svc import RedisService
 
 

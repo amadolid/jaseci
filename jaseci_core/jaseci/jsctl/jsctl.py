@@ -13,11 +13,10 @@ from click_shell import shell
 from click.testing import CliRunner
 from jaseci import __version__
 from jaseci.element.super_master import SuperMaster
-from jaseci.svc import MetaService
 from jaseci.utils.utils import copy_func
 from .book_tools import Book, modifiedBook
 from jaseci.utils.utils import logger, perf_test_start, perf_test_stop
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 
 session = None
 

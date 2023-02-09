@@ -1,7 +1,7 @@
 from json import dumps, loads
 import sys
 from jaseci.utils.utils import find_class_and_import
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 
 
 @JsOrc.repository(name="hook")
@@ -221,7 +221,7 @@ class MemoryHook:
     ###################################################
 
     def find_class_and_import(self, j_type, mod):
-        cls = self.meta.get_context(j_type)
+        cls = JsOrc.ctx_cls(j_type)
 
         if not cls:
             cls = find_class_and_import(j_type, mod)

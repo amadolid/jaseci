@@ -53,6 +53,13 @@ class JsOrc:
         return context["type"](*args, **kwargs)
 
     @classmethod
+    def ctx_cls(cls, context: str):
+        if context not in cls._contexts:
+            raise Exception(f"Context {context} is not existing!")
+
+        return cls._contexts[context][0]["type"]
+
+    @classmethod
     def master(cls, cast: T = None, *args, **kwargs) -> Union[T, Any]:
         return cls.gen_with_hook("master", cast, *args, **kwargs)
 

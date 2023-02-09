@@ -7,6 +7,7 @@ from jaseci.element.element import Element
 from jaseci.graph.graph import Graph
 from jaseci.graph.node import Node
 from jaseci.svc import MetaService
+from jaseci import JsOrc
 from jaseci.utils.utils import TestCaseHelper, get_all_subclasses
 from jaseci.actor.architype import Architype
 

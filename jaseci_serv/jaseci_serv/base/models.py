@@ -15,7 +15,7 @@ from jaseci.element.super_master import SuperMaster as CoreSuper
 from jaseci_serv.settings import JASECI_CONFIGS
 from jaseci_serv.svc import MetaService
 from jaseci_serv.base.jsorc import JsOrcApi
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 
 
 @JsOrc.context(name="master", priority=1)

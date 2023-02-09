@@ -2,7 +2,7 @@ from celery import Celery
 from celery.app.control import Inspect
 from celery.backends.base import DisabledBackend
 
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 from jaseci.svc.common_svc import CommonService
 from .task import Queue, ScheduledWalker, ScheduledSequence
 

@@ -20,7 +20,7 @@ from jaseci.jac.interpreter.walker_interp import WalkerInterp
 import uuid
 import hashlib
 
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 from jaseci.svc.task_svc import TaskService
 
 

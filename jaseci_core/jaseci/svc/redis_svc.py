@@ -1,4 +1,4 @@
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 from redis import Redis
 from .common_svc import CommonService
 

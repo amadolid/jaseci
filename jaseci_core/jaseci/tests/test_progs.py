@@ -9,7 +9,7 @@ from jaseci.graph.graph import Graph
 from jaseci.graph.node import Node
 from jaseci.svc import MetaService
 from jaseci.utils.utils import TestCaseHelper
-from jaseci.jsorc import JsOrc
+from jaseci import JsOrc
 
 
 class JacTests(TestCaseHelper, TestCase):
