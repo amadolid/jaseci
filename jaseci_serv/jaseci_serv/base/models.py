@@ -13,6 +13,7 @@ from jaseci.api.interface import Interface
 from jaseci.element.master import Master as CoreMaster
 from jaseci.element.super_master import SuperMaster as CoreSuper
 from jaseci_serv.settings import JASECI_CONFIGS
+from jaseci import JsOrc
 from jaseci_serv.svc import MetaService
 from jaseci_serv.base.jsorc import JsOrcApi
 from jaseci import JsOrc
@@ -134,7 +135,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         # Create user's root node
-        user.master = MetaService().build_master(h=user._h, name=email).id
+        user.master = JsOrc.master(h=user._h, name=email).id
         user._h.commit()
 
         user.save(using=self._db)

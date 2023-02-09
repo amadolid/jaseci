@@ -5,15 +5,14 @@ from typing import Tuple
 from celery import Task
 from requests import get, post
 from requests.exceptions import HTTPError
+from jaseci import JsOrc
 
 DEFAULT_MSG = "Skipping scheduled walker!"
 
 
 class Queue(Task):
     def run(self, wlk, nd, args):
-        from jaseci.svc import MetaService
-
-        hook = MetaService().build_hook()
+        hook = JsOrc.hook()
 
         wlk = hook.get_obj_from_store(wlk)
         wlk._to_await = True
@@ -30,9 +29,7 @@ class ScheduledWalker(Task):
         return self.hook.get_obj_from_store(jid)
 
     def run(self, name, ctx, nd=None, snt=None, mst=None):
-        from jaseci.svc import MetaService
-
-        self.hook = MetaService().build_hook()
+        self.hook = JsOrc.hook()
 
         if mst:
             mst = self.get_obj(mst)
@@ -189,15 +186,12 @@ class ScheduledSequence(Task):
             holder[0][self.json_escape.sub("_", req[params])] = holder[1]
 
     def trigger_interface(self, req: dict):
-        from jaseci.svc import MetaService
-
         master = req.get("master")
-        app = MetaService()
         if master is None:
-            caller = app.build_master()
+            caller = JsOrc.master()
             trigger_type = "public"
         else:
-            caller = app.build_hook().get_obj_from_store(master)
+            caller = JsOrc.hook().get_obj_from_store(master)
             trigger_type = "general"
 
         api = req.get("api")
