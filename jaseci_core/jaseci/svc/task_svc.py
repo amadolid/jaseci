@@ -4,7 +4,7 @@ from celery.backends.base import DisabledBackend
 
 from jaseci.jsorc import JsOrc
 from jaseci.svc.common_svc import CommonService
-from .task.common import Queue, ScheduledWalker, ScheduledSequence
+from .task import Queue, ScheduledWalker, ScheduledSequence
 
 #################################################
 #                   TASK APP                   #
@@ -14,7 +14,6 @@ from .task.common import Queue, ScheduledWalker, ScheduledSequence
 @JsOrc.service(
     name="task",
     config="TASK_CONFIG",
-    manifest="TASK_MANIFEST",
     priority=0,
     proxy=True,
 )

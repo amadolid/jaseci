@@ -5,8 +5,6 @@ from jaseci.svc import (
     JsOrc,
     MetaProperties,
     MailService,
-    RedisService,
-    TaskService,
     PrometheusService,
     ElasticService,
     ServiceState as Ss,
@@ -90,7 +88,6 @@ class MetaService(CommonService, MetaProperties):
         h.meta = self
         if self.run_svcs:
             h.promon = self.get_service("promon", h)
-            h.task = self.get_service("task", h)
             h.mail = self.get_service("mail", h)
             h.elastic = self.get_service("elastic", h)
 
@@ -132,8 +129,6 @@ class MetaService(CommonService, MetaProperties):
         self.add_context("super_master", SuperMaster)
 
     def populate_services(self):
-        self.add_service_builder("redis", RedisService)
-        self.add_service_builder("task", TaskService)
         self.add_service_builder("mail", MailService)
         self.add_service_builder("promon", PrometheusService)
         self.add_service_builder("elastic", ElasticService)

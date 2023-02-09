@@ -4,7 +4,6 @@ from multiprocessing import Process
 
 
 class CommonService:
-
     ###################################################
     #                   PROPERTIES                    #
     ###################################################
