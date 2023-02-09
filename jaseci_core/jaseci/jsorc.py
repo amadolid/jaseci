@@ -2,6 +2,9 @@ from datetime import datetime
 from .jsorc_settings import JsOrcSettings
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
+from typing import TypeVar, Any, Union
+
+T = TypeVar("T")
 
 
 class JsOrc:
@@ -40,7 +43,7 @@ class JsOrc:
     #################################################
 
     @classmethod
-    def repo(cls, repository: str, *args, **kwargs):
+    def repo(cls, repository: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
         if repository not in cls._repositories:
             raise Exception(f"Repository {repository} is not existing!")
 
@@ -57,7 +60,7 @@ class JsOrc:
         return cls._services[service][0]["type"]
 
     @classmethod
-    def serv(cls, service: str) -> CommonService:
+    def serv(cls, service: str, caster: T = None) -> Union[T, CommonService]:
         if service not in cls._services:
             raise Exception(f"Service {service} is not existing!")
 
@@ -78,7 +81,7 @@ class JsOrc:
                 cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
             )
 
-            cls._instance[service] = instance["type"](config, manifest)
+            cls._instance[service] = instance["type"](config, manifest or {})
 
         return cls._instance[service]
 
@@ -109,7 +112,7 @@ class JsOrc:
         proxy: allow proxy service
         """
 
-        def decorator(service: type):
+        def decorator(service: T) -> T:
             setattr(service, "__proxy__", proxy)
             cls.push(
                 name=name or service.__name__,
@@ -137,7 +140,7 @@ class JsOrc:
         priority: duplicate name will use the highest priority
         """
 
-        def decorator(repository: type):
+        def decorator(repository: T) -> T:
             cls.push(
                 name=name or repository.__name__,
                 target=cls._repositories,
@@ -156,6 +159,7 @@ class JsOrc:
         """
         Allow to inject instance on specific method/class
         repositories: list of repository name to inject
+            - can use tuple per entry (name, alias) instead of string
         services: list of service name to inject
         """
 
@@ -164,14 +168,25 @@ class JsOrc:
                 _instances = {}
 
                 for repository in repositories:
-                    _instances[repository] = cls.repo(repository)
+                    if isinstance(repository, tuple):
+                        _instances[repository[1]] = cls.repo(repository[0])
+                    else:
+                        _instances[repository] = cls.repo(repository)
                 for service in services:
-                    _instances[service] = (
-                        cls.__proxy__
-                        if getattr(cls.serv_cls(service), "__proxy__", False)
-                        and cls._use_proxy
-                        else cls.serv(service)
-                    )
+                    if isinstance(service, tuple):
+                        _instances[service[1]] = (
+                            cls.__proxy__
+                            if getattr(cls.serv_cls(service[0]), "__proxy__", False)
+                            and cls._use_proxy
+                            else cls.serv(service[0])
+                        )
+                    else:
+                        _instances[service] = (
+                            cls.__proxy__
+                            if getattr(cls.serv_cls(service), "__proxy__", False)
+                            and cls._use_proxy
+                            else cls.serv(service)
+                        )
 
                 kwargs.update(_instances)
                 callable(*args, **kwargs)
@@ -182,4 +197,4 @@ class JsOrc:
 
     @classmethod
     def settings(cls, name: str, default=None):
-        return getattr(cls._services, name, default)
+        return getattr(cls._settings, name, default)

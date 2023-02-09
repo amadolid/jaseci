@@ -1,8 +1,22 @@
 from .state import ServiceState as Ss
 from jaseci.utils.utils import logger
+from multiprocessing import Process
 
 
 class CommonService:
+
+    ###################################################
+    #                   PROPERTIES                    #
+    ###################################################
+
+    # ------------------- DAEMON -------------------- #
+
+    _daemon = {}
+
+    @property
+    def daemon(self):
+        return __class__._daemon
+
     def __init__(self, config: dict, manifest: dict):
         self.app = None
         self.state = Ss.NOT_STARTED
@@ -49,6 +63,23 @@ class CommonService:
 
     def post_run(self):
         pass
+
+    # ------------------- DAEMON -------------------- #
+
+    def spawn_daemon(self, **targets):
+        for name, target in targets.items():
+            dae: Process = self.daemon.get(name)
+            if not dae or not dae.is_alive():
+                process = Process(target=target, daemon=True)
+                process.start()
+                self.daemon[name] = process
+
+    def terminate_daemon(self, *names):
+        for name in names:
+            dae: Process = self.daemon.pop(name, None)
+            if not (dae is None) and dae.is_alive():
+                logger.info(f"Terminating {name} ...")
+                dae.terminate()
 
     ###################################################
     #                     COMMONS                     #

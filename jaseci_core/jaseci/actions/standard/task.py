@@ -1,15 +1,17 @@
 """Built in actions for Jaseci"""
 from jaseci.actions.live_actions import jaseci_action
+from jaseci.jsorc import JsOrc
+from jaseci.svc.task_svc import TaskService
 
 
 @jaseci_action()
-def get_result(task_id, wait, meta):
+@JsOrc.inject(services=[("task", "task_svc")])  # will alias
+def get_result(task_id, wait, meta, task_svc: TaskService = None):
     """
     Get task result by task_id
     """
-    task = meta["h"].task
 
-    if not task.is_running():
+    if not task_svc.is_running():
         raise Exception("Task hook is not yet initialized!")
 
-    return task.get_by_task_id(task_id, wait)
+    return task_svc.get_by_task_id(task_id, wait)
