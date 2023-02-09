@@ -17,7 +17,7 @@ from jaseci.svc.redis_svc import RedisService
 
 
 class RedisHook(MemoryHook):
-    @JsOrc.inject(services=["redis"], lock_check=True)
+    @JsOrc.inject(services=["redis"])
     def __init__(self, redis: RedisService):
         # proxy redis, to be overriden by build_apps
         self.redis = redis

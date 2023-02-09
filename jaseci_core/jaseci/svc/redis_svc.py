@@ -4,7 +4,11 @@ from .common_svc import CommonService
 
 
 @JsOrc.service(
-    name="redis", config="REDIS_CONFIG", manifest="REDIS_MANIFEST", priority=0
+    name="redis",
+    config="REDIS_CONFIG",
+    manifest="REDIS_MANIFEST",
+    priority=0,
+    proxy=True,
 )
 class RedisService(CommonService):
     # extending CommonService is not required as service will always extends CommonService

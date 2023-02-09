@@ -12,7 +12,11 @@ class JsOrc:
     _instance = {}
     _settings = JsOrcSettings
 
-    _lock = False
+    _use_proxy = False
+
+    # ------------------ COMMONS ------------------ #
+
+    __proxy__ = ProxyService()
 
     @staticmethod
     def run(runner):
@@ -46,6 +50,13 @@ class JsOrc:
         return repository["type"](*args, **kwargs)
 
     @classmethod
+    def serv_cls(cls, service: str) -> CommonService:
+        if service not in cls._services:
+            raise Exception(f"Service {service} is not existing!")
+
+        return cls._services[service][0]["type"]
+
+    @classmethod
     def serv(cls, service: str) -> CommonService:
         if service not in cls._services:
             raise Exception(f"Service {service} is not existing!")
@@ -54,9 +65,9 @@ class JsOrc:
             # highest priority
             instance = cls._services[service][0]
 
-            cls._lock = True
+            cls._use_proxy = True
             hook = cls.repo("hook")
-            cls._lock = False
+            cls._use_proxy = False
 
             config = hook.service_glob(
                 instance["config"],
@@ -87,8 +98,19 @@ class JsOrc:
         config: str = None,
         manifest: str = None,
         priority: int = 0,
+        proxy: bool = False,
     ):
+        """
+        Save the class in services options
+        name: name to be used for reference
+        config: config name from datasource
+        manifest: manifest name from datasource
+        priority: duplicate name will use the highest priority
+        proxy: allow proxy service
+        """
+
         def decorator(service: type):
+            setattr(service, "__proxy__", proxy)
             cls.push(
                 name=name or service.__name__,
                 target=cls._services,
@@ -109,6 +131,12 @@ class JsOrc:
 
     @classmethod
     def repository(cls, name: str = None, priority: int = 0):
+        """
+        Save the class in repositories options
+        name: name to be used for reference
+        priority: duplicate name will use the highest priority
+        """
+
         def decorator(repository: type):
             cls.push(
                 name=name or repository.__name__,
@@ -124,23 +152,26 @@ class JsOrc:
         return decorator
 
     @classmethod
-    def inject(
-        cls, repositories: list = [], services: list = [], lock_check: bool = False
-    ):
+    def inject(cls, repositories: list = [], services: list = []):
+        """
+        Allow to inject instance on specific method/class
+        repositories: list of repository name to inject
+        services: list of service name to inject
+        """
+
         def decorator(callable):
             def argument_handler(*args, **kwargs):
                 _instances = {}
-                if lock_check and cls._lock:
-                    proxy = ProxyService()
-                    for repository in repositories:
-                        _instances[repository] = proxy
-                    for service in services:
-                        _instances[service] = proxy
-                else:
-                    for repository in repositories:
-                        _instances[repository] = cls.repo(repository)
-                    for service in services:
-                        _instances[service] = cls.serv(service)
+
+                for repository in repositories:
+                    _instances[repository] = cls.repo(repository)
+                for service in services:
+                    _instances[service] = (
+                        cls.__proxy__
+                        if getattr(cls.serv_cls(service), "__proxy__", False)
+                        and cls._use_proxy
+                        else cls.serv(service)
+                    )
 
                 kwargs.update(_instances)
                 callable(*args, **kwargs)
