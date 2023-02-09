@@ -25,13 +25,9 @@ class MetaService(Ms):
         from jaseci_serv.base.models import (
             Master,
             SuperMaster,
-            GlobalVars,
-            JaseciObject,
         )
 
-        self.add_context(
-            "hook", OrmHook, objects=JaseciObject.objects, globs=GlobalVars.objects
-        )
+        self.add_context("hook", OrmHook)
         self.add_context("master", Master)
         self.add_context("super_master", SuperMaster)
 

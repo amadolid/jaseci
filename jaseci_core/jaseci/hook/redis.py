@@ -5,9 +5,10 @@ core engine.
 import json
 
 import jaseci as core_mod
-from jaseci.svc import ProxyService
 from jaseci.utils.json_handler import JaseciJsonDecoder
 from .memory import MemoryHook
+from jaseci.jsorc import JsOrc
+from jaseci.svc.redis_svc import RedisService
 
 
 #################################################
@@ -16,9 +17,10 @@ from .memory import MemoryHook
 
 
 class RedisHook(MemoryHook):
-    def __init__(self):
+    @JsOrc.inject(services=["redis"], lock_check=True)
+    def __init__(self, redis: RedisService):
         # proxy redis, to be overriden by build_apps
-        self.redis = ProxyService()
+        self.redis = redis
         self.red_touch_count = 0
 
         super().__init__()

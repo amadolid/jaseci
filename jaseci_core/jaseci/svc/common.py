@@ -57,6 +57,7 @@ class CommonService:
                 self.state = Ss.RUNNING
                 self.post_run(hook)
         except Exception as e:
+            logger.exception("das")
             if not (self.quiet):
                 logger.error(
                     f"Skipping {self.__class__.__name__} due to initialization "
