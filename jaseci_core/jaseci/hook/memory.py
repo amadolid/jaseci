@@ -1,8 +1,10 @@
 from json import dumps, loads
 import sys
 from jaseci.utils.utils import find_class_and_import
+from jaseci.jsorc import JsOrc
 
 
+@JsOrc.repository(name="hook")
 class MemoryHook:
     """
     Set of virtual functions to be used as hooks to allow access to

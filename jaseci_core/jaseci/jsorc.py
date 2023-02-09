@@ -8,6 +8,7 @@ T = TypeVar("T")
 
 
 class JsOrc:
+    _contexts = {}
     _services = {}
     _repositories = {}
     _configs = {}
@@ -30,37 +31,46 @@ class JsOrc:
         if name not in target:
             target[name] = [entry]
         else:
-            target[name] = {
-                key: rep
-                for key, rep in sorted(
-                    target[name] + [entry],
-                    key=lambda item: (-item["priority"], -item["date_added"]),
-                )
-            }
+            target[name] = sorted(
+                target[name] + [entry],
+                key=lambda item: (-item["priority"], -item["date_added"]),
+            )
 
     #################################################
     #                    GETTER                     #
     #################################################
 
+    # ------------------ context ------------------ #
+
     @classmethod
-    def repo(cls, repository: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
-        if repository not in cls._repositories:
-            raise Exception(f"Repository {repository} is not existing!")
+    def ctx(cls, context: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        if context not in cls._contexts:
+            raise Exception(f"Context {context} is not existing!")
 
         # highest priority
-        repository = cls._repositories[repository][0]
+        context = cls._contexts[context][0]
 
-        return repository["type"](*args, **kwargs)
-
-    @classmethod
-    def serv_cls(cls, service: str) -> CommonService:
-        if service not in cls._services:
-            raise Exception(f"Service {service} is not existing!")
-
-        return cls._services[service][0]["type"]
+        return context["type"](*args, **kwargs)
 
     @classmethod
-    def serv(cls, service: str, caster: T = None) -> Union[T, CommonService]:
+    def master(cls, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        return cls.gen_with_hook("master", cast, *args, **kwargs)
+
+    @classmethod
+    def super_master(cls, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        return cls.gen_with_hook("super_master", cast, *args, **kwargs)
+
+    @classmethod
+    def gen_with_hook(cls, context: str, *args, **kwargs):
+        if not kwargs.get("h", None):
+            kwargs["h"] = cls.src("hook")
+
+        return cls.ctx(context, None, *args, **kwargs)
+
+    # ------------------ service ------------------ #
+
+    @classmethod
+    def svc(cls, service: str, caster: T = None) -> Union[T, CommonService]:
         if service not in cls._services:
             raise Exception(f"Service {service} is not existing!")
 
@@ -69,7 +79,7 @@ class JsOrc:
             instance = cls._services[service][0]
 
             cls._use_proxy = True
-            hook = cls.repo("hook")
+            hook = cls.src("hook")
             cls._use_proxy = False
 
             config = hook.service_glob(
@@ -86,9 +96,32 @@ class JsOrc:
         return cls._instance[service]
 
     @classmethod
-    def serv_reset(cls, service) -> CommonService:
+    def svc_cls(cls, service: str):
+        if service not in cls._services:
+            raise Exception(f"Service {service} is not existing!")
+
+        return cls._services[service][0]["type"]
+
+    @classmethod
+    def svc_reset(cls, service, caster: T = None) -> Union[T, CommonService]:
         del cls._instance[service]
-        return cls.serv(service)
+        return cls.svc(service)
+
+    # ---------------- repository ----------------- #
+
+    @classmethod
+    def src(cls, repository: str, cast: T = None) -> Union[T, Any]:
+        if repository not in cls._repositories:
+            raise Exception(f"Repository {repository} is not existing!")
+
+        # highest priority
+        repository = cls._repositories[repository][0]
+
+        return repository["type"]()
+
+    @classmethod
+    def hook(cls, cast: T = None) -> Union[T, Any]:
+        return cls.src("hook")
 
     #################################################
     #                  DECORATORS                   #
@@ -155,18 +188,48 @@ class JsOrc:
         return decorator
 
     @classmethod
-    def inject(cls, repositories: list = [], services: list = []):
+    def context(cls, name: str = None, priority: int = 0):
+        """
+        Save the class in contexts options
+        name: name to be used for reference
+        priority: duplicate name will use the highest priority
+        """
+
+        def decorator(context: T) -> T:
+            cls.push(
+                name=name or context.__name__,
+                target=cls._contexts,
+                entry={
+                    "type": context,
+                    "priority": priority,
+                    "date_added": int(datetime.utcnow().timestamp() * 1000),
+                },
+            )
+            return context
+
+        return decorator
+
+    @classmethod
+    def inject(cls, contexts: list = [], services: list = [], repositories: list = []):
         """
         Allow to inject instance on specific method/class
-        repositories: list of repository name to inject
+        contexts: list of context name to inject
             - can use tuple per entry (name, alias) instead of string
         services: list of service name to inject
+            - can use tuple per entry (name, alias) instead of string
+        repositories: list of service name to inject
+            - can use tuple per entry (name, alias) instead of string
         """
 
         def decorator(callable):
             def argument_handler(*args, **kwargs):
                 _instances = {}
 
+                for context in contexts:
+                    if isinstance(context, tuple):
+                        _instances[context[1]] = cls.ctx(context[0])
+                    else:
+                        _instances[context] = cls.ctx(context)
                 for repository in repositories:
                     if isinstance(repository, tuple):
                         _instances[repository[1]] = cls.repo(repository[0])
@@ -176,16 +239,16 @@ class JsOrc:
                     if isinstance(service, tuple):
                         _instances[service[1]] = (
                             cls.__proxy__
-                            if getattr(cls.serv_cls(service[0]), "__proxy__", False)
+                            if getattr(cls.svc_cls(service[0]), "__proxy__", False)
                             and cls._use_proxy
-                            else cls.serv(service[0])
+                            else cls.svc(service[0])
                         )
                     else:
                         _instances[service] = (
                             cls.__proxy__
-                            if getattr(cls.serv_cls(service), "__proxy__", False)
+                            if getattr(cls.svc_cls(service), "__proxy__", False)
                             and cls._use_proxy
-                            else cls.serv(service)
+                            else cls.svc(service)
                         )
 
                 kwargs.update(_instances)

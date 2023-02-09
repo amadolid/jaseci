@@ -16,6 +16,7 @@ from jaseci.svc.redis_svc import RedisService
 #################################################
 
 
+@JsOrc.repository(name="hook", priority=1)
 class RedisHook(MemoryHook):
     @JsOrc.inject(services=["redis"])
     def __init__(self, redis: RedisService = None):

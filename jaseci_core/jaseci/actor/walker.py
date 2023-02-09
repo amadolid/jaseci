@@ -133,7 +133,7 @@ class Walker(Element, WalkerInterp, Anchored):
 
     def run(self, start_node=None, prime_ctx=None, request_ctx=None, profiling=False):
         """Executes Walker to completion"""
-        if self.for_queue() and JsOrc.serv("task").is_running():
+        if self.for_queue() and JsOrc.svc("task").is_running():
             start_node = (
                 start_node
                 if not (start_node is None)
@@ -146,7 +146,7 @@ class Walker(Element, WalkerInterp, Anchored):
 
             return {
                 "is_queued": True,
-                "result": JsOrc.serv("task", TaskService).add_queue(
+                "result": JsOrc.svc("task", TaskService).add_queue(
                     self,
                     start_node,
                     prime_ctx or self.context,
@@ -231,7 +231,7 @@ class Walker(Element, WalkerInterp, Anchored):
         """
         Destroys self from memory and persistent storage
         """
-        if not self.for_queue() or not JsOrc.serv("task").is_running():
+        if not self.for_queue() or not JsOrc.svc("task").is_running():
             WalkerInterp.destroy(self)
             super().destroy()
 

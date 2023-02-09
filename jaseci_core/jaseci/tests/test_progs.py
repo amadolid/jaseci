@@ -368,7 +368,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_async_syntax_with_celery(self):
         mast = self.meta.build_master()
-        if not JsOrc.serv("task").is_running():
+        if not JsOrc.svc("task").is_running():
             self.skip_test("Celery not running")
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
@@ -411,7 +411,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_async_syntax_without_celery(self):
         mast = self.meta.build_master()
-        JsOrc.serv("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = ServiceState.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run",
@@ -438,11 +438,11 @@ class JacTests(TestCaseHelper, TestCase):
         self.assertFalse(res["is_queued"])
         self.assertEqual(2, res["result"])
 
-        JsOrc.serv("task").state = ServiceState.RUNNING
+        JsOrc.svc("task").state = ServiceState.RUNNING
 
     def test_async_sync_syntax_with_celery(self):
         mast = self.meta.build_master()
-        if not JsOrc.serv("task").is_running():
+        if not JsOrc.svc("task").is_running():
             self.skip_test("Celery not running")
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
@@ -485,7 +485,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_async_sync_syntax_without_celery(self):
         mast = self.meta.build_master()
-        JsOrc.serv("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = ServiceState.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run",
@@ -512,11 +512,11 @@ class JacTests(TestCaseHelper, TestCase):
         self.assertFalse(res["is_queued"])
         self.assertEqual(2, res["result"])
 
-        JsOrc.serv("task").state = ServiceState.RUNNING
+        JsOrc.svc("task").state = ServiceState.RUNNING
 
     def test_block_scope_check(self):
         mast = self.meta.build_master()
-        JsOrc.serv("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = ServiceState.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.block_scope_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}
@@ -525,7 +525,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_ignore_check(self):
         mast = self.meta.build_master()
-        JsOrc.serv("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = ServiceState.NOT_STARTED
         res = mast.sentinel_register(name="test", code=jtp.ignore_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}
@@ -535,7 +535,7 @@ class JacTests(TestCaseHelper, TestCase):
     @pytest.mark.order(1)
     def test_module_on_async(self):
         mast = self.meta.build_super_master()
-        if not JsOrc.serv("task").is_running():
+        if not JsOrc.svc("task").is_running():
             self.skip_test("Celery not running")
 
         with open("jaseci/tests/fixtures/non_existing_action.py", "w") as file:

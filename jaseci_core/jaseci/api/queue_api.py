@@ -18,7 +18,7 @@ class QueueApi:
         """
         Monitor Queues
         """
-        task = JsOrc.serv("task", TaskService)
+        task = JsOrc.svc("task", TaskService)
         if not task.is_running():
             return "Task hook is not yet initialized!"
 
@@ -32,7 +32,7 @@ class QueueApi:
         """
         Wait Queues
         """
-        task = JsOrc.serv("task", TaskService)
+        task = JsOrc.svc("task", TaskService)
         if not task.is_running():
             return "Task hook is not yet initialized!"
 

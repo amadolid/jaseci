@@ -22,7 +22,7 @@ from jaseci_serv.base.models import GlobalVars, JaseciObject
 from jaseci.jsorc import JsOrc
 
 
-@JsOrc.repository(name="hook", priority=3)
+@JsOrc.repository(name="hook", priority=2)
 class OrmHook(RedisHook):
     """
     Hooks Django ORM database for Jaseci objects to Jaseci's core engine.
