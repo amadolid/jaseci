@@ -1,6 +1,9 @@
 from .state import ServiceState as Ss
 from jaseci.utils.utils import logger
 from multiprocessing import Process
+from typing import TypeVar, Any, Union
+
+T = TypeVar("T")
 
 
 class CommonService:
@@ -85,7 +88,7 @@ class CommonService:
     #                     COMMONS                     #
     ###################################################
 
-    def poke(self, msg: str = None):
+    def poke(self, msg: str = None, cast: T = None) -> Union[T, Any]:
         if self.is_running():
             return self.app
         raise Exception(

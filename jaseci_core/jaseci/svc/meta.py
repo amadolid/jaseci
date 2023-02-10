@@ -5,7 +5,6 @@ from jaseci.svc import (
     JsOrc,
     MetaProperties,
     PrometheusService,
-    ElasticService,
     ServiceState as Ss,
 )
 
@@ -85,12 +84,6 @@ class MetaService(CommonService, MetaProperties):
     def build_hook(self):
         h = self.build_context("hook")
         h.meta = self
-        if self.run_svcs:
-            h.promon = self.get_service("promon", h)
-            h.elastic = self.get_service("elastic", h)
-
-            if not self.is_automated():
-                h.elastic.start(h)
 
         return h
 
@@ -127,7 +120,6 @@ class MetaService(CommonService, MetaProperties):
 
     def populate_services(self):
         self.add_service_builder("promon", PrometheusService)
-        self.add_service_builder("elastic", ElasticService)
 
 
 def interval_check(signum, frame):

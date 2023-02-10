@@ -1,6 +1,5 @@
-from jaseci.svc import CommonService
-from .config import ELASTIC_CONFIG
-from .manifest import ELASTIC_MANIFEST
+from jaseci import JsOrc
+from jaseci.svc.common_svc import CommonService
 from requests import get, post
 from datetime import datetime
 from copy import copy
@@ -11,28 +10,19 @@ from copy import copy
 #################################################
 
 
+@JsOrc.service(name="elastic", config="ELASTIC_CONFIG")
 class ElasticService(CommonService):
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def run(self, hook=None):
+    def run(self):
         self.app = Elastic(self.config)
         self.app.health("timeout=1s")
 
-    ####################################################
-    #                    OVERRIDDEN                    #
-    ####################################################
-
-    def build_config(self, hook) -> dict:
-        return hook.service_glob("ELASTIC_CONFIG", ELASTIC_CONFIG)
-
-    def build_manifest(self, hook) -> dict:
-        return hook.service_glob("ELASTIC_MANIFEST", ELASTIC_MANIFEST)
-
 
 class Elastic:
-    def __init__(self, config):
+    def __init__(self, config: dict):
         if not config.get("url"):
             raise Exception("URL is required!")
         self.url = config["url"]

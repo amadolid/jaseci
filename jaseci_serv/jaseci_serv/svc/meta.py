@@ -1,7 +1,4 @@
 from jaseci.svc import MetaService as Ms, PrometheusService
-from jaseci_serv.svc import (
-    ElasticService,
-)
 from .config import RUN_SVCS
 
 
@@ -29,4 +26,3 @@ class MetaService(Ms):
 
     def populate_services(self):
         self.add_service_builder("promon", PrometheusService)
-        self.add_service_builder("elastic", ElasticService)
