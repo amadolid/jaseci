@@ -22,7 +22,7 @@ class ConfigApi:
             "MAIL_CONFIG",
             "PROME_CONFIG",
             "ELASTIC_CONFIG",
-            "META_CONFIG",
+            "JSORC_CONFIG",
         ]
 
     @Interface.admin_api(cli_args=["name"])

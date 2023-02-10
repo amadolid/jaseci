@@ -7,7 +7,6 @@ from kubernetes.client.rest import ApiException
 from jaseci.utils.utils import logger
 from jaseci.actions.live_actions import load_action_config
 from jaseci.svc.actions_optimizer.actions_optimizer import ActionsOptimizer
-from jaseci.jsorc_settings import JsOrcSettings
 
 import time
 import numpy as np
@@ -15,6 +14,9 @@ import numpy as np
 
 class JsOrcAutomation:
     def __init__(self):
+        from jaseci import JsOrc
+
+        self.jsorc = JsOrc
         self.enabled = False
         self.benchmark = {
             "jsorc": {"active": False, "requests": {}},
@@ -118,113 +120,6 @@ class JsOrcAutomation:
                 f"Error deleting {kind} for `{name}` with namespace `{namespace}` -- {e}"
             )
             return e
-
-    def check(self, namespace, svc_name, hook):
-        svc = self.meta.get_service(svc_name, hook)
-
-        if not svc.is_running():
-            if svc.manifest:
-                config_map = svc.manifest
-                pod_name = ""
-                old_config_map = deepcopy(svc.manifest_meta.get("__OLD_CONFIG__", {}))
-                unsafe_paraphrase = svc.manifest_meta.get("__UNSAFE_PARAPHRASE__", "")
-                for kind, confs in config_map.items():
-                    for conf in confs:
-                        name = conf["metadata"]["name"]
-                        names = old_config_map.get(kind, [])
-                        if name in names:
-                            names.remove(name)
-
-                        if kind == "Service":
-                            pod_name = name
-                        res = self.read(kind, name, namespace)
-                        if hasattr(res, "status") and res.status == 404 and conf:
-                            self.create(kind, name, namespace, conf)
-                        elif not isinstance(res, ApiException) and res.metadata:
-                            if res.metadata.labels:
-                                config_version = res.metadata.labels.get(
-                                    "config_version", 1
-                                )
-                            else:
-                                config_version = 1
-
-                            if config_version != conf.get("metadata").get(
-                                "labels", {}
-                            ).get("config_version", 1):
-                                self.patch(kind, name, namespace, conf)
-
-                    if (
-                        old_config_map
-                        and type(old_config_map) is dict
-                        and kind in old_config_map
-                        and name in old_config_map[kind]
-                    ):
-                        old_config_map.get(kind, []).remove(name)
-
-                    for to_be_removed in old_config_map.get(kind, []):
-                        res = self.read(kind, to_be_removed, namespace)
-                        if not isinstance(res, ApiException) and res.metadata:
-                            if (
-                                kind not in UNSAFE_KINDS
-                                or unsafe_paraphrase == UNSAFE_PARAPHRASE
-                            ):
-                                self.delete(kind, to_be_removed, namespace)
-                            else:
-                                logger.info(
-                                    f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{namespace}`!"
-                                )
-
-                if self.kubernetes.is_running(pod_name, namespace):
-                    logger.info(
-                        f"Pod state is running. Trying to Restart {svc_name}..."
-                    )
-                    svc.reset(hook)
-            else:
-                logger.info(f"Restarting {svc_name}...")
-                svc.reset(hook)
-
-    ###################################################
-    #                 SERVICE HANDLER                 #
-    ###################################################
-
-    def add_service_builder(self, name, svc):
-        if self.services.get(name):
-            raise Exception(f"{name} already exists!")
-
-        self.services[name] = svc
-
-    def build_service(self, name, background, *args, **kwargs):
-        svc = self.services.get(name)
-
-        if not svc:
-            logger.error(f"Service {name} is not yet set!")
-            return None
-
-        svc = svc(*args, **kwargs)
-
-        if background:
-            self.background[name] = svc
-
-        return svc
-
-    def get_service(self, name, *args, **kwargs):
-        svc = self.background.get(name)
-
-        if not svc:
-            return self.build_service(name, True, *args, **kwargs)
-
-        return svc
-
-    ###################################################
-    #                 CONTEXT HANDLER                 #
-    ###################################################
-
-    def add_context(self, name, cls, *args, **kwargs):
-        self.context[name] = {"class": cls, "args": args, "kwargs": kwargs}
-
-    def build_context(self, ctx, *args, **kwargs):
-        ctx = self.context[ctx]
-        return ctx["class"](*args, *ctx["args"], **kwargs, **ctx["kwargs"])
 
     ###################################################
     #                 ACTION MANAGER                  #

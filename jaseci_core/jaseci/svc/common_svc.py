@@ -1,9 +1,26 @@
-from .state import ServiceState as Ss
-from jaseci.utils.utils import logger
-from multiprocessing import Process
+from enum import Enum
 from typing import TypeVar, Any, Union
+from multiprocessing import Process
+
+from jaseci.utils.utils import logger
 
 T = TypeVar("T")
+
+
+class State(Enum):
+    FAILED = -1
+    NOT_STARTED = 0
+    STARTED = 1
+    RUNNING = 2
+
+    def is_ready(self):
+        return self == State.NOT_STARTED
+
+    def is_running(self):
+        return self == State.RUNNING
+
+    def has_failed(self):
+        return self == State.FAILED
 
 
 class CommonService:
@@ -21,7 +38,7 @@ class CommonService:
 
     def __init__(self, config: dict, manifest: dict):
         self.app = None
-        self.state = Ss.NOT_STARTED
+        self.state = State.NOT_STARTED
 
         # ------------------- CONFIG -------------------- #
 
@@ -47,9 +64,9 @@ class CommonService:
     def start(self):
         try:
             if self.enabled and self.is_ready():
-                self.state = Ss.STARTED
+                self.state = State.STARTED
                 self.run()
-                self.state = Ss.RUNNING
+                self.state = State.RUNNING
                 self.post_run()
         except Exception as e:
             if not (self.quiet):
@@ -106,7 +123,7 @@ class CommonService:
 
     def failed(self):
         self.app = None
-        self.state = Ss.FAILED
+        self.state = State.FAILED
 
     # ---------------- PROXY EVENTS ----------------- #
 

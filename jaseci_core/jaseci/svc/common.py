@@ -171,7 +171,6 @@ class Kube:
         self.core = CoreV1Api(config)
         self.api = AppsV1Api(self.client)
         self.auth = RbacAuthorizationV1Api(self.client)
-        self.ping()
         self.defaults()
 
     def ping(self):

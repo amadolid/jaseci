@@ -6,7 +6,8 @@ class JsOrcSettings:
     # ------------------------------------------------- DEFAULT ------------------------------------------------- #
     ###############################################################################################################
 
-    DEFAULT_CONFIG = {}
+    DEFAULT_CONFIG = {"enabled": False, "quiet": False, "automated": False}
+
     DEFAULT_MANIFEST = {}
 
     UNSAFE_PARAPHRASE = "I know what I'm doing!"
@@ -19,10 +20,8 @@ class JsOrcSettings:
     KUBERNETES_CONFIG = {"in_cluster": True, "config": None}
 
     JSORC_CONFIG = {
-        "automation": False,
+        "namespace": os.getenv("JASECI_NAMESPACE", "default"),
         "backoff_interval": 10,
-        "namespace": "default",
-        "keep_alive": ["promon", "redis", "task", "mail", "elastic"],
         "kubernetes": KUBERNETES_CONFIG,
     }
 

@@ -1,28 +1,52 @@
+import signal
+from copy import deepcopy
 from datetime import datetime
+from typing import TypeVar, Any, Union
+
 from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
+from .jsorc_automation import JsOrcAutomation, Kube
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
 
-from typing import TypeVar, Any, Union
+# For future use
+# from concurrent.futures import ThreadPoolExecutor
+# from os import cpu_count
 
 T = TypeVar("T")
 
 
 class JsOrc:
+    # ----------------- INSTANCE ------------------ #
+    _instance = {}
+
+    # ----------------- REFERENCE ----------------- #
     _contexts = {}
     _services = {}
     _repositories = {}
-    _configs = {}
-    _manifests = {}
-    _instance = {}
-    _settings = JsOrcSettings
+
+    # ----------------- SETTINGS ----------------- #
 
     _use_proxy = False
+    _settings = JsOrcSettings
+    _automation: JsOrcAutomation = None
+
+    # For future use
+    # _executor = ThreadPoolExecutor(
+    #     min(4, int((cpu_count() or 2) / 4) + 1)
+    # )
 
     # ------------------ COMMONS ------------------ #
-
+    _kube: Kube = None
+    _namespace = "default"
+    _backoff_interval = 10
+    __running__ = False
     __proxy__ = ProxyService()
+
+    # ------------------- REGEN ------------------- #
+
+    _failed_services = set()
+    _regenerating = False
 
     @staticmethod
     def push(name: str, target: dict, entry: dict):
@@ -36,9 +60,17 @@ class JsOrc:
 
     @classmethod
     def run(cls):
-        print("######################")
-        print("1")
-        print("######################")
+        if not cls.__running__:
+            cls.__running__ == True
+            hook = cls.hook()
+            config = hook.service_glob("JSORC_CONFIG", cls.settings("JSORC_CONFIG"))
+
+            cls._backoff_interval = config.get("backoff_interval")
+            cls._namespace = config.get("namespace")
+            cls._kube = Kube(
+                **config.get("kubernetes", cls.settings("KUBERNETES_CONFIG"))
+            )
+            cls._automation = JsOrcAutomation(cls._kube)
 
     #################################################
     #                    HELPER                     #
@@ -93,11 +125,40 @@ class JsOrc:
         Common process on master and super_master
         """
         if not kwargs.get("h", None):
-            kwargs["h"] = cls.src("hook")
+            kwargs["h"] = cls.hook()
 
         return cls.ctx(context, None, *args, **kwargs)
 
     # ------------------ service ------------------ #
+
+    @classmethod
+    def _svc(cls, service: str) -> CommonService:
+        if service not in cls._services:
+            raise Exception(f"Service {service} is not existing!")
+
+        # highest priority
+        instance = cls._services[service][0]
+
+        cls._use_proxy = True
+        hook = cls.hook()
+        cls._use_proxy = False
+
+        config = hook.service_glob(
+            instance["config"],
+            cls.settings(instance["config"], cls.settings("DEFAULT_CONFIG")),
+        )
+
+        manifest = hook.service_glob(
+            instance["manifest"],
+            cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
+        )
+
+        instance = instance["type"](config, manifest or {})
+
+        if instance.has_failed() and service not in cls._failed_services:
+            cls._failed_services.add(service)
+
+        return instance
 
     @classmethod
     def svc(cls, service: str, cast: T = None) -> Union[T, CommonService]:
@@ -108,28 +169,8 @@ class JsOrc:
         service: name of the service to be reference
         cast: to cast the return and allow code hinting
         """
-        if service not in cls._services:
-            raise Exception(f"Service {service} is not existing!")
-
         if service not in cls._instance:
-            # highest priority
-            instance = cls._services[service][0]
-
-            cls._use_proxy = True
-            hook = cls.src("hook")
-            cls._use_proxy = False
-
-            config = hook.service_glob(
-                instance["config"],
-                cls.settings(instance["config"], cls.settings("DEFAULT_CONFIG")),
-            )
-
-            manifest = hook.service_glob(
-                instance["manifest"],
-                cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
-            )
-
-            cls._instance[service] = instance["type"](config, manifest or {})
+            cls._instance[service] = cls._svc(service)
 
         return cls._instance[service]
 
@@ -148,7 +189,8 @@ class JsOrc:
         """
         Service reset now deletes the actual instance and rebuild it
         """
-        del cls._instance[service]
+        instance = cls._instance.pop(service)
+        del instance
         return cls.svc(service)
 
     # ---------------- repository ----------------- #
@@ -315,3 +357,95 @@ class JsOrc:
     @classmethod
     def settings(cls, name: str, default=None):
         return getattr(cls._settings, name, default)
+
+    #################################################
+    #                  AUTOMATION                   #
+    #################################################
+
+    @classmethod
+    def regenerate(cls):
+        if not cls._regenerating:
+            cls._regenerating = True
+            while cls._failed_services:
+                failed_service = cls._failed_services.pop()
+                service: CommonService = cls._instance[failed_service]
+
+                if service.enabled and service.automated and service.manifest:
+                    pod_name = ""
+                    old_config_map = deepcopy(
+                        service.manifest_meta.get("__OLD_CONFIG__", {})
+                    )
+                    unsafe_paraphrase = service.manifest_meta.get(
+                        "__UNSAFE_PARAPHRASE__", ""
+                    )
+                    for kind, confs in service.manifest.items():
+                        for conf in confs:
+                            name = conf["metadata"]["name"]
+                            names = old_config_map.get(kind, [])
+                            if name in names:
+                                names.remove(name)
+
+                            if kind == "Service":
+                                pod_name = name
+                            res = self.read(kind, name, namespace)
+                            if hasattr(res, "status") and res.status == 404 and conf:
+                                self.create(kind, name, namespace, conf)
+                            elif not isinstance(res, ApiException) and res.metadata:
+                                if res.metadata.labels:
+                                    config_version = res.metadata.labels.get(
+                                        "config_version", 1
+                                    )
+                                else:
+                                    config_version = 1
+
+                                if config_version != conf.get("metadata").get(
+                                    "labels", {}
+                                ).get("config_version", 1):
+                                    self.patch(kind, name, namespace, conf)
+
+                        if (
+                            old_config_map
+                            and type(old_config_map) is dict
+                            and kind in old_config_map
+                            and name in old_config_map[kind]
+                        ):
+                            old_config_map.get(kind, []).remove(name)
+
+                        for to_be_removed in old_config_map.get(kind, []):
+                            res = self.read(kind, to_be_removed, namespace)
+                            if not isinstance(res, ApiException) and res.metadata:
+                                if (
+                                    kind not in UNSAFE_KINDS
+                                    or unsafe_paraphrase == UNSAFE_PARAPHRASE
+                                ):
+                                    self.delete(kind, to_be_removed, namespace)
+                                else:
+                                    logger.info(
+                                        f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{namespace}`!"
+                                    )
+
+                    if self.kubernetes.is_running(pod_name, namespace):
+                        logger.info(
+                            f"Pod state is running. Trying to Restart {svc_name}..."
+                        )
+                        svc.reset(hook)
+
+            cls._regenerating = False
+
+
+def interval_check(signum, frame):
+    meta = MetaService()
+    if meta.is_automated():
+        meta.app.interval_check()
+        logger.info(
+            f"Backing off for {meta.app.backoff_interval} seconds before the next interval check..."
+        )
+
+        # wait interval_check to be finished before decrement
+        meta.running_interval -= 1
+        meta.push_interval(meta.app.backoff_interval)
+    else:
+        meta.running_interval -= 1
+
+
+signal.signal(signal.SIGALRM, interval_check)
