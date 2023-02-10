@@ -2,6 +2,7 @@ from datetime import datetime
 from .jsorc_settings import JsOrcSettings
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
+
 from typing import TypeVar, Any, Union
 
 T = TypeVar("T")
@@ -23,10 +24,6 @@ class JsOrc:
     __proxy__ = ProxyService()
 
     @staticmethod
-    def run(runner):
-        runner()
-
-    @staticmethod
     def push(name: str, target: dict, entry: dict):
         if name not in target:
             target[name] = [entry]
@@ -36,14 +33,27 @@ class JsOrc:
                 key=lambda item: (-item["priority"], -item["date_added"]),
             )
 
+    @classmethod
+    def run(cls):
+        print("######################")
+        print("1")
+        print("######################")
+
     #################################################
-    #                    GETTER                     #
+    #                    HELPER                     #
     #################################################
 
     # ------------------ context ------------------ #
 
     @classmethod
     def ctx(cls, context: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        """
+        Build new instance of the context
+        ex: master
+
+        context: name of the context to be build
+        cast: to cast the return and allow code hinting
+        """
         if context not in cls._contexts:
             raise Exception(f"Context {context} is not existing!")
 
@@ -54,6 +64,9 @@ class JsOrc:
 
     @classmethod
     def ctx_cls(cls, context: str):
+        """
+        Get the context class
+        """
         if context not in cls._contexts:
             raise Exception(f"Context {context} is not existing!")
 
@@ -61,14 +74,23 @@ class JsOrc:
 
     @classmethod
     def master(cls, cast: T = None, *args, **kwargs) -> Union[T, Any]:
-        return cls.gen_with_hook("master", cast, *args, **kwargs)
+        """
+        Generate master instance
+        """
+        return cls.__gen_with_hook("master", cast, *args, **kwargs)
 
     @classmethod
     def super_master(cls, cast: T = None, *args, **kwargs) -> Union[T, Any]:
-        return cls.gen_with_hook("super_master", cast, *args, **kwargs)
+        """
+        Generate super_master instance
+        """
+        return cls.__gen_with_hook("super_master", cast, *args, **kwargs)
 
     @classmethod
-    def gen_with_hook(cls, context: str, *args, **kwargs):
+    def __gen_with_hook(cls, context: str, *args, **kwargs):
+        """
+        Common process on master and super_master
+        """
         if not kwargs.get("h", None):
             kwargs["h"] = cls.src("hook")
 
@@ -77,7 +99,14 @@ class JsOrc:
     # ------------------ service ------------------ #
 
     @classmethod
-    def svc(cls, service: str, caster: T = None) -> Union[T, CommonService]:
+    def svc(cls, service: str, cast: T = None) -> Union[T, CommonService]:
+        """
+        Get service. Initialize when not yet existing.
+        ex: task
+
+        service: name of the service to be reference
+        cast: to cast the return and allow code hinting
+        """
         if service not in cls._services:
             raise Exception(f"Service {service} is not existing!")
 
@@ -104,13 +133,19 @@ class JsOrc:
 
     @classmethod
     def svc_cls(cls, service: str):
+        """
+        Get the service class
+        """
         if service not in cls._services:
             raise Exception(f"Service {service} is not existing!")
 
         return cls._services[service][0]["type"]
 
     @classmethod
-    def svc_reset(cls, service, caster: T = None) -> Union[T, CommonService]:
+    def svc_reset(cls, service, cast: T = None) -> Union[T, CommonService]:
+        """
+        Service reset now deletes the actual instance and rebuild it
+        """
         del cls._instance[service]
         return cls.svc(service)
 
@@ -118,6 +153,13 @@ class JsOrc:
 
     @classmethod
     def src(cls, repository: str, cast: T = None) -> Union[T, Any]:
+        """
+        Initialize datasource class (repository)
+        ex: hook
+
+        repository: name of the repository to be reference
+        cast: to cast the return and allow code hinting
+        """
         if repository not in cls._repositories:
             raise Exception(f"Repository {repository} is not existing!")
 
@@ -128,6 +170,9 @@ class JsOrc:
 
     @classmethod
     def hook(cls, cast: T = None) -> Union[T, Any]:
+        """
+        Generate hook repository instance
+        """
         return cls.src("hook")
 
     #################################################
