@@ -13,6 +13,7 @@ class JsOrcSettings(jss):
     TASK_CONFIG = {
         "enabled": True,
         "quiet": False,
+        "automated": False,
         "broker_url": f'redis://{os.getenv("REDIS_HOST", "localhost")}:{os.getenv("REDIS_PORT", "6379")}/{os.getenv("REDIS_DB", "1")}',
         "beat_scheduler": "django_celery_beat.schedulers:DatabaseScheduler",
         "result_backend": "django-db",

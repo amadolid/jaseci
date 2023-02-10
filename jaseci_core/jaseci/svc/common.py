@@ -304,9 +304,7 @@ class JsOrc:
                 self.backoff_interval = config.pop("backoff_interval", 10)
                 self.namespace = config.pop("namespace", "default")
                 self.actions_optimizer.namespace = self.namespace
-                self.keep_alive = config.pop(
-                    "keep_alive", ["promon", "redis", "task", "mail"]
-                )
+                self.keep_alive = config.pop("keep_alive", ["promon"])
                 self.automated = True
             else:
                 self.automated = False

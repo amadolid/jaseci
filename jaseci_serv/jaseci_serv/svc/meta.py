@@ -1,6 +1,5 @@
 from jaseci.svc import MetaService as Ms, PrometheusService
 from jaseci_serv.svc import (
-    MailService,
     ElasticService,
 )
 from .config import RUN_SVCS
@@ -29,6 +28,5 @@ class MetaService(Ms):
         self.add_context("super_master", SuperMaster)
 
     def populate_services(self):
-        self.add_service_builder("mail", MailService)
         self.add_service_builder("promon", PrometheusService)
         self.add_service_builder("elastic", ElasticService)

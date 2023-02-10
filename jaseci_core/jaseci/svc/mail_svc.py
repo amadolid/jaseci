@@ -1,25 +1,26 @@
 import ssl
+from json import dumps
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
-from json import dumps
 from smtplib import SMTP, SMTP_SSL
 
-from jaseci.svc import CommonService
-from .config import MAIL_CONFIG
+from jaseci import JsOrc
+from jaseci.svc.common_svc import CommonService
 
 
 #################################################
-#                  EMAIL APP                   #
+#                   EMAIL APP                   #
 #################################################
 
 
+@JsOrc.service(name="mail", config="MAIL_CONFIG")
 class MailService(CommonService):
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def run(self, hook=None):
-        self.__convert_config(hook)
+    def run(self):
+        self.__convert_config()
         self.app = self.connect()
 
     # ----------- BACKWARD COMPATIBILITY ------------ #
@@ -36,6 +37,7 @@ class MailService(CommonService):
                         holder[v] = conf
         return holder
 
+    @JsOrc.inject(repositories=["hook"])
     def __convert_config(self, hook):
         version = self.config.get("version", 2)
         migrate = self.config.get("migrate", False)
@@ -78,11 +80,11 @@ class MailService(CommonService):
     #                     CLEANER                     #
     ###################################################
 
-    def reset(self, hook, start=True):
+    # ---------------- PROXY EVENTS ----------------- #
+
+    def on_delete(self):
         if self.is_running():
             self.app.terminate()
-
-        super().reset(hook, start)
 
     ####################################################
     #                    OVERRIDDEN                    #
@@ -109,20 +111,16 @@ class MailService(CommonService):
 
         return Mailer(server, sender)
 
-    def build_config(self, hook) -> dict:
-        return hook.service_glob("MAIL_CONFIG", MAIL_CONFIG)
-
 
 # ----------------------------------------------- #
 
-
 ####################################################
-#                   EMAIL CONFIG                   #
+#                      MAILER                      #
 ####################################################
 
 
 class Mailer:
-    def __init__(self, server, sender):
+    def __init__(self, server: SMTP, sender):
         self.server = server
         self.sender = sender
 

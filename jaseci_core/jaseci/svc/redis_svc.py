@@ -55,3 +55,9 @@ class RedisService(CommonService):
     def clear(self):
         if self.is_running():
             self.app.flushdb()
+
+    # ---------------- PROXY EVENTS ----------------- #
+
+    def on_delete(self):
+        if self.is_running():
+            self.app.close()

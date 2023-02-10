@@ -25,6 +25,7 @@ class CommonService:
         self.config = config
         self.enabled = config.pop("enabled", False)
         self.quiet = config.pop("quiet", False)
+        self.automated = config.pop("automated", False)
 
         # ------------------ MANIFEST ------------------- #
 
@@ -49,7 +50,7 @@ class CommonService:
                 self.post_run()
         except Exception as e:
             if not (self.quiet):
-                logger.error(
+                logger.exception(
                     f"Skipping {self.__class__.__name__} due to initialization "
                     f"failure!\n{e.__class__.__name__}: {e}"
                 )

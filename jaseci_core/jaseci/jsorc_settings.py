@@ -33,6 +33,7 @@ class JsOrcSettings:
     REDIS_CONFIG = {
         "enabled": True,
         "quiet": False,
+        "automated": True,
         "host": os.getenv("REDIS_HOST", "localhost"),
         "port": os.getenv("REDIS_PORT", "6379"),
         "db": os.getenv("REDIS_DB", "1"),
@@ -128,9 +129,41 @@ class JsOrcSettings:
     TASK_CONFIG = {
         "enabled": True,
         "quiet": True,
+        "automated": False,
         "broker_url": DEFAULT_REDIS_URL,
         "result_backend": DEFAULT_REDIS_URL,
         "broker_connection_retry_on_startup": True,
         "task_track_started": True,
         "worker_redirect_stdouts": False,
+    }
+
+    ###############################################################################################################
+    # -------------------------------------------------- TASK --------------------------------------------------- #
+    ###############################################################################################################
+
+    MAIL_CONFIG = {
+        "enabled": False,
+        "quiet": True,
+        "automated": False,
+        "version": 2,
+        "tls": True,
+        "host": "",
+        "port": 587,
+        "sender": "",
+        "user": "",
+        "pass": "",
+        "backend": "smtp",
+        "templates": {
+            "activation_subj": "Please activate your account!",
+            "activation_body": "Thank you for creating an account!\n\n"
+            "Activation Code: {{code}}\n"
+            "Please click below to activate:\n{{link}}",
+            "activation_html_body": "Thank you for creating an account!<br><br>"
+            "Activation Code: {{code}}<br>"
+            "Please click below to activate:<br>"
+            "{{link}}",
+            "resetpass_subj": "Password Reset for Jaseci Account",
+            "resetpass_body": "Your Jaseci password reset token is: {{token}}",
+            "resetpass_html_body": "Your Jaseci password reset" "token is: {{token}}",
+        },
     }

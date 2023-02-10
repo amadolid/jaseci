@@ -1,14 +1,13 @@
 from django.core import mail
-
-from jaseci.svc import MailService as Ms
-from jaseci.svc.mail import Mailer as Em
-from .config import MAIL_CONFIG
+from jaseci import JsOrc
+from jaseci.svc.mail_svc import MailService as Ms, Mailer as Em
 
 #################################################
 #                 EMAIL APP ORM                 #
 #################################################
 
 
+@JsOrc.service(name="mail", config="MAIL_CONFIG", priority=1)
 class MailService(Ms):
     def connect(self):
         user = self.config.get("user")
@@ -32,15 +31,11 @@ class MailService(Ms):
 
         return Mailer(server, sender, self.config["templates"])
 
-    def build_config(self, hook) -> dict:
-        return hook.service_glob("MAIL_CONFIG", MAIL_CONFIG)
-
 
 # ----------------------------------------------- #
 
-
 ####################################################
-#                   EMAIL CONFIG                   #
+#                      MAILER                      #
 ####################################################
 
 

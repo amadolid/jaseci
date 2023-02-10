@@ -123,6 +123,7 @@ class JsOrc:
                 instance["config"],
                 cls.settings(instance["config"], cls.settings("DEFAULT_CONFIG")),
             )
+
             manifest = hook.service_glob(
                 instance["manifest"],
                 cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
@@ -285,9 +286,9 @@ class JsOrc:
                         _instances[context] = cls.ctx(context)
                 for repository in repositories:
                     if isinstance(repository, tuple):
-                        _instances[repository[1]] = cls.repo(repository[0])
+                        _instances[repository[1]] = cls.src(repository[0])
                     else:
-                        _instances[repository] = cls.repo(repository)
+                        _instances[repository] = cls.src(repository)
                 for service in services:
                     if isinstance(service, tuple):
                         _instances[service[1]] = (
