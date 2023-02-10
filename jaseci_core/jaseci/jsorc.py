@@ -1,4 +1,5 @@
 from datetime import datetime
+from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
@@ -68,7 +69,7 @@ class JsOrc:
         Get the context class
         """
         if context not in cls._contexts:
-            raise Exception(f"Context {context} is not existing!")
+            return None
 
         return cls._contexts[context][0]["type"]
 
@@ -137,7 +138,7 @@ class JsOrc:
         Get the service class
         """
         if service not in cls._services:
-            raise Exception(f"Service {service} is not existing!")
+            return None
 
         return cls._services[service][0]["type"]
 
