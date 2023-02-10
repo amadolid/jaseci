@@ -1,6 +1,5 @@
 from .state import ServiceState
 from .common import CommonService, ProxyService, JsOrc, MetaProperties, Kube
-from .prometheus import PrometheusService
 from .meta import MetaService
 
 __all__ = [
@@ -9,7 +8,6 @@ __all__ = [
     "MetaProperties",
     "CommonService",
     "ProxyService",
-    "PrometheusService",
     "MetaService",
     "Kube",
 ]

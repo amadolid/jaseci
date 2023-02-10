@@ -88,9 +88,9 @@ class CommonService:
     #                     COMMONS                     #
     ###################################################
 
-    def poke(self, msg: str = None, cast: T = None) -> Union[T, Any]:
+    def poke(self, msg: str = None, cast: T = None, app: bool = True) -> Union[T, Any]:
         if self.is_running():
-            return self.app
+            return self.app if app else self
         raise Exception(
             msg or f"{self.__class__.__name__} is disabled or not yet configured!"
         )

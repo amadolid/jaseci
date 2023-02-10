@@ -1,16 +1,16 @@
-from prometheus_api_client import PrometheusConnect
-from jaseci.svc import CommonService
-from .config import PROMON_CONFIG
-from .manifest import PROMON_MANIFEST
 import time
+from prometheus_api_client import PrometheusConnect
+from jaseci import JsOrc
+from jaseci.svc.common_svc import CommonService
 
 
+@JsOrc.service(name="prome", config="PROME_CONFIG", manifest="PROME_MANIFEST")
 class PrometheusService(CommonService):
     ###################################################
     #                     BUILDER                     #
     ###################################################
 
-    def run(self, hook=None):
+    def run(self):
         self.app = PrometheusConnect(url=self.config.get("url"), disable_ssl=True)
         self.ping()
         self.cpu = Cpu(self.app)

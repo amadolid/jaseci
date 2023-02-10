@@ -1,4 +1,4 @@
-from jaseci.svc import MetaService as Ms, PrometheusService
+from jaseci.svc import MetaService as Ms
 from .config import RUN_SVCS
 
 
@@ -23,6 +23,3 @@ class MetaService(Ms):
         self.add_context("hook", OrmHook)
         self.add_context("master", Master)
         self.add_context("super_master", SuperMaster)
-
-    def populate_services(self):
-        self.add_service_builder("promon", PrometheusService)

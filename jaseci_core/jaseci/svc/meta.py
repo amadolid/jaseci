@@ -4,7 +4,6 @@ from jaseci.svc import (
     CommonService,
     JsOrc,
     MetaProperties,
-    PrometheusService,
     ServiceState as Ss,
 )
 
@@ -119,7 +118,7 @@ class MetaService(CommonService, MetaProperties):
         self.add_context("super_master", SuperMaster)
 
     def populate_services(self):
-        self.add_service_builder("promon", PrometheusService)
+        pass
 
 
 def interval_check(signum, frame):
