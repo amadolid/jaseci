@@ -2,7 +2,6 @@
 User API
 """
 from jaseci.api.interface import Interface
-from jaseci.svc.meta import MetaService
 from jaseci import JsOrc
 
 

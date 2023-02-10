@@ -12,7 +12,7 @@ from rest_framework.views import APIView
 from jaseci.element.element import Element
 from jaseci.utils.utils import logger, ColCodes as Cc
 from jaseci_serv.base.models import Master as ServMaster
-from jaseci_serv.svc import MetaService
+from jaseci import JsOrc
 from jaseci_serv.user_api import serializers as user_slzr
 
 
@@ -232,7 +232,7 @@ class AbstractPublicJacAPIView(AbstractJacAPIView):
     def set_caller(self, request):
         """Assigns the calling api interface obj"""
         self.caller = ServMaster(
-            h=MetaService().build_hook(),
+            h=JsOrc.hook(),
             persist=False,
         )
 

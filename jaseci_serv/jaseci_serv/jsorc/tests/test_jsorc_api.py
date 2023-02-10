@@ -6,7 +6,6 @@ from rest_framework import status
 
 from jaseci.utils.utils import TestCaseHelper
 from django.test import TestCase
-from jaseci_serv.svc import MetaService
 
 
 class JsorcAPITests(TestCaseHelper, TestCase):
@@ -16,7 +15,6 @@ class JsorcAPITests(TestCaseHelper, TestCase):
 
     def setUp(self):
         super().setUp()
-        self.meta = MetaService()
         # First user is always super,
         self.user = get_user_model().objects.create_user(
             "throwawayJSCITfdfdEST_test@jaseci.com", "password"

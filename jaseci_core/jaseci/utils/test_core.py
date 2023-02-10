@@ -1,7 +1,6 @@
 import os
 from unittest import TestCase
 
-from jaseci.svc import MetaService
 from jaseci import JsOrc
 from jaseci.utils.utils import TestCaseHelper
 
@@ -11,9 +10,8 @@ class CoreTest(TestCaseHelper, TestCase):
 
     fixture_src = __file__
 
-    def setUp(self, run_svcs=False):
+    def setUp(self):
         super().setUp()
-        self.meta = MetaService(run_svcs=run_svcs)
         self.smast = JsOrc.super_master()
         self.mast = JsOrc.master(h=self.smast._h)
 

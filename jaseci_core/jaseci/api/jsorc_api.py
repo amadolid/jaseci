@@ -7,7 +7,7 @@ import json
 from json import dumps, loads
 from time import time
 from base64 import b64decode
-from jaseci.svc import CommonService
+from jaseci import JsOrc
 from jaseci.svc.common import Kube, UNSAFE_PARAPHRASE
 from jaseci.api.interface import Interface
 
@@ -86,23 +86,10 @@ class JsOrcApi:
         refreshing service's config. If JsOrc is not automated, service will restart else JsOrc will handle the rest
         """
 
-        hook = self._h
+        # will throw exception if not existing
+        JsOrc.svc_reset(name)
 
-        to_start = not hook.meta.is_automated()
-
-        service = getattr(hook, name, None)
-
-        response = {"success": False}
-
-        if isinstance(service, CommonService):
-            service.reset(hook, to_start)
-            response["success"] = True
-        else:
-            response[
-                "message"
-            ] = f"{name} is not a valid service. Can not refresh config."
-
-        return response
+        return {"success": True}
 
     @Interface.admin_api(cli_args=["name"])
     def service_call(self, svc: str, attrs: list = []):
@@ -110,12 +97,7 @@ class JsOrcApi:
         temporary api for retreiving/calling attributes of specific instance.
         """
 
-        from jaseci.svc import MetaService
-
-        meta = self._h.meta
-        meta: MetaService
-
-        svc = meta.get_service(svc)
+        svc = JsOrc.svc(svc)
 
         if not svc:
             return "Service (svc) field is required!"

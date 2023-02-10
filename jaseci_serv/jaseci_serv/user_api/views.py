@@ -15,7 +15,7 @@ from datetime import timedelta
 from rest_framework.response import Response
 import base64
 
-from jaseci_serv.svc import MetaService
+from jaseci import JsOrc
 
 
 class CreateUserView(generics.CreateAPIView):
@@ -93,7 +93,7 @@ class ManageUserView(generics.RetrieveUpdateAPIView):
 
         response = self.update(request, *args, **kwargs)
 
-        elastic = MetaService().get_service("elastic")
+        elastic = JsOrc.svc("elastic")
         if elastic.is_running():
             activity = elastic.app.generate_from_request(request)
 
@@ -178,7 +178,7 @@ class UpdateUserView(APIView):
         ):
             user.save()
 
-            elastic = MetaService().get_service("elastic")
+            elastic = JsOrc.svc("elastic")
             if elastic.is_running():
                 activity = elastic.app.generate_from_request(request)
 
