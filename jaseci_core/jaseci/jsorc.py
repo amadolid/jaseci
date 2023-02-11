@@ -64,7 +64,7 @@ class JsOrc:
             cls.__running__ == True
             hook = cls.hook()
             config = hook.service_glob("JSORC_CONFIG", cls.settings("JSORC_CONFIG"))
-            cls._backoff_interval = config.get("backoff_interval")
+            cls._backoff_interval = max(5, config.get("backoff_interval", 10))
             cls._regeneration_queues = set(config.get("pre_loaded_services", []))
             cls.push_interval(1)
 
@@ -313,9 +313,7 @@ class JsOrc:
                 target=cls._services,
                 entry={
                     # override service to extend from CommonService
-                    "type": service.__class__(
-                        service.__name__ + "Proxy", (service, CommonService), {}
-                    ),
+                    "type": service,
                     "config": config or f"{name.upper()}_CONFIG",
                     "manifest": manifest,
                     "priority": priority,

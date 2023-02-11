@@ -11,8 +11,6 @@ from .common_svc import CommonService
     proxy=True,
 )
 class RedisService(CommonService):
-    # extending CommonService is not required as service will always extends CommonService
-
     def run(self):
         self.app = Redis(**self.config, decode_responses=True)
         self.app.ping()

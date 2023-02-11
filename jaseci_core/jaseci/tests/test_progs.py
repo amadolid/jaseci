@@ -1,7 +1,6 @@
 import os
 import pytest
 from unittest import TestCase
-from jaseci.svc import ServiceState
 
 import jaseci.tests.jac_test_progs as jtp
 from jaseci.actor.sentinel import Sentinel
@@ -9,6 +8,7 @@ from jaseci.graph.graph import Graph
 from jaseci.graph.node import Node
 from jaseci.utils.utils import TestCaseHelper
 from jaseci import JsOrc
+from jaseci.svc.common_svc import State
 
 
 class JacTests(TestCaseHelper, TestCase):
@@ -408,7 +408,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_async_syntax_without_celery(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = State.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run",
@@ -435,7 +435,7 @@ class JacTests(TestCaseHelper, TestCase):
         self.assertFalse(res["is_queued"])
         self.assertEqual(2, res["result"])
 
-        JsOrc.svc("task").state = ServiceState.RUNNING
+        JsOrc.svc("task").state = State.RUNNING
 
     def test_async_sync_syntax_with_celery(self):
         mast = JsOrc.master()
@@ -482,7 +482,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_async_sync_syntax_without_celery(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = State.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.async_syntax, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run",
@@ -509,11 +509,11 @@ class JacTests(TestCaseHelper, TestCase):
         self.assertFalse(res["is_queued"])
         self.assertEqual(2, res["result"])
 
-        JsOrc.svc("task").state = ServiceState.RUNNING
+        JsOrc.svc("task").state = State.RUNNING
 
     def test_block_scope_check(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = State.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.block_scope_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}
@@ -522,7 +522,7 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_ignore_check(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = ServiceState.NOT_STARTED
+        JsOrc.svc("task").state = State.NOT_STARTED
         res = mast.sentinel_register(name="test", code=jtp.ignore_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}

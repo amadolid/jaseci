@@ -70,7 +70,7 @@ class CommonService:
                 self.post_run()
         except Exception as e:
             if not (self.quiet):
-                logger.exception(
+                logger.error(
                     f"Skipping {self.__class__.__name__} due to initialization "
                     f"failure!\n{e.__class__.__name__}: {e}"
                 )
@@ -134,6 +134,14 @@ class CommonService:
 
     def __del__(self):
         self.on_delete()
+
+    def __getstate__(self):
+        return {}
+
+    def __setstate__(self, ignored):
+        # for build on pickle load
+        self.state = State.FAILED
+        del self
 
 
 class ProxyService(CommonService):

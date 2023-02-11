@@ -107,7 +107,7 @@ data:
     cd ../jaseci_serv; source install.sh;
     jsserv wait_for_db && jsserv makemigrations base &&
     jsserv makemigrations && jsserv migrate;
-    jsserv runserver 0.0.0.0:80;
+    jsserv runserver 0.0.0.0:80 --noreload;
 ---
 apiVersion: apps/v1
 kind: Deployment
