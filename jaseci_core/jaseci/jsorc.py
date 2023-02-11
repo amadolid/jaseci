@@ -8,6 +8,8 @@ from .jsorc_settings import JsOrcSettings
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
 
+from kubernetes.client.rest import ApiException
+
 # For future use
 # from concurrent.futures import ThreadPoolExecutor
 # from os import cpu_count
@@ -38,12 +40,13 @@ class JsOrc:
     # ------------------ COMMONS ------------------ #
 
     _backoff_interval = 10
+    _running_interval = 0
     __running__ = False
     __proxy__ = ProxyService()
 
     # ------------------- REGEN ------------------- #
 
-    _failed_services = set()
+    _regeneration_queues = set()
     _regenerating = False
 
     @staticmethod
@@ -63,6 +66,16 @@ class JsOrc:
             hook = cls.hook()
             config = hook.service_glob("JSORC_CONFIG", cls.settings("JSORC_CONFIG"))
             cls._backoff_interval = config.get("backoff_interval")
+            cls._regeneration_queues = set(config.get("pre_loaded_services", []))
+            cls.push_interval(1)
+
+    @classmethod
+    def push_interval(cls, interval):
+        if cls._running_interval == 0:
+            cls._running_interval += 1
+            signal.alarm(interval)
+        else:
+            logger.info("Reusing current running interval...")
 
     @classmethod
     def kube(cls):
@@ -208,8 +221,8 @@ class JsOrc:
 
         instance = instance["type"](config, manifest)
 
-        if instance.has_failed() and service not in cls._failed_services:
-            cls._failed_services.add(service)
+        if instance.has_failed() and service not in cls._regeneration_queues:
+            cls._regeneration_queues.add(service)
 
         return instance
 
@@ -419,86 +432,97 @@ class JsOrc:
     def regenerate(cls):
         if not cls._regenerating:
             cls._regenerating = True
-            while cls._failed_services:
-                failed_service = cls._failed_services.pop()
-                service: CommonService = cls._service_instances[failed_service]
 
-                if service.enabled and service.automated and service.manifest:
-                    pod_name = ""
-                    old_config_map = deepcopy(
-                        service.manifest_meta.get("__OLD_CONFIG__", {})
-                    )
-                    unsafe_paraphrase = service.manifest_meta.get(
-                        "__UNSAFE_PARAPHRASE__", ""
-                    )
-                    for kind, confs in service.manifest.items():
-                        for conf in confs:
-                            name = conf["metadata"]["name"]
-                            names = old_config_map.get(kind, [])
-                            if name in names:
-                                names.remove(name)
+            from jaseci.svc.kube_svc import KubeService
+            from jaseci.utils.actions.actions_manager import ActionManager
 
-                            if kind == "Service":
-                                pod_name = name
-                            res = self.read(kind, name, namespace)
-                            if hasattr(res, "status") and res.status == 404 and conf:
-                                self.create(kind, name, namespace, conf)
-                            elif not isinstance(res, ApiException) and res.metadata:
-                                if res.metadata.labels:
-                                    config_version = res.metadata.labels.get(
-                                        "config_version", 1
-                                    )
-                                else:
-                                    config_version = 1
+            while cls._regeneration_queues:
+                regeneration_queue = cls._regeneration_queues.pop()
+                logger.info(f"regenerating: {regeneration_queue}")
+                service = cls.svc(regeneration_queue)
+                kube = cls.svc("kube", KubeService)
 
-                                if config_version != conf.get("metadata").get(
-                                    "labels", {}
-                                ).get("config_version", 1):
-                                    self.patch(kind, name, namespace, conf)
-
-                        if (
-                            old_config_map
-                            and type(old_config_map) is dict
-                            and kind in old_config_map
-                            and name in old_config_map[kind]
-                        ):
-                            old_config_map.get(kind, []).remove(name)
-
-                        for to_be_removed in old_config_map.get(kind, []):
-                            res = self.read(kind, to_be_removed, namespace)
-                            if not isinstance(res, ApiException) and res.metadata:
-                                if (
-                                    kind not in UNSAFE_KINDS
-                                    or unsafe_paraphrase == UNSAFE_PARAPHRASE
-                                ):
-                                    self.delete(kind, to_be_removed, namespace)
-                                else:
-                                    logger.info(
-                                        f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{namespace}`!"
-                                    )
-
-                    if self.kubernetes.is_running(pod_name, namespace):
-                        logger.info(
-                            f"Pod state is running. Trying to Restart {svc_name}..."
+                if not service.is_running() and service.enabled and service.automated:
+                    if service.manifest and kube.is_running():
+                        pod_name = ""
+                        old_config_map = deepcopy(
+                            service.manifest_meta.get("__OLD_CONFIG__", {})
                         )
-                        svc.reset(hook)
+                        unsafe_paraphrase = service.manifest_meta.get(
+                            "__UNSAFE_PARAPHRASE__", ""
+                        )
+                        for kind, confs in service.manifest.items():
+                            for conf in confs:
+                                name = conf["metadata"]["name"]
+                                names = old_config_map.get(kind, [])
+                                if name in names:
+                                    names.remove(name)
 
+                                if kind == "Service":
+                                    pod_name = name
+                                res = kube.read(kind, name)
+                                if (
+                                    hasattr(res, "status")
+                                    and res.status == 404
+                                    and conf
+                                ):
+                                    kube.create(kind, name, conf)
+                                elif not isinstance(res, ApiException) and res.metadata:
+                                    if res.metadata.labels:
+                                        config_version = res.metadata.labels.get(
+                                            "config_version", 1
+                                        )
+                                    else:
+                                        config_version = 1
+
+                                    if config_version != conf.get("metadata").get(
+                                        "labels", {}
+                                    ).get("config_version", 1):
+                                        kube.patch(kind, name, conf)
+
+                            if (
+                                old_config_map
+                                and type(old_config_map) is dict
+                                and kind in old_config_map
+                                and name in old_config_map[kind]
+                            ):
+                                old_config_map.get(kind, []).remove(name)
+
+                            for to_be_removed in old_config_map.get(kind, []):
+                                res = kube.read(kind, to_be_removed)
+                                if not isinstance(res, ApiException) and res.metadata:
+                                    if kind not in cls.settings(
+                                        "UNSAFE_KINDS"
+                                    ) or unsafe_paraphrase == cls.settings(
+                                        "UNSAFE_PARAPHRASE"
+                                    ):
+                                        kube.delete(kind, to_be_removed)
+                                    else:
+                                        logger.info(
+                                            f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{kube.namespace}`!"
+                                        )
+
+                        if kube.is_pod_running(pod_name):
+                            logger.info(
+                                f"Pod state is running. Trying to Restart {regeneration_queue}..."
+                            )
+                    cls.svc_reset(regeneration_queue)
+
+            action_manager = cls.get("action_manager", ActionManager)
+            action_manager.optimize(jsorc_interval=cls._backoff_interval)
+            action_manager.record_system_state()
             cls._regenerating = False
 
 
 def interval_check(signum, frame):
-    meta = MetaService()
-    if meta.is_automated():
-        meta.app.interval_check()
-        logger.info(
-            f"Backing off for {meta.app.backoff_interval} seconds before the next interval check..."
-        )
+    JsOrc.regenerate()
+    logger.info(
+        f"Backing off for {JsOrc._backoff_interval} seconds before the next interval check..."
+    )
 
-        # wait interval_check to be finished before decrement
-        meta.running_interval -= 1
-        meta.push_interval(meta.app.backoff_interval)
-    else:
-        meta.running_interval -= 1
+    # wait interval_check to be finished before decrement
+    JsOrc._running_interval -= 1
+    JsOrc.push_interval(JsOrc._backoff_interval)
 
 
 signal.signal(signal.SIGALRM, interval_check)
