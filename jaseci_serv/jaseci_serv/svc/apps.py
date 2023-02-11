@@ -9,4 +9,6 @@ class CoreApiConfig(AppConfig):
 
     def ready(self):
         if os.environ.get("RUN_MAIN"):
+            import jaseci_serv.hook.orm  # noqa
+
             JsOrc.run()

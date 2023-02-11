@@ -27,6 +27,9 @@ class JsOrcSettings:
     ###############################################################################################################
 
     KUBE_CONFIG = {
+        "enabled": True,
+        "quiet": False,
+        "automated": True,
         "namespace": os.getenv("KUBE_NAMESPACE", "default"),
         "in_cluster": True,
         "config": None,

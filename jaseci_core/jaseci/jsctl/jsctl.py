@@ -40,7 +40,6 @@ def is_connected():
 
 
 def get_prompt():
-    JsOrc.run()
     if is_connected():
         return "@jaseci > "
     else:

@@ -70,7 +70,7 @@ class CommonService:
                 self.post_run()
         except Exception as e:
             if not (self.quiet):
-                logger.exception(
+                logger.error(
                     f"Skipping {self.__class__.__name__} due to initialization "
                     f"failure!\n{e.__class__.__name__}: {e}"
                 )

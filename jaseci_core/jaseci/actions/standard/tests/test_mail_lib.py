@@ -16,7 +16,7 @@ class MailLibTest(CoreTest):
         super(MailLibTest, self).__init__(*args, **kwargs)
 
     def setUp(self):
-        super().setUp(True)
+        super().setUp()
 
     @JsOrc.inject(services=["mail"])
     def test_send_mail(self, mail: MailService):
