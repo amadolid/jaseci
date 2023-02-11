@@ -5,7 +5,6 @@ from typing import TypeVar, Any, Union
 
 from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
-from .jsorc_automation import JsOrcAutomation, Kube
 from .svc.common_svc import CommonService
 from .svc.proxy_svc import ProxyService
 
@@ -17,19 +16,19 @@ T = TypeVar("T")
 
 
 class JsOrc:
-    # ----------------- INSTANCE ------------------ #
-    _instance = {}
-
     # ----------------- REFERENCE ----------------- #
     _contexts = {}
+    _context_instances = {}
+
     _services = {}
+    _service_instances = {}
+
     _repositories = {}
 
     # ----------------- SETTINGS ----------------- #
 
     _use_proxy = False
     _settings = JsOrcSettings
-    _automation: JsOrcAutomation = None
 
     # For future use
     # _executor = ThreadPoolExecutor(
@@ -37,8 +36,7 @@ class JsOrc:
     # )
 
     # ------------------ COMMONS ------------------ #
-    _kube: Kube = None
-    _namespace = "default"
+
     _backoff_interval = 10
     __running__ = False
     __proxy__ = ProxyService()
@@ -64,19 +62,68 @@ class JsOrc:
             cls.__running__ == True
             hook = cls.hook()
             config = hook.service_glob("JSORC_CONFIG", cls.settings("JSORC_CONFIG"))
-
             cls._backoff_interval = config.get("backoff_interval")
-            cls._namespace = config.get("namespace")
-            cls._kube = Kube(
-                **config.get("kubernetes", cls.settings("KUBERNETES_CONFIG"))
-            )
-            cls._automation = JsOrcAutomation(cls._kube)
+
+    @classmethod
+    def kube(cls):
+        if not cls._kube:
+            raise Exception(f"Kubernetes is not yet ready!")
+        return cls._kube
 
     #################################################
     #                    HELPER                     #
     #################################################
 
     # ------------------ context ------------------ #
+
+    @classmethod
+    def get(cls, context: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        """
+        Get existing context instance or build a new one that will persists
+        ex: master
+
+        context: name of the context to be build
+        cast: to cast the return and allow code hinting
+        *arsgs: additional argument used to initialize context
+        **kwargs: additional keyword argument used to initialize context
+        """
+        if context not in cls._contexts:
+            raise Exception(f"Context {context} is not existing!")
+
+        if context not in cls._context_instances:
+            cls._context_instances[context] = cls.ctx(context, cast, *args, **kwargs)
+
+        return cls._context_instances[context]
+
+    @classmethod
+    def destroy(cls, context: str):
+        """
+        remove existing context instance
+        ex: master
+
+        context: name of the context to be build
+        """
+        if context not in cls._contexts:
+            raise Exception(f"Context {context} is not existing!")
+
+        if context in cls._context_instances:
+            del cls._context_instances[context]
+
+    @classmethod
+    def renew(cls, context: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
+        """
+        renew existing context instance or build a new one that will persists
+        ex: master
+
+        context: name of the context to be build
+        cast: to cast the return and allow code hinting
+        *arsgs: additional argument used to initialize context
+        **kwargs: additional keyword argument used to initialize context
+        """
+        cls.destroy(context)
+
+        cls._context_instances[context] = cls.ctx(context, cast, *args, **kwargs)
+        return cls._context_instances[context]
 
     @classmethod
     def ctx(cls, context: str, cast: T = None, *args, **kwargs) -> Union[T, Any]:
@@ -86,6 +133,8 @@ class JsOrc:
 
         context: name of the context to be build
         cast: to cast the return and allow code hinting
+        *arsgs: additional argument used to initialize context
+        **kwargs: additional keyword argument used to initialize context
         """
         if context not in cls._contexts:
             raise Exception(f"Context {context} is not existing!")
@@ -148,12 +197,16 @@ class JsOrc:
             cls.settings(instance["config"], cls.settings("DEFAULT_CONFIG")),
         )
 
-        manifest = hook.service_glob(
-            instance["manifest"],
-            cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
+        manifest = (
+            hook.service_glob(
+                instance["manifest"],
+                cls.settings(instance["manifest"], cls.settings("DEFAULT_MANIFEST")),
+            )
+            if instance["manifest"]
+            else {}
         )
 
-        instance = instance["type"](config, manifest or {})
+        instance = instance["type"](config, manifest)
 
         if instance.has_failed() and service not in cls._failed_services:
             cls._failed_services.add(service)
@@ -169,10 +222,10 @@ class JsOrc:
         service: name of the service to be reference
         cast: to cast the return and allow code hinting
         """
-        if service not in cls._instance:
-            cls._instance[service] = cls._svc(service)
+        if service not in cls._service_instances:
+            cls._service_instances[service] = cls._svc(service)
 
-        return cls._instance[service]
+        return cls._service_instances[service]
 
     @classmethod
     def svc_cls(cls, service: str):
@@ -189,7 +242,7 @@ class JsOrc:
         """
         Service reset now deletes the actual instance and rebuild it
         """
-        instance = cls._instance.pop(service)
+        instance = cls._service_instances.pop(service)
         del instance
         return cls.svc(service)
 
@@ -252,7 +305,7 @@ class JsOrc:
                         service.__name__ + "Proxy", (service, CommonService), {}
                     ),
                     "config": config or f"{name.upper()}_CONFIG",
-                    "manifest": manifest or f"{name.upper()}_MANIFEST",
+                    "manifest": manifest,
                     "priority": priority,
                     "date_added": int(datetime.utcnow().timestamp() * 1000),
                 },
@@ -368,7 +421,7 @@ class JsOrc:
             cls._regenerating = True
             while cls._failed_services:
                 failed_service = cls._failed_services.pop()
-                service: CommonService = cls._instance[failed_service]
+                service: CommonService = cls._service_instances[failed_service]
 
                 if service.enabled and service.automated and service.manifest:
                     pod_name = ""

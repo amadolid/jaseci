@@ -1,10 +1,10 @@
 """
 Module that manage and optimizes the actions configuration of Jaseci
 """
-
+from jaseci import JsOrc
+from jaseci.svc.kube_svc import KubeService
 from jaseci.actions.remote_actions import ACTIONS_SPEC_LOC
 from jaseci.utils.utils import logger
-from jaseci.svc.actions_optimizer.actions_state import ActionsState
 from jaseci.actions.live_actions import (
     load_module_actions,
     unload_module,
@@ -13,10 +13,12 @@ from jaseci.actions.live_actions import (
     live_actions,
     action_configs,
 )
+
 import requests
 import copy
 import time
-from kubernetes.client.rest import ApiException
+
+from .actions_state import ActionsState
 
 POLICIES = ["Default", "Evaluation"]
 
@@ -24,14 +26,12 @@ POLICIES = ["Default", "Evaluation"]
 class ActionsOptimizer:
     def __init__(
         self,
-        kube=None,
         namespace: str = "default",
         policy: str = "Default",
         benchmark: dict = {},
         actions_history: dict = {},
         actions_calls: dict = {},
     ) -> None:
-        self.kube = kube
         self.actions_state = ActionsState()
         self.actions_change = {}
         self.jsorc_interval = 0
@@ -46,24 +46,16 @@ class ActionsOptimizer:
     def kube_create(self, config):
         for kind, conf in config.items():
             name = conf["metadata"]["name"]
-            try:
-                self.kube.create(kind, self.namespace, conf)
-            except ApiException:
-                logger.error(f"Error creating {kind} for {name}")
+            JsOrc.svc("kube", KubeService).create(
+                kind, name, conf, self.namespace, "ActionsOptimzer:"
+            )
 
     def kube_delete(self, config):
         for kind, conf in config.items():
             name = conf["metadata"]["name"]
-            try:
-                logger.info(
-                    f"ActionsOptimzer: deleting {kind} for {name} for namespace {self.namespace}"
-                )
-                self.kube.delete(kind, name, self.namespace)
-            except ApiException as e:
-                logger.error(
-                    f"Error deleting {kind} for {name} for namespace {self.namespace}"
-                )
-                logger.error(str(e))
+            JsOrc.svc("kube", KubeService).delete(
+                kind, name, self.namespace, "ActionsOptimzer:"
+            )
 
     def get_actions_status(self, name=""):
         """

@@ -7,7 +7,8 @@ from kubernetes.client.rest import ApiException
 
 from jaseci.utils.utils import logger
 from jaseci.actions.live_actions import load_action_config
-from jaseci.svc.actions_optimizer.actions_optimizer import ActionsOptimizer
+
+# from jaseci.utils.actions.actions_optimizer import ActionsOptimizer
 from .state import ServiceState as Ss
 from .config import META_CONFIG, KUBERNETES_CONFIG
 
@@ -266,6 +267,10 @@ class Kube:
             "PersistentVolumeClaim": self.core.read_namespaced_persistent_volume_claim,
             "DaemonSet": self.api.read_namespaced_daemon_set,
         }
+
+
+class ActionsOptimizer:
+    pass
 
 
 class JsOrc:

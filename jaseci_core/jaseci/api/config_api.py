@@ -22,6 +22,7 @@ class ConfigApi:
             "MAIL_CONFIG",
             "PROME_CONFIG",
             "ELASTIC_CONFIG",
+            "KUBE_CONFIG",
             "JSORC_CONFIG",
         ]
 

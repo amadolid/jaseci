@@ -1,8 +1,7 @@
 import os
 import sys
 
-from jaseci.jsorc import JsOrc
-from jaseci.jsorc_settings import JsOrcSettings as jss
+from jaseci import JsOrc, JsOrcSettings as jss
 
 
 class JsOrcSettings(jss):
