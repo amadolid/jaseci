@@ -134,3 +134,11 @@ class CommonService:
 
     def __del__(self):
         self.on_delete()
+
+
+class ProxyService(CommonService):
+    def __init__(self):
+        self.app = None
+        self.state = State.NOT_STARTED
+        self.enabled = False
+        self.quiet = False

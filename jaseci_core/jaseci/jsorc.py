@@ -5,8 +5,7 @@ from typing import TypeVar, Any, Union
 
 from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
-from .svc.common_svc import CommonService
-from .svc.proxy_svc import ProxyService
+from .svc.common_svc import CommonService, ProxyService
 
 from kubernetes.client.rest import ApiException
 
