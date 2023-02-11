@@ -197,8 +197,8 @@ class JsOrcSettings:
         "enabled": False,
         "quiet": True,
         "url": (
-            f'http://{os.getenv("PROMON_HOST", "localhost")}'
-            f':{os.getenv("PROMON_PORT", "9090")}'
+            f'http://{os.getenv("PROME_HOST", "localhost")}'
+            f':{os.getenv("PROME_PORT", "9090")}'
         ),
     }
 

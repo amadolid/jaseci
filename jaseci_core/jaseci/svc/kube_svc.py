@@ -15,13 +15,13 @@ class KubeService(CommonService):
     ###################################################
 
     def run(self):
-        self.namespace = self.config.get("namespace", "default")
-
-        if self.config.get("in_cluster", True):
+        self._in_cluster = self.config.get("in_cluster", True)
+        if self._in_cluster:
             kubernetes_config.load_incluster_config()
         else:
             kubernetes_config.load_kube_config()
 
+        self.namespace = self.config.get("namespace", "default")
         config = self.config.get("config")
 
         self.client = ApiClient(config)
@@ -92,6 +92,16 @@ class KubeService(CommonService):
     def ping(self):
         res = self.client.call_api("/readyz", "GET")
         return res[1] == 200
+
+    def in_cluster(self):
+        """
+        Check if JSORC/Jaseci is running in a kubernetes cluster
+        """
+        try:
+            return self._in_cluster and self.ping()
+        except ApiException as e:
+            logger.info(f"Kubernetes cluster environment check failed: {e}")
+            return False
 
     def create(
         self,

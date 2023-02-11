@@ -1,7 +1,7 @@
 import unittest
 
 from jaseci import JsOrc
-from jaseci_serv.svc import MetaService
+from jaseci.svc.kube_svc import KubeService
 
 
 def skip_without_redis(test):
@@ -23,8 +23,8 @@ def skip_without_kube(test):
     """
 
     def skipper(*args, **kwargs):
-        meta = MetaService()
-        if not meta.in_cluster():
+        kube = JsOrc.svc("kube", KubeService)
+        if not kube.is_running() or not kube.in_cluster():
             raise unittest.SkipTest("Jaseci not in a kubernetes context!")
         test(*args, **kwargs)
 

@@ -36,35 +36,6 @@ class JsorcAPIKubeTests(TestCaseHelper, TestCase):
         self.notadminc = APIClient()
         self.notadminc.force_authenticate(self.nonadmin)
 
-        # Enable JSORC
-        self.enable_jsorc()
-
-    def enable_jsorc(self):
-        payload = {"op": "config_get", "name": "META_CONFIG", "do_check": False}
-        res = self.client.post(
-            reverse(f'jac_api:{payload["op"]}'), payload, format="json"
-        )
-
-        meta_config = json.loads(res.data)
-        meta_config["automation"] = True
-        meta_config["keep_alive"] = ["promon"]
-
-        # Set automation to be true
-        payload = {
-            "op": "config_set",
-            "name": "META_CONFIG",
-            "value": meta_config,
-            "do_check": False,
-        }
-        res = self.client.post(
-            reverse(f'jac_api:{payload["op"]}'), payload, format="json"
-        )
-
-        payload = {"op": "service_refresh", "name": "meta"}
-        res = self.client.post(
-            reverse(f'jac_api:{payload["op"]}'), payload, format="json"
-        )
-
     def tearDown(self):
         super().tearDown()
 

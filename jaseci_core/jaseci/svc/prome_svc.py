@@ -117,16 +117,6 @@ class PrometheusService(CommonService):
 
         return res
 
-    ####################################################
-    #                    OVERRIDDEN                    #
-    ####################################################
-
-    def build_config(self, hook) -> dict:
-        return hook.service_glob("PROMON_CONFIG", PROMON_CONFIG)
-
-    def build_manifest(self, hook) -> dict:
-        return hook.service_glob("PROMON_MANIFEST", PROMON_MANIFEST)
-
 
 class Info:
     def __init__(self, app):
