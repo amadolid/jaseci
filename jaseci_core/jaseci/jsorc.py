@@ -438,7 +438,6 @@ class JsOrc:
 
             while cls._regeneration_queues:
                 regeneration_queue = cls._regeneration_queues.pop()
-                logger.info(f"regenerating: {regeneration_queue}")
                 service = cls.svc(regeneration_queue)
                 kube = cls.svc("kube", KubeService)
 
