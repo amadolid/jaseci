@@ -94,8 +94,8 @@ class TaskService(CommonService):
     #                     CLEANER                     #
     ###################################################
 
-    def failed(self):
-        super().failed()
+    def failed(self, error):
+        super().failed(error)
         self.terminate_daemon("worker", "scheduler")
 
     # ---------------- PROXY EVENTS ----------------- #

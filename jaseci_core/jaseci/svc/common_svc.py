@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import TypeVar, Any, Union
-from multiprocessing import Process
+from multiprocessing import Process, current_process
 
 from jaseci.utils.utils import logger
 
@@ -74,7 +74,7 @@ class CommonService:
                     f"Skipping {self.__class__.__name__} due to initialization "
                     f"failure!\n{e.__class__.__name__}: {e}"
                 )
-            self.failed()
+            self.failed(e)
 
         return self
 
@@ -87,12 +87,13 @@ class CommonService:
     # ------------------- DAEMON -------------------- #
 
     def spawn_daemon(self, **targets):
-        for name, target in targets.items():
-            dae: Process = self.daemon.get(name)
-            if not dae or not dae.is_alive():
-                process = Process(target=target, daemon=True)
-                process.start()
-                self.daemon[name] = process
+        if current_process().name == "MainProcess":
+            for name, target in targets.items():
+                dae: Process = self.daemon.get(name)
+                if not dae or not dae.is_alive():
+                    process = Process(target=target, daemon=True)
+                    process.start()
+                    self.daemon[name] = process
 
     def terminate_daemon(self, *names):
         for name in names:
@@ -105,9 +106,11 @@ class CommonService:
     #                     COMMONS                     #
     ###################################################
 
-    def poke(self, msg: str = None, cast: T = None, app: bool = True) -> Union[T, Any]:
+    def poke(self, cast: T = None, msg: str = None) -> Union[T, Any]:
         if self.is_running():
-            return self.app if app else self
+            return (
+                self if cast and cast.__name__ == self.__class__.__name__ else self.app
+            )
         raise Exception(
             msg or f"{self.__class__.__name__} is disabled or not yet configured!"
         )
@@ -121,9 +124,10 @@ class CommonService:
     def has_failed(self):
         return self.state.has_failed()
 
-    def failed(self):
+    def failed(self, error: Exception = None):
         self.app = None
         self.state = State.FAILED
+        self.error = error
 
     # ---------------- PROXY EVENTS ----------------- #
 

@@ -4,7 +4,7 @@ from jaseci.svc.elastic_svc import ElasticService, Elastic
 
 
 def elastic():
-    return JsOrc.svc("elastic", ElasticService).poke(cast=Elastic)
+    return JsOrc.svc("elastic", ElasticService).poke(Elastic)
 
 
 @jaseci_action()

@@ -363,6 +363,7 @@ class JacTests(TestCaseHelper, TestCase):
         )
         self.assertEqual(res["report"], [1, 2, 3, 4, 5, 6, 7, 8, "apple"])
 
+    @pytest.mark.order(2)
     def test_async_syntax_with_celery(self):
         mast = JsOrc.master()
         if not JsOrc.svc("task").is_running():

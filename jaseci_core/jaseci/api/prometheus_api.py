@@ -7,7 +7,7 @@ from jaseci.svc.prome_svc import PrometheusService
 
 
 def prome():
-    return JsOrc.svc("prome").poke(cast=PrometheusService, app=False)
+    return JsOrc.svc("prome").poke(PrometheusService)
 
 
 class PrometheusApi:

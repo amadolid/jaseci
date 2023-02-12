@@ -133,7 +133,7 @@ class ActionManager:
             ts = int(time.time())
             prom_profile = (
                 JsOrc.svc("prome")
-                .poke(app=False, cast=PrometheusService)
+                .poke(PrometheusService)
                 .info(
                     namespace=self.namespace,
                     exclude_prom=True,

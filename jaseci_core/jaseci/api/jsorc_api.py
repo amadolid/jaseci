@@ -27,7 +27,7 @@ class JsOrcApi:
         """
 
         try:
-            kube = JsOrc.svc("kube").poke(app=False, cast=KubeService)
+            kube = JsOrc.svc("kube").poke(KubeService)
 
             res = {}
             for file in files:
