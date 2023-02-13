@@ -2,7 +2,14 @@ from jaseci import JsOrc
 from .common_svc import CommonService
 
 from kubernetes import config as kubernetes_config
-from kubernetes.client import ApiClient, CoreV1Api, AppsV1Api, RbacAuthorizationV1Api
+from kubernetes.client import (
+    ApiClient,
+    CoreV1Api,
+    AppsV1Api,
+    RbacAuthorizationV1Api,
+    ApiextensionsV1Api,
+    AdmissionregistrationV1Api,
+)
 from kubernetes.client.rest import ApiException
 
 from jaseci.utils.utils import logger
@@ -13,6 +20,14 @@ class KubeService(CommonService):
     ###################################################
     #                     BUILDER                     #
     ###################################################
+
+    _no_namespace = [
+        "Namespace",
+        "ClusterRole",
+        "ClusterRoleBinding",
+        "CustomResourceDefinition",
+        "ValidatingWebhookConfiguration",
+    ]
 
     def run(self):
         self._in_cluster = self.config.get("in_cluster", True)
@@ -27,13 +42,16 @@ class KubeService(CommonService):
         self.app = ApiClient(config)
         self.core = CoreV1Api(config)
         self.api = AppsV1Api(self.app)
+        self.api_ext = ApiextensionsV1Api(self.app)
         self.auth = RbacAuthorizationV1Api(self.app)
+        self.reg_api = AdmissionregistrationV1Api(self.app)
 
         self.ping()
         self.defaults()
 
     def defaults(self):
         self.create_apis = {
+            "Namespace": self.core.create_namespace,
             "Service": self.core.create_namespaced_service,
             "Deployment": self.api.create_namespaced_deployment,
             "ConfigMap": self.core.create_namespaced_config_map,
@@ -45,8 +63,12 @@ class KubeService(CommonService):
                 self.core.create_namespaced_persistent_volume_claim
             ),
             "DaemonSet": self.api.create_namespaced_daemon_set,
+            "StatefulSet": self.api.create_namespaced_stateful_set,
+            "CustomResourceDefinition": self.api_ext.create_custom_resource_definition,
+            "ValidatingWebhookConfiguration": self.reg_api.create_validating_webhook_configuration,
         }
         self.patch_apis = {
+            "Namespace": self.core.patch_namespace,
             "Service": self.core.patch_namespaced_service,
             "Deployment": self.api.patch_namespaced_deployment,
             "ConfigMap": self.core.patch_namespaced_config_map,
@@ -58,8 +80,12 @@ class KubeService(CommonService):
                 self.core.patch_namespaced_persistent_volume_claim
             ),
             "DaemonSet": self.api.patch_namespaced_daemon_set,
+            "StatefulSet": self.api.patch_namespaced_stateful_set,
+            "CustomResourceDefinition": self.api_ext.patch_custom_resource_definition,
+            "ValidatingWebhookConfiguration": self.reg_api.patch_validating_webhook_configuration,
         }
         self.delete_apis = {
+            "Namespace": self.core.delete_namespace,
             "Service": self.core.delete_namespaced_service,
             "Deployment": self.api.delete_namespaced_deployment,
             "ConfigMap": self.core.delete_namespaced_config_map,
@@ -71,8 +97,12 @@ class KubeService(CommonService):
                 self.core.delete_namespaced_persistent_volume_claim
             ),
             "DaemonSet": self.api.delete_namespaced_daemon_set,
+            "StatefulSet": self.api.delete_namespaced_stateful_set,
+            "CustomResourceDefinition": self.api_ext.delete_custom_resource_definition,
+            "ValidatingWebhookConfiguration": self.reg_api.delete_validating_webhook_configuration,
         }
         self.read_apis = {
+            "Namespace": self.core.read_namespace,
             "Service": self.core.read_namespaced_service,
             "Endpoints": self.core.read_namespaced_endpoints,
             "Deployment": self.api.read_namespaced_deployment,
@@ -83,6 +113,9 @@ class KubeService(CommonService):
             "Secret": self.core.read_namespaced_secret,
             "PersistentVolumeClaim": self.core.read_namespaced_persistent_volume_claim,
             "DaemonSet": self.api.read_namespaced_daemon_set,
+            "StatefulSet": self.api.read_namespaced_stateful_set,
+            "CustomResourceDefinition": self.api_ext.read_custom_resource_definition,
+            "ValidatingWebhookConfiguration": self.reg_api.read_validating_webhook_configuration,
         }
 
     ###################################################
@@ -103,6 +136,9 @@ class KubeService(CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
+    def resolve_namespace(self, conf: dict, namespace: str = None):
+        return conf.get("metadata", {}).get("namespace") or namespace or self.namespace
+
     def create(
         self,
         kind: str,
@@ -111,12 +147,12 @@ class KubeService(CommonService):
         namespace: str = None,
         log_pref: str = "",
     ):
-        namespace = namespace or self.namespace
+        namespace = self.resolve_namespace(conf, namespace)
         try:
             logger.info(
                 f"{log_pref} Creating {kind} for `{name}` with namespace `{namespace}`"
             )
-            if kind.startswith("ClusterRole"):
+            if kind in self._no_namespace:
                 self.create_apis[kind](body=conf)
             else:
                 self.create_apis[kind](namespace=namespace, body=conf)
@@ -133,12 +169,12 @@ class KubeService(CommonService):
         namespace: str = None,
         log_pref: str = "",
     ):
-        namespace = namespace or self.namespace
+        namespace = self.resolve_namespace(conf, namespace)
         try:
             logger.info(
                 f"{log_pref} Patching {kind} for `{name}` with namespace `{namespace}`"
             )
-            if kind.startswith("ClusterRole"):
+            if kind in self._no_namespace:
                 self.patch_apis[kind](name=name, body=conf)
             else:
                 self.patch_apis[kind](name=name, namespace=namespace, body=conf)
@@ -153,7 +189,7 @@ class KubeService(CommonService):
             logger.info(
                 f"{log_pref} Retrieving {kind} for `{name}` with namespace `{namespace}`"
             )
-            if kind.startswith("ClusterRole"):
+            if kind in self._no_namespace:
                 return self.read_apis[kind](name=name)
             else:
                 return self.read_apis[kind](name=name, namespace=namespace)
@@ -169,7 +205,7 @@ class KubeService(CommonService):
             logger.info(
                 f"{log_pref} Deleting {kind} for `{name}` with namespace `{namespace}`"
             )
-            if kind.startswith("ClusterRole"):
+            if kind in self._no_namespace:
                 return self.delete_apis[kind](name=name)
             else:
                 return self.delete_apis[kind](name=name, namespace=namespace)
