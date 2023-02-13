@@ -154,8 +154,11 @@ spec:
             - name: REDIS_HOST
               value: jaseci-redis
 
-            - name: PROMON_HOST
+            - name: PROME_HOST
               value: jaseci-prometheus-server
+
+            - name: KUBE_NAMESPACE
+              value: default
 
           volumeMounts:
             - name: prod-script
