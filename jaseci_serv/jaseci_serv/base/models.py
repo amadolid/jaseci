@@ -13,10 +13,11 @@ from jaseci.api.interface import Interface
 from jaseci.element.master import Master as CoreMaster
 from jaseci.element.super_master import SuperMaster as CoreSuper
 from jaseci_serv.settings import JASECI_CONFIGS
-from jaseci_serv.svc import MetaService
+from jaseci import JsOrc
 from jaseci_serv.base.jsorc import JsOrcApi
 
 
+@JsOrc.context(name="master", priority=1)
 class Master(CoreMaster):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -77,6 +78,7 @@ class Master(CoreMaster):
             return False
 
 
+@JsOrc.context(name="super_master", priority=1)
 class SuperMaster(Master, JsOrcApi, CoreSuper):
     @Interface.admin_api()
     def master_allusers(self, limit: int = 10, offset: int = 0, asc: bool = False):
@@ -131,7 +133,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         # Create user's root node
-        user.master = MetaService().build_master(h=user._h, name=email).id
+        user.master = JsOrc.master(h=user._h, name=email).id
         user._h.commit()
 
         user.save(using=self._db)
@@ -149,7 +151,7 @@ class UserManager(BaseUserManager):
         user.save(using=self._db)
 
         # Create user's root node
-        user.master = MetaService().build_super_master(h=user._h, name=email).id
+        user.master = JsOrc.super_master(h=user._h, name=email).id
         user._h.commit()
 
         user.save(using=self._db)
@@ -176,7 +178,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     objects = UserManager()
 
     def __init__(self, *args, **kwargs):
-        self._h = MetaService().build_hook()
+        self._h = JsOrc.hook()
         AbstractBaseUser.__init__(self, *args, **kwargs)
         PermissionsMixin.__init__(self, *args, **kwargs)
 
