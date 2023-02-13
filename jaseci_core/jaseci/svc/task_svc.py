@@ -1,4 +1,5 @@
 from celery import Celery
+from celery.app.trace import build_tracer
 from celery.app.control import Inspect
 from celery.backends.base import DisabledBackend
 
@@ -34,10 +35,11 @@ class TaskService(CommonService):
         self.app.conf.update(**self.config)
 
         # -------------------- TASKS -------------------- #
-
-        self.queue = self.app.register_task(Queue())
-        self.scheduled_walker = self.app.register_task(ScheduledWalker())
-        self.scheduled_sequence = self.app.register_task(ScheduledSequence())
+        (
+            self.queue,
+            self.scheduled_walker,
+            self.scheduled_sequence,
+        ) = self.register_tasks(Queue, ScheduledWalker, ScheduledSequence)
 
         # ------------------ INSPECTOR ------------------ #
 
@@ -49,6 +51,14 @@ class TaskService(CommonService):
             worker=self.app.Worker(quiet=self.quiet).start,
             scheduler=self.app.Beat(socket_timeout=None, quiet=self.quiet).run,
         )
+
+    def register_tasks(self, *tasks) -> tuple:
+        registered = []
+        for task in tasks:
+            task = self.app.register_task(task())
+            task.__trace__ = build_tracer(task.name, task, app=self.app)
+            registered.append(task)
+        return tuple(registered)
 
     ###################################################
     #              COMMON GETTER/SETTER               #

@@ -38,6 +38,7 @@ class CommonService:
 
     def __init__(self, config: dict, manifest: dict):
         self.app = None
+        self.error = None
         self.state = State.NOT_STARTED
 
         # ------------------- CONFIG -------------------- #

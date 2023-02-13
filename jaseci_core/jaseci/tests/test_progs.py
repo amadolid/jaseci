@@ -514,7 +514,6 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_block_scope_check(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = State.NOT_STARTED
         mast.sentinel_register(name="test", code=jtp.block_scope_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}
@@ -523,7 +522,6 @@ class JacTests(TestCaseHelper, TestCase):
 
     def test_ignore_check(self):
         mast = JsOrc.master()
-        JsOrc.svc("task").state = State.NOT_STARTED
         res = mast.sentinel_register(name="test", code=jtp.ignore_check, auto_run="")
         res = mast.general_interface_to_api(
             api_name="walker_run", params={"name": "init"}
