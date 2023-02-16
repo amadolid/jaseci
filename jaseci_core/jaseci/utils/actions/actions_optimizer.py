@@ -44,18 +44,16 @@ class ActionsOptimizer:
         self.policy_state = {}
 
     def kube_create(self, config):
+        kube = JsOrc.svc("kube").poke(cast=KubeService)
         for kind, conf in config.items():
             name = conf["metadata"]["name"]
-            JsOrc.svc("kube", KubeService).create(
-                kind, name, conf, self.namespace, "ActionsOptimzer:"
-            )
+            kube.create(kind, name, conf, self.namespace, "ActionsOptimzer:")
 
     def kube_delete(self, config):
+        kube = JsOrc.svc("kube").poke(cast=KubeService)
         for kind, conf in config.items():
             name = conf["metadata"]["name"]
-            JsOrc.svc("kube", KubeService).delete(
-                kind, name, self.namespace, "ActionsOptimzer:"
-            )
+            kube.delete(kind, name, self.namespace, "ActionsOptimzer:")
 
     def get_actions_status(self, name=""):
         """
