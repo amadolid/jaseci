@@ -4,6 +4,8 @@ from requests import get, post
 from datetime import datetime
 from copy import copy
 
+from jaseci.utils.utils import logger
+
 
 #################################################
 #                  ELASTIC APP                  #
@@ -19,10 +21,13 @@ class ElasticService(JsOrc.CommonService):
     def __init__(self, config: dict, manifest: dict):
         super().__init__(config, manifest)
 
+        logger.error("#####################################")
         if not config.get("auth"):
             config["auth"] = JsOrc.svc("kube", KubeService).get_secret(
                 "jaseci-es-elastic-user", "elastic", "elastic-system"
             )
+        logger.error(config.get("auth"))
+        logger.error("#####################################")
 
     def run(self):
         self.app = Elastic(self.config)
@@ -49,8 +54,6 @@ class Elastic:
             self.headers["Authorization"] = config["auth"]
 
     def _get(self, url: str, json: dict = None):
-        from jaseci.utils.utils import logger
-
         logger.error("################")
         logger.error(f"{self.url}{url}")
         logger.error(self.headers)
@@ -168,5 +171,8 @@ class Elastic:
         }
 
     def health(self, query: str = ""):
+        logger.error("################")
+        logger.error(self._get(f"/_cluster/health?{query}"))
+        logger.error("################")
         if self._get(f"/_cluster/health?{query}")["timed_out"]:
             raise Exception("Cannot connect on elastic service!")
