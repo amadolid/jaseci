@@ -244,7 +244,7 @@ class KubeService(JsOrc.CommonService):
         except Exception:
             return False
 
-    def custom_create(self, namespace, body, **kwargs):
+    def custom_create(self, body, **kwargs):
         kwargs["_return_http_data_only"] = True
 
         local_var_params = locals()
