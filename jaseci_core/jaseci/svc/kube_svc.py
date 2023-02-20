@@ -118,6 +118,7 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.read_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.read_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.read_validating_webhook_configuration,
+            "Elasticsearch": self.custom_read,
         }
 
     ###################################################
@@ -261,7 +262,7 @@ class KubeService(JsOrc.CommonService):
             if key not in all_params:
                 raise ApiTypeError(
                     "Got an unexpected keyword argument '%s'"
-                    " to method create_custom_resource_definition" % key
+                    " to method create_custom" % key
                 )
             local_var_params[key] = val
         del local_var_params["kwargs"]
@@ -271,7 +272,7 @@ class KubeService(JsOrc.CommonService):
             or local_var_params["body"] is None  # noqa: E501
         ):  # noqa: E501
             raise ApiValueError(
-                "Missing the required parameter `body` when calling `create_custom_resource_definition`"
+                "Missing the required parameter `body` when calling `create_custom`"
             )  # noqa: E501
 
         collection_formats = {}
@@ -325,6 +326,88 @@ class KubeService(JsOrc.CommonService):
         return self.app.call_api(
             "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearch",
             "POST",
+            path_params,
+            query_params,
+            header_params,
+            body=body_params,
+            post_params=form_params,
+            files=local_var_files,
+            response_type=None,
+            auth_settings=auth_settings,
+            async_req=local_var_params.get("async_req"),
+            _return_http_data_only=local_var_params.get(
+                "_return_http_data_only"
+            ),  # noqa: E501
+            _preload_content=local_var_params.get("_preload_content", True),
+            _request_timeout=local_var_params.get("_request_timeout"),
+            collection_formats=collection_formats,
+        )
+
+    def custom_read(self, name, **kwargs):
+        kwargs["_return_http_data_only"] = True
+
+        local_var_params = locals()
+
+        all_params = ["name", "pretty"]
+        all_params.extend(
+            [
+                "async_req",
+                "_return_http_data_only",
+                "_preload_content",
+                "_request_timeout",
+            ]
+        )
+
+        for key, val in six.iteritems(local_var_params["kwargs"]):
+            if key not in all_params:
+                raise ApiTypeError(
+                    "Got an unexpected keyword argument '%s'"
+                    " to method read_custom_resource_definition" % key
+                )
+            local_var_params[key] = val
+        del local_var_params["kwargs"]
+        # verify the required parameter 'name' is set
+        if self.app.client_side_validation and (
+            "name" not in local_var_params
+            or local_var_params["name"] is None  # noqa: E501
+        ):  # noqa: E501
+            raise ApiValueError(
+                "Missing the required parameter `name` when calling `read_custom_resource_definition`"
+            )  # noqa: E501
+
+        collection_formats = {}
+
+        path_params = {}
+        if "name" in local_var_params:
+            path_params["name"] = local_var_params["name"]  # noqa: E501
+
+        query_params = []
+        if (
+            "pretty" in local_var_params and local_var_params["pretty"] is not None
+        ):  # noqa: E501
+            query_params.append(("pretty", local_var_params["pretty"]))  # noqa: E501
+
+        header_params = {}
+
+        form_params = []
+        local_var_files = {}
+
+        body_params = None
+        # HTTP header `Accept`
+        header_params["Accept"] = self.app.select_header_accept(
+            [
+                "application/json",
+                "application/yaml",
+                "application/vnd.kubernetes.protobuf",
+            ]
+        )  # noqa: E501
+
+        # Authentication setting
+        auth_settings = ["BearerToken"]  # noqa: E501
+
+        return self.app.call_api(
+            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearch/{name}",
+            "GET",
             path_params,
             query_params,
             header_params,
