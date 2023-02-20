@@ -3,7 +3,7 @@ from jaseci.svc.kube_svc import KubeService
 from requests import get, post
 from datetime import datetime
 from copy import copy
-
+from base64 import b64encode
 from jaseci.utils.utils import logger
 
 
@@ -21,9 +21,10 @@ class ElasticService(JsOrc.CommonService):
     def __init__(self, config: dict, manifest: dict):
         logger.error("#####################################")
         if not config.get("auth"):
-            config["auth"] = JsOrc.svc("kube", KubeService).get_secret(
+            sec = JsOrc.svc("kube", KubeService).get_secret(
                 "jaseci-es-elastic-user", "elastic", "elastic-system"
             )
+            config["auth"] = b64encode(f"elastic:{sec}")
         logger.error(config.get("auth"))
         logger.error("#####################################")
 
