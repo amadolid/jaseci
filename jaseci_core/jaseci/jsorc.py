@@ -615,6 +615,9 @@ class JsOrc:
                                         name,
                                         namespace=kube.resolve_namespace(conf),
                                     )
+                                    logger.error("##########################")
+                                    logger.error(res)
+                                    logger.error("##########################")
                                     if (
                                         hasattr(res, "status")
                                         and res.status == 404
