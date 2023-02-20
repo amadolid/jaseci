@@ -40,6 +40,11 @@ class Elastic:
             self.headers["Authorization"] = config["auth"]
 
     def _get(self, url: str, json: dict = None):
+        from jaseci.utils.utils import logger
+
+        logger.error("################")
+        logger.error(f"{self.url}{url}")
+        logger.error("################")
         return get(f"{self.url}{url}", json=json, headers=self.headers).json()
 
     def _post(self, url: str, json: dict = None):
