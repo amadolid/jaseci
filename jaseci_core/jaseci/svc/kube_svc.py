@@ -1,3 +1,4 @@
+import six
 from jaseci import JsOrc
 
 from kubernetes import config as kubernetes_config
@@ -9,6 +10,7 @@ from kubernetes.client import (
     ApiextensionsV1Api,
     AdmissionregistrationV1Api,
 )
+from kubernetes.client.exceptions import ApiTypeError, ApiValueError
 from kubernetes.client.rest import ApiException
 
 from jaseci.utils.utils import logger
@@ -65,6 +67,7 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.create_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.create_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.create_validating_webhook_configuration,
+            "Elasticsearch": self.custom_create,
         }
         self.patch_apis = {
             "Namespace": self.core.patch_namespace,
@@ -238,3 +241,103 @@ class KubeService(JsOrc.CommonService):
                 raise SystemExit("Force termination to restart the pod!")
         except Exception:
             return False
+
+    def custom_create(self, namespace, body, **kwargs):
+        kwargs["_return_http_data_only"] = True
+
+        local_var_params = locals()
+
+        all_params = ["body", "pretty", "dry_run", "field_manager", "field_validation"]
+        all_params.extend(
+            [
+                "async_req",
+                "_return_http_data_only",
+                "_preload_content",
+                "_request_timeout",
+            ]
+        )
+
+        for key, val in six.iteritems(local_var_params["kwargs"]):
+            if key not in all_params:
+                raise ApiTypeError(
+                    "Got an unexpected keyword argument '%s'"
+                    " to method create_custom_resource_definition" % key
+                )
+            local_var_params[key] = val
+        del local_var_params["kwargs"]
+        # verify the required parameter 'body' is set
+        if self.app.client_side_validation and (
+            "body" not in local_var_params
+            or local_var_params["body"] is None  # noqa: E501
+        ):  # noqa: E501
+            raise ApiValueError(
+                "Missing the required parameter `body` when calling `create_custom_resource_definition`"
+            )  # noqa: E501
+
+        collection_formats = {}
+
+        path_params = {}
+
+        query_params = []
+        if (
+            "pretty" in local_var_params and local_var_params["pretty"] is not None
+        ):  # noqa: E501
+            query_params.append(("pretty", local_var_params["pretty"]))  # noqa: E501
+        if (
+            "dry_run" in local_var_params and local_var_params["dry_run"] is not None
+        ):  # noqa: E501
+            query_params.append(("dryRun", local_var_params["dry_run"]))  # noqa: E501
+        if (
+            "field_manager" in local_var_params
+            and local_var_params["field_manager"] is not None
+        ):  # noqa: E501
+            query_params.append(
+                ("fieldManager", local_var_params["field_manager"])
+            )  # noqa: E501
+        if (
+            "field_validation" in local_var_params
+            and local_var_params["field_validation"] is not None
+        ):  # noqa: E501
+            query_params.append(
+                ("fieldValidation", local_var_params["field_validation"])
+            )  # noqa: E501
+
+        header_params = {}
+
+        form_params = []
+        local_var_files = {}
+
+        body_params = None
+        if "body" in local_var_params:
+            body_params = local_var_params["body"]
+        # HTTP header `Accept`
+        header_params["Accept"] = self.app.select_header_accept(
+            [
+                "application/json",
+                "application/yaml",
+                "application/vnd.kubernetes.protobuf",
+            ]
+        )  # noqa: E501
+
+        # Authentication setting
+        auth_settings = ["BearerToken"]  # noqa: E501
+
+        return self.app.call_api(
+            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearches",
+            "POST",
+            path_params,
+            query_params,
+            header_params,
+            body=body_params,
+            post_params=form_params,
+            files=local_var_files,
+            response_type=None,
+            auth_settings=auth_settings,
+            async_req=local_var_params.get("async_req"),
+            _return_http_data_only=local_var_params.get(
+                "_return_http_data_only"
+            ),  # noqa: E501
+            _preload_content=local_var_params.get("_preload_content", True),
+            _request_timeout=local_var_params.get("_request_timeout"),
+            collection_formats=collection_formats,
+        )
