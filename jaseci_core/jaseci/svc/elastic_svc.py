@@ -24,7 +24,8 @@ class ElasticService(JsOrc.CommonService):
             sec = JsOrc.svc("kube", KubeService).get_secret(
                 "jaseci-es-elastic-user", "elastic", "elastic-system"
             )
-            config["auth"] = f'basic {b64encode(f"elastic:{sec}").decode()}'
+            logger.error(sec)
+            config["auth"] = f'basic {b64encode(f"elastic:{sec.encode()}").decode()}'
         logger.error(config.get("auth"))
         logger.error("#####################################")
 
