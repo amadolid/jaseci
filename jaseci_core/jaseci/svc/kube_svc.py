@@ -9,6 +9,7 @@ from kubernetes.client import (
     RbacAuthorizationV1Api,
     ApiextensionsV1Api,
     AdmissionregistrationV1Api,
+    CustomObjectsApi,
 )
 from kubernetes.client.exceptions import ApiTypeError, ApiValueError
 from kubernetes.client.rest import ApiException
@@ -28,7 +29,6 @@ class KubeService(JsOrc.CommonService):
         "ClusterRoleBinding",
         "CustomResourceDefinition",
         "ValidatingWebhookConfiguration",
-        "Elasticsearch",
     ]
 
     def run(self):
@@ -47,6 +47,7 @@ class KubeService(JsOrc.CommonService):
         self.api_ext = ApiextensionsV1Api(self.app)
         self.auth = RbacAuthorizationV1Api(self.app)
         self.reg_api = AdmissionregistrationV1Api(self.app)
+        self.custom = CustomObjectsApi(self.app)
 
         self.ping()
         self.defaults()
@@ -68,7 +69,13 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.create_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.create_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.create_validating_webhook_configuration,
-            "Elasticsearch": self.custom_create,
+            "Elasticsearch": lambda namespace, body: self.custom.create_namespaced_custom_object(
+                group="elasticsearch.k8s.elastic.co",
+                version="v1",
+                namespace=namespace,
+                plural="elasticsearches",
+                body=body,
+            ),
         }
         self.patch_apis = {
             "Namespace": self.core.patch_namespace,
@@ -86,6 +93,14 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.patch_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.patch_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.patch_validating_webhook_configuration,
+            "Elasticsearch": lambda name, namespace, body: self.custom.patch_namespaced_custom_object(
+                group="elasticsearch.k8s.elastic.co",
+                version="v1",
+                namespace=namespace,
+                plural="elasticsearches",
+                name=name,
+                body=body,
+            ),
         }
         self.delete_apis = {
             "Namespace": self.core.delete_namespace,
@@ -103,6 +118,13 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.delete_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.delete_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.delete_validating_webhook_configuration,
+            "Elasticsearch": lambda name, namespace: self.custom.delete_namespaced_custom_object(
+                group="elasticsearch.k8s.elastic.co",
+                version="v1",
+                namespace=namespace,
+                plural="elasticsearches",
+                name=name,
+            ),
         }
         self.read_apis = {
             "Namespace": self.core.read_namespace,
@@ -119,7 +141,13 @@ class KubeService(JsOrc.CommonService):
             "StatefulSet": self.api.read_namespaced_stateful_set,
             "CustomResourceDefinition": self.api_ext.read_custom_resource_definition,
             "ValidatingWebhookConfiguration": self.reg_api.read_validating_webhook_configuration,
-            "Elasticsearch": self.custom_read,
+            "Elasticsearch": lambda name, namespace: self.custom.get_namespaced_custom_object(
+                group="elasticsearch.k8s.elastic.co",
+                version="v1",
+                namespace=namespace,
+                plural="elasticsearches",
+                name=name,
+            ),
         }
 
     ###################################################
@@ -243,185 +271,3 @@ class KubeService(JsOrc.CommonService):
                 raise SystemExit("Force termination to restart the pod!")
         except Exception:
             return False
-
-    def custom_create(self, body, **kwargs):
-        kwargs["_return_http_data_only"] = True
-
-        local_var_params = locals()
-
-        all_params = ["body", "pretty", "dry_run", "field_manager", "field_validation"]
-        all_params.extend(
-            [
-                "async_req",
-                "_return_http_data_only",
-                "_preload_content",
-                "_request_timeout",
-            ]
-        )
-
-        for key, val in six.iteritems(local_var_params["kwargs"]):
-            if key not in all_params:
-                raise ApiTypeError(
-                    "Got an unexpected keyword argument '%s'"
-                    " to method create_custom" % key
-                )
-            local_var_params[key] = val
-        del local_var_params["kwargs"]
-        # verify the required parameter 'body' is set
-        if self.app.client_side_validation and (
-            "body" not in local_var_params
-            or local_var_params["body"] is None  # noqa: E501
-        ):  # noqa: E501
-            raise ApiValueError(
-                "Missing the required parameter `body` when calling `create_custom`"
-            )  # noqa: E501
-
-        collection_formats = {}
-
-        path_params = {}
-
-        query_params = []
-        if (
-            "pretty" in local_var_params and local_var_params["pretty"] is not None
-        ):  # noqa: E501
-            query_params.append(("pretty", local_var_params["pretty"]))  # noqa: E501
-        if (
-            "dry_run" in local_var_params and local_var_params["dry_run"] is not None
-        ):  # noqa: E501
-            query_params.append(("dryRun", local_var_params["dry_run"]))  # noqa: E501
-        if (
-            "field_manager" in local_var_params
-            and local_var_params["field_manager"] is not None
-        ):  # noqa: E501
-            query_params.append(
-                ("fieldManager", local_var_params["field_manager"])
-            )  # noqa: E501
-        if (
-            "field_validation" in local_var_params
-            and local_var_params["field_validation"] is not None
-        ):  # noqa: E501
-            query_params.append(
-                ("fieldValidation", local_var_params["field_validation"])
-            )  # noqa: E501
-
-        header_params = {}
-
-        form_params = []
-        local_var_files = {}
-
-        body_params = None
-        if "body" in local_var_params:
-            body_params = local_var_params["body"]
-        # HTTP header `Accept`
-        header_params["Accept"] = self.app.select_header_accept(
-            [
-                "application/json",
-                "application/yaml",
-                "application/vnd.kubernetes.protobuf",
-            ]
-        )  # noqa: E501
-
-        # Authentication setting
-        auth_settings = ["BearerToken"]  # noqa: E501
-
-        return self.app.call_api(
-            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearches",
-            "POST",
-            path_params,
-            query_params,
-            header_params,
-            body=body_params,
-            post_params=form_params,
-            files=local_var_files,
-            response_type=None,
-            auth_settings=auth_settings,
-            async_req=local_var_params.get("async_req"),
-            _return_http_data_only=local_var_params.get(
-                "_return_http_data_only"
-            ),  # noqa: E501
-            _preload_content=local_var_params.get("_preload_content", True),
-            _request_timeout=local_var_params.get("_request_timeout"),
-            collection_formats=collection_formats,
-        )
-
-    def custom_read(self, name, **kwargs):
-        kwargs["_return_http_data_only"] = True
-
-        local_var_params = locals()
-
-        all_params = ["name", "pretty"]
-        all_params.extend(
-            [
-                "async_req",
-                "_return_http_data_only",
-                "_preload_content",
-                "_request_timeout",
-            ]
-        )
-
-        for key, val in six.iteritems(local_var_params["kwargs"]):
-            if key not in all_params:
-                raise ApiTypeError(
-                    "Got an unexpected keyword argument '%s'"
-                    " to method read_custom_resource_definition" % key
-                )
-            local_var_params[key] = val
-        del local_var_params["kwargs"]
-        # verify the required parameter 'name' is set
-        if self.app.client_side_validation and (
-            "name" not in local_var_params
-            or local_var_params["name"] is None  # noqa: E501
-        ):  # noqa: E501
-            raise ApiValueError(
-                "Missing the required parameter `name` when calling `read_custom_resource_definition`"
-            )  # noqa: E501
-
-        collection_formats = {}
-
-        path_params = {}
-        if "name" in local_var_params:
-            path_params["name"] = local_var_params["name"]  # noqa: E501
-
-        query_params = []
-        if (
-            "pretty" in local_var_params and local_var_params["pretty"] is not None
-        ):  # noqa: E501
-            query_params.append(("pretty", local_var_params["pretty"]))  # noqa: E501
-
-        header_params = {}
-
-        form_params = []
-        local_var_files = {}
-
-        body_params = None
-        # HTTP header `Accept`
-        header_params["Accept"] = self.app.select_header_accept(
-            [
-                "application/json",
-                "application/yaml",
-                "application/vnd.kubernetes.protobuf",
-            ]
-        )  # noqa: E501
-
-        # Authentication setting
-        auth_settings = ["BearerToken"]  # noqa: E501
-
-        return self.app.call_api(
-            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearch/{name}",
-            "GET",
-            path_params,
-            query_params,
-            header_params,
-            body=body_params,
-            post_params=form_params,
-            files=local_var_files,
-            response_type=None,
-            auth_settings=auth_settings,
-            async_req=local_var_params.get("async_req"),
-            _return_http_data_only=local_var_params.get(
-                "_return_http_data_only"
-            ),  # noqa: E501
-            _preload_content=local_var_params.get("_preload_content", True),
-            _request_timeout=local_var_params.get("_request_timeout"),
-            collection_formats=collection_formats,
-        )
