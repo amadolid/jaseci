@@ -45,7 +45,9 @@ class Elastic:
         logger.error("################")
         logger.error(f"{self.url}{url}")
         logger.error("################")
-        return get(f"{self.url}{url}", json=json, headers=self.headers).json()
+        return get(
+            f"{self.url}{url}", json=json, headers=self.headers, verify=False
+        ).json()
 
     def _post(self, url: str, json: dict = None):
         return post(f"{self.url}{url}", json=json, headers=self.headers).json()
