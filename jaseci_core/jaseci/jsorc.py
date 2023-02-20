@@ -615,25 +615,26 @@ class JsOrc:
                                         name,
                                         namespace=kube.resolve_namespace(conf),
                                     )
-                                    logger.error("##########################")
-                                    logger.error(res)
-                                    logger.error("##########################")
                                     if (
                                         hasattr(res, "status")
                                         and res.status == 404
                                         and conf
                                     ):
                                         kube.create(kind, name, conf)
-                                    elif (
-                                        not isinstance(res, ApiException)
-                                        and res.metadata
-                                    ):
-                                        if res.metadata.labels:
+                                    elif not isinstance(res, ApiException):
+
+                                        config_version = 1
+                                        if isinstance(res, dict):
+                                            if "labels" in res["metadata"]:
+                                                config_version = (
+                                                    res["metadata"]
+                                                    .get("labels", {})
+                                                    .get("config_version", 1)
+                                                )
+                                        elif res.metadata.labels:
                                             config_version = res.metadata.labels.get(
                                                 "config_version", 1
                                             )
-                                        else:
-                                            config_version = 1
 
                                         if config_version != conf.get("metadata").get(
                                             "labels", {}
@@ -658,9 +659,9 @@ class JsOrc:
                                             old_config_map["kind"][to_be_removed]
                                         ),
                                     )
-                                    if (
-                                        not isinstance(res, ApiException)
-                                        and res.metadata
+                                    if not isinstance(res, ApiException) and (
+                                        (isinstance(res, dict) and res.get("metadata"))
+                                        or res.metadata
                                     ):
                                         if kind not in cls.settings(
                                             "UNSAFE_KINDS"
