@@ -1,4 +1,4 @@
-import six
+from base64 import b64decode
 from jaseci import JsOrc
 
 from kubernetes import config as kubernetes_config
@@ -257,6 +257,21 @@ class KubeService(JsOrc.CommonService):
                 .items[0]
                 .status.phase
                 == "Running"
+            )
+        except Exception:
+            return False
+
+    def get_secret(self, name: str, attr: str, namespace: str = None):
+        namespace = namespace or self.namespace
+        try:
+            return b64decode(
+                getattr(
+                    self.core.read_namespaced_secret(
+                        name=name,
+                        namespace=namespace,
+                    ).data,
+                    attr,
+                )
             )
         except Exception:
             return False

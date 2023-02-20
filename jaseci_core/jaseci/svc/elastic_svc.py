@@ -1,4 +1,5 @@
 from jaseci import JsOrc
+from jaseci.svc.kube_svc import KubeService
 from requests import get, post
 from datetime import datetime
 from copy import copy
@@ -14,6 +15,14 @@ class ElasticService(JsOrc.CommonService):
     ###################################################
     #                     BUILDER                     #
     ###################################################
+
+    def __init__(self, config: dict, manifest: dict):
+        super().__init__(config, manifest)
+
+        if not config.get("auth"):
+            config["auth"] = JsOrc.svc("kube", KubeService).get_secret(
+                "jaseci-es-elastic-user", "elastic", "elastic-system"
+            )
 
     def run(self):
         self.app = Elastic(self.config)
@@ -44,13 +53,16 @@ class Elastic:
 
         logger.error("################")
         logger.error(f"{self.url}{url}")
+        logger.error(self.headers)
         logger.error("################")
         return get(
             f"{self.url}{url}", json=json, headers=self.headers, verify=False
         ).json()
 
     def _post(self, url: str, json: dict = None):
-        return post(f"{self.url}{url}", json=json, headers=self.headers).json()
+        return post(
+            f"{self.url}{url}", json=json, headers=self.headers, verify=False
+        ).json()
 
     def post(self, url: str, body: dict, index: str = "", suffix: str = ""):
         return self._post(f"/{index or self.common_index}{suffix}{url}", body)
