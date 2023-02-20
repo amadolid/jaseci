@@ -271,7 +271,7 @@ class KubeService(JsOrc.CommonService):
                     name=name,
                     namespace=namespace,
                 ).data[attr]
-            )
+            ).decode()
         except Exception as e:
             logger.exception(
                 f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace `{namespace}` -- {e}"
