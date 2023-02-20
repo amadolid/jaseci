@@ -267,13 +267,10 @@ class KubeService(JsOrc.CommonService):
         namespace = namespace or self.namespace
         try:
             return b64decode(
-                getattr(
-                    self.core.read_namespaced_secret(
-                        name=name,
-                        namespace=namespace,
-                    ).data,
-                    attr,
-                )
+                self.core.read_namespaced_secret(
+                    name=name,
+                    namespace=namespace,
+                ).data[attr]
             )
         except Exception as e:
             logger.exception(
