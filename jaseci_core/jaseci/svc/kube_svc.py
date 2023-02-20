@@ -325,7 +325,7 @@ class KubeService(JsOrc.CommonService):
         auth_settings = ["BearerToken"]  # noqa: E501
 
         return self.app.call_api(
-            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearch",
+            "/apis/elasticsearch.k8s.elastic.co/v1/elasticsearches",
             "POST",
             path_params,
             query_params,
