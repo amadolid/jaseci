@@ -28,6 +28,7 @@ class KubeService(JsOrc.CommonService):
         "ClusterRoleBinding",
         "CustomResourceDefinition",
         "ValidatingWebhookConfiguration",
+        "Elasticsearch",
     ]
 
     def run(self):
