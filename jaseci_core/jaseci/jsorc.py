@@ -673,16 +673,7 @@ class JsOrc:
                                             logger.info(
                                                 f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{kube.namespace}`!"
                                             )
-
-                            if kube.is_pod_running(pod_name):
-                                logger.info(
-                                    f"Pod state is running. Trying to Restart {regeneration_queue}..."
-                                )
-                                cls.svc_reset(regeneration_queue)
-                            else:
-                                cls._regeneration_queues.append(regeneration_queue)
-                        else:
-                            cls.svc_reset(regeneration_queue)
+                        cls.svc_reset(regeneration_queue)
                     sleep(1)
 
                 action_manager = cls.get("action_manager", ActionManager)
