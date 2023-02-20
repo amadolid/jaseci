@@ -261,7 +261,9 @@ class KubeService(JsOrc.CommonService):
         except Exception:
             return False
 
-    def get_secret(self, name: str, attr: str, namespace: str = None):
+    def get_secret(
+        self, name: str, attr: str, namespace: str = None, log_pref: str = ""
+    ):
         namespace = namespace or self.namespace
         try:
             return b64decode(
@@ -273,8 +275,11 @@ class KubeService(JsOrc.CommonService):
                     attr,
                 )
             )
-        except Exception:
-            return False
+        except Exception as e:
+            logger.exception(
+                f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace `{namespace}` -- {e}"
+            )
+            return None
 
     def terminate_jaseci(self, name: str, namespace: str = None) -> bool:
         namespace = namespace or self.namespace

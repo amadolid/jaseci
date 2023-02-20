@@ -168,4 +168,5 @@ class Elastic:
         }
 
     def health(self, query: str = ""):
-        return self._get(f"/_cluster/health?{query}")
+        if self._get(f"/_cluster/health?{query}")["timed_out"]:
+            raise Exception("Cannot connect on elastic service!")
