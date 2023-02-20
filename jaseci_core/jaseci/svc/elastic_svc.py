@@ -19,8 +19,6 @@ class ElasticService(JsOrc.CommonService):
     ###################################################
 
     def __init__(self, config: dict, manifest: dict):
-        super().__init__(config, manifest)
-
         logger.error("#####################################")
         if not config.get("auth"):
             config["auth"] = JsOrc.svc("kube", KubeService).get_secret(
@@ -28,6 +26,8 @@ class ElasticService(JsOrc.CommonService):
             )
         logger.error(config.get("auth"))
         logger.error("#####################################")
+
+        super().__init__(config, manifest)
 
     def run(self):
         self.app = Elastic(self.config)
