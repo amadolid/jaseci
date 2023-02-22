@@ -169,34 +169,36 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(self, kind: str, metadata: dict = {}):
+    def resolve_namespace(self, kind: str, metadata: dict = {}, dedicated: bool = True):
         if kind in self._no_namespace:
             return "NO_NAMESPACE"
-        else:
+        elif dedicated:
             namespace = f'{self.namespace}-{metadata.get("namespace", "default")}'
             metadata["namespace"] = namespace
+        else:
+            namespace = metadata.get("namespace", "default")
 
-            if namespace not in self._cached_namespace:
-                res = self.read("Namespace", namespace, None)
-                if hasattr(res, "status") and res.status == 404:
-                    self.create(
-                        "Namespace",
-                        namespace,
-                        {
-                            "apiVersion": "v1",
-                            "kind": "Namespace",
-                            "metadata": {
-                                "name": namespace,
-                                "labels": {"name": namespace},
-                            },
+        if namespace not in self._cached_namespace:
+            res = self.read("Namespace", namespace, None)
+            if hasattr(res, "status") and res.status == 404:
+                self.create(
+                    "Namespace",
+                    namespace,
+                    {
+                        "apiVersion": "v1",
+                        "kind": "Namespace",
+                        "metadata": {
+                            "name": namespace,
+                            "labels": {"name": namespace},
                         },
-                        None,
-                    )
-                    # don't add it on cache since create is possible to fail
-                elif (isinstance(res, dict) and "metadata" in res) or res.metadata:
-                    self._cached_namespace.add(namespace)
+                    },
+                    None,
+                )
+                # don't add it on cache since create is possible to fail
+            elif (isinstance(res, dict) and "metadata" in res) or res.metadata:
+                self._cached_namespace.add(namespace)
 
-            return namespace
+        return namespace
 
     def create(
         self,

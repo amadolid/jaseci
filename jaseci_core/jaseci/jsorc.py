@@ -611,10 +611,8 @@ class JsOrc:
                                     conf = deepcopy(conf)
                                     metadata: dict = conf["metadata"]
                                     name = metadata["name"]
-                                    namespace = (
-                                        metadata.get("namespace", "default")
-                                        if service.dedicated
-                                        else kube.resolve_namespace(kind, metadata)
+                                    namespace = kube.resolve_namespace(
+                                        kind, metadata, service.dedicated
                                     )
                                     _confs = old_config_map.get(kind, {})
                                     if name in _confs.keys():
@@ -662,7 +660,7 @@ class JsOrc:
                                     kind, {}
                                 ).keys():
                                     namespace = kube.resolve_namespace(
-                                        kind, conf["metadata"]
+                                        kind, conf["metadata"], service.dedicated
                                     )
                                     res = kube.read(kind, to_be_removed, namespace)
                                     if not isinstance(res, ApiException) and (
