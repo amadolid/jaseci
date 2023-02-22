@@ -2,7 +2,7 @@ from jaseci import JsOrc
 from jaseci.svc.kube_svc import KubeService
 from requests import get, post
 from datetime import datetime
-from copy import copy
+from copy import copy, deepcopy
 from base64 import b64encode
 
 
@@ -22,7 +22,7 @@ class ElasticService(JsOrc.CommonService):
             elasticsearches = self.manifest.get("Elasticsearch", [])
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
-                elasticsearch: dict = elasticsearches[0]["metadata"]
+                elasticsearch: dict = deepcopy(elasticsearches[0]["metadata"])
                 sec = kube.get_secret(
                     f'{elasticsearch.get("name", "jaseci")}-es-elastic-user',
                     "elastic",
