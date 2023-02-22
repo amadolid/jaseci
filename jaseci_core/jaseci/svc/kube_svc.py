@@ -167,18 +167,18 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(self, conf: dict, namespace: str = None):
-        return conf.get("metadata", {}).get("namespace") or namespace or self.namespace
+    def resolve_namespace(self, namespace: str):
+        return f"{self.namespace}-{namespace}"
 
     def create(
         self,
         kind: str,
         name: str,
         conf: dict,
-        namespace: str = None,
+        namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(conf, namespace)
+        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Creating {kind} for `{name}` with namespace `{namespace}`"
@@ -197,10 +197,10 @@ class KubeService(JsOrc.CommonService):
         kind: str,
         name: str,
         conf: dict,
-        namespace: str = None,
+        namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(conf, namespace)
+        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Patching {kind} for `{name}` with namespace `{namespace}`"
@@ -214,8 +214,8 @@ class KubeService(JsOrc.CommonService):
                 f"{log_pref} Error patching {kind} for `{name}` with namespace `{namespace}` -- {e}"
             )
 
-    def read(self, kind: str, name: str, namespace: str = None, log_pref: str = ""):
-        namespace = namespace or self.namespace
+    def read(self, kind: str, name: str, namespace: str, log_pref: str = ""):
+        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Retrieving {kind} for `{name}` with namespace `{namespace}`"
@@ -230,8 +230,8 @@ class KubeService(JsOrc.CommonService):
             )
             return e
 
-    def delete(self, kind: str, name: str, namespace: str = None, log_pref: str = ""):
-        namespace = namespace or self.namespace
+    def delete(self, kind: str, name: str, namespace: str, log_pref: str = ""):
+        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Deleting {kind} for `{name}` with namespace `{namespace}`"
@@ -246,8 +246,8 @@ class KubeService(JsOrc.CommonService):
             )
             return e
 
-    def is_pod_running(self, name: str, namespace: str = None):
-        namespace = namespace or self.namespace
+    def is_pod_running(self, name: str, namespace: str):
+        namespace = self.resolve_namespace(namespace)
         try:
             return (
                 self.core.list_namespaced_pod(
@@ -260,10 +260,8 @@ class KubeService(JsOrc.CommonService):
         except Exception:
             return False
 
-    def get_secret(
-        self, name: str, attr: str, namespace: str = None, log_pref: str = ""
-    ):
-        namespace = namespace or self.namespace
+    def get_secret(self, name: str, attr: str, namespace: str, log_pref: str = ""):
+        namespace = self.resolve_namespace(namespace)
         try:
             return b64decode(
                 self.core.read_namespaced_secret(
@@ -276,14 +274,3 @@ class KubeService(JsOrc.CommonService):
                 f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace `{namespace}` -- {e}"
             )
             return None
-
-    def terminate_jaseci(self, name: str, namespace: str = None) -> bool:
-        namespace = namespace or self.namespace
-        try:
-            for item in self.core.list_namespaced_pod(
-                namespace=namespace, label_selector=f"pod={name}"
-            ).items:
-                self.core.delete_namespaced_pod(item.metadata.name, namespace)
-                raise SystemExit("Force termination to restart the pod!")
-        except Exception:
-            return False

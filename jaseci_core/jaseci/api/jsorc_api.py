@@ -22,7 +22,7 @@ class JsOrcApi:
     """
 
     @Interface.admin_api()
-    def load_yaml(self, files: list, namespace: str = None):
+    def load_yaml(self, files: list):
         """
         applying list of yaml files without associating to any modules/services
         """
@@ -35,7 +35,10 @@ class JsOrcApi:
                 for conf in yaml.safe_load_all(b64decode(file["base64"])):
                     kind = conf["kind"]
                     kube.create(
-                        kind, conf["metadata"]["name"], conf, namespace=namespace
+                        kind,
+                        conf["metadata"]["name"],
+                        conf,
+                        conf["metadata"].get("namespace", "default"),
                     )
                     if not res.get(kind):
                         res[kind] = []

@@ -19,10 +19,18 @@ class ElasticService(JsOrc.CommonService):
 
     def __init__(self, config: dict, manifest: dict):
         if not config.get("auth"):
-            sec = JsOrc.svc("kube", KubeService).get_secret(
-                "jaseci-es-elastic-user", "elastic", "elastic-system"
-            )
-            config["auth"] = f'basic {b64encode(f"elastic:{sec}".encode()).decode()}'
+            elasticsearches = manifest.get("Elasticsearch", [])
+            if elasticsearches:
+                kube = JsOrc.svc("kube", KubeService)
+                elasticsearch: dict = elasticsearches[0]["metadata"]
+                sec = kube.get_secret(
+                    f'{elasticsearch.get("name", "jaseci")}-es-elastic-user',
+                    "elastic",
+                    kube.resolve_namespace(elasticsearch.get("namespace", "elastic")),
+                )
+                config[
+                    "auth"
+                ] = f'basic {b64encode(f"elastic:{sec}".encode()).decode()}'
 
         super().__init__(config, manifest)
 
