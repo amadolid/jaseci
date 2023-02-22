@@ -54,10 +54,11 @@ class JsOrc:
         def daemon(self):
             return __class__._daemon
 
-        def __init__(self, config: dict, manifest: dict):
+        def __init__(self, config: dict, manifest: dict, dedicated: bool = True):
             self.app = None
             self.error = None
             self.state = State.NOT_STARTED
+            self.dedicated = dedicated
 
             # ------------------- CONFIG -------------------- #
 
@@ -379,7 +380,9 @@ class JsOrc:
                 else {}
             )
 
-        instance: JsOrc.CommonService = instance["type"](config, manifest)
+        instance: JsOrc.CommonService = instance["type"](
+            config, manifest, instance["dedicated"]
+        )
 
         if instance.has_failed() and service not in cls._regeneration_queues:
             cls._regeneration_queues.append(service)
@@ -456,6 +459,7 @@ class JsOrc:
         manifest: str = None,
         priority: int = 0,
         proxy: bool = False,
+        dedicated: bool = True,
     ):
         """
         Save the class in services options
@@ -464,6 +468,7 @@ class JsOrc:
         manifest: manifest name from datasource
         priority: duplicate name will use the highest priority
         proxy: allow proxy service
+        dedicated: if service will spawn to be dedicated to this app
         """
 
         def decorator(service: T) -> T:
@@ -476,6 +481,7 @@ class JsOrc:
                     "manifest": manifest,
                     "priority": priority,
                     "proxy": proxy,
+                    "dedicated": dedicated,
                     "date_added": int(datetime.utcnow().timestamp() * 1000),
                 },
             )
@@ -603,9 +609,12 @@ class JsOrc:
                             for kind, confs in service.manifest.items():
                                 for conf in confs:
                                     conf = deepcopy(conf)
-                                    name = conf["metadata"]["name"]
-                                    namespace = kube.resolve_namespace(
-                                        kind, conf["metadata"]
+                                    metadata: dict = conf["metadata"]
+                                    name = metadata["name"]
+                                    namespace = (
+                                        metadata.get("namespace", "default")
+                                        if service.dedicated
+                                        else kube.resolve_namespace(kind, metadata)
                                     )
                                     _confs = old_config_map.get(kind, {})
                                     if name in _confs.keys():
@@ -682,8 +691,9 @@ class JsOrc:
                     for kind, confs in cls.settings("DB_REGEN_MANIFEST", {}).items():
                         for conf in confs:
                             conf = deepcopy(conf)
-                            name = conf["metadata"]["name"]
-                            namespace = kube.resolve_namespace(kind, conf["metadata"])
+                            metadata = conf["metadata"]
+                            name = metadata["name"]
+                            namespace = kube.resolve_namespace(kind, metadata)
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404 and conf:
                                 kube.create(kind, name, conf, namespace)

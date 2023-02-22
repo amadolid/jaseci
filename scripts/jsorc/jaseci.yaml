@@ -182,6 +182,9 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: KUBE_NAMESPACE
+              value: jaseci
+
             - name: POSTGRES_USER
               valueFrom:
                 secretKeyRef:
@@ -195,28 +198,22 @@ spec:
                   key: password
 
             - name: POSTGRES_HOST
-              value: jaseci-db
+              value: jaseci-db.jaseci-database.svc.cluster.local
 
             - name: DBNAME
               value: postgres
 
-            - name: JSORC_POD_NAME
-              value: jaseci
-
-            - name: REDIS_HOST
-              value: jaseci-redis
-
-            - name: PROME_HOST
-              value: jaseci-prometheus-server
-
             - name: JSORC_DB_REGEN
               value: "true"
 
-            - name: KUBE_NAMESPACE
-              value: default
+            - name: REDIS_HOST
+              value: jaseci-redis.jaseci-redis.svc.cluster.local
+
+            - name: PROME_HOST
+              value: jaseci-prometheus-server.prometheus.svc.cluster.local
 
             - name: ELASTIC_HOST
-              value: jaseci-es-internal-http.elastic-system.svc.cluster.local
+              value: jaseci-es-internal-http.elastic.svc.cluster.local
 
           volumeMounts:
             - name: prod-script

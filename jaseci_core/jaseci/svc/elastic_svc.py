@@ -11,7 +11,12 @@ from base64 import b64encode
 #################################################
 
 
-@JsOrc.service(name="elastic", config="ELASTIC_CONFIG", manifest="ELASTIC_MANIFEST")
+@JsOrc.service(
+    name="elastic",
+    config="ELASTIC_CONFIG",
+    manifest="ELASTIC_MANIFEST",
+    dedicated=False,
+)
 class ElasticService(JsOrc.CommonService):
     ###################################################
     #                     BUILDER                     #
