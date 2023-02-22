@@ -32,7 +32,9 @@ class ElasticService(JsOrc.CommonService):
                     f'{elasticsearch.get("name", "jaseci")}-es-elastic-user',
                     "elastic",
                     kube.resolve_namespace(
-                        elasticsearch.get("namespace", "elastic"), elasticsearch
+                        elasticsearch.get("namespace", "elastic"),
+                        elasticsearch,
+                        self.dedicated,
                     ),
                 )
                 self.config[
