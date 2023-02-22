@@ -678,6 +678,7 @@ class JsOrc:
                 while not cls.db_check():
                     for kind, confs in cls.settings("DB_REGEN_MANIFEST", {}).items():
                         for conf in confs:
+                            conf = deepcopy(conf)
                             name = conf["metadata"]["name"]
                             namespace = conf["metadata"].get("namespace", "default")
                             res = kube.read(kind, name, namespace)
