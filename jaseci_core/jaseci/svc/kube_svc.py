@@ -167,8 +167,12 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(self, namespace: str):
-        return f"{self.namespace}-{namespace}"
+    def resolve_namespace(self, namespace: str, conf: dict = None):
+        namespace = "NO_NAMESPACE"
+        if conf and conf["kind"] not in self._no_namespace:
+            namespace = f"{self.namespace}-{namespace}"
+            conf["metadata"]["namespace"] = namespace
+        return namespace
 
     def create(
         self,
@@ -178,10 +182,10 @@ class KubeService(JsOrc.CommonService):
         namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(namespace)
+        namespace = self.resolve_namespace(namespace, conf)
         try:
             logger.info(
-                f"{log_pref} Creating {kind} for `{name}` with namespace `{namespace}`"
+                f"{log_pref} Creating {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
                 self.create_apis[kind](body=conf)
@@ -189,7 +193,7 @@ class KubeService(JsOrc.CommonService):
                 self.create_apis[kind](namespace=namespace, body=conf)
         except ApiException as e:
             logger.error(
-                f"{log_pref} Error creating {kind} for `{name}` with namespace `{namespace}` -- {e}"
+                f"{log_pref} Error creating {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
 
     def patch(
@@ -200,10 +204,10 @@ class KubeService(JsOrc.CommonService):
         namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(namespace)
+        namespace = self.resolve_namespace(namespace, conf)
         try:
             logger.info(
-                f"{log_pref} Patching {kind} for `{name}` with namespace `{namespace}`"
+                f"{log_pref} Patching {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
                 self.patch_apis[kind](name=name, body=conf)
@@ -211,14 +215,14 @@ class KubeService(JsOrc.CommonService):
                 self.patch_apis[kind](name=name, namespace=namespace, body=conf)
         except ApiException as e:
             logger.error(
-                f"{log_pref} Error patching {kind} for `{name}` with namespace `{namespace}` -- {e}"
+                f"{log_pref} Error patching {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
 
     def read(self, kind: str, name: str, namespace: str, log_pref: str = ""):
         namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
-                f"{log_pref} Retrieving {kind} for `{name}` with namespace `{namespace}`"
+                f"{log_pref} Retrieving {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
                 return self.read_apis[kind](name=name)
@@ -226,7 +230,7 @@ class KubeService(JsOrc.CommonService):
                 return self.read_apis[kind](name=name, namespace=namespace)
         except ApiException as e:
             logger.error(
-                f"{log_pref} Error retrieving {kind} for `{name}` with namespace `{namespace}` -- {e}"
+                f"{log_pref} Error retrieving {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
             return e
 
@@ -234,7 +238,7 @@ class KubeService(JsOrc.CommonService):
         namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
-                f"{log_pref} Deleting {kind} for `{name}` with namespace `{namespace}`"
+                f"{log_pref} Deleting {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
                 return self.delete_apis[kind](name=name)
@@ -242,7 +246,7 @@ class KubeService(JsOrc.CommonService):
                 return self.delete_apis[kind](name=name, namespace=namespace)
         except ApiException as e:
             logger.error(
-                f"{log_pref} Error deleting {kind} for `{name}` with namespace `{namespace}` -- {e}"
+                f"{log_pref} Error deleting {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
             return e
 
@@ -271,6 +275,6 @@ class KubeService(JsOrc.CommonService):
             ).decode()
         except Exception as e:
             logger.exception(
-                f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace `{namespace}` -- {e}"
+                f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace: `{namespace}` -- {e}"
             )
             return None

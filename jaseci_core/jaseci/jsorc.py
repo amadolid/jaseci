@@ -602,6 +602,7 @@ class JsOrc:
                             )
                             for kind, confs in service.manifest.items():
                                 for conf in confs:
+                                    conf = deepcopy(conf)
                                     name = conf["metadata"]["name"]
                                     namespace = conf["metadata"].get(
                                         "namespace", "default"
