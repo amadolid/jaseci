@@ -34,11 +34,12 @@ class JsOrcApi:
             for file in files:
                 for conf in yaml.safe_load_all(b64decode(file["base64"])):
                     kind = conf["kind"]
+                    namespace = kube.resolve_namespace(kind, conf["metadata"])
                     kube.create(
                         kind,
                         conf["metadata"]["name"],
                         conf,
-                        conf["metadata"].get("namespace", "default"),
+                        namespace,
                     )
                     if not res.get(kind):
                         res[kind] = []

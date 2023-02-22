@@ -26,7 +26,9 @@ class ElasticService(JsOrc.CommonService):
                 sec = kube.get_secret(
                     f'{elasticsearch.get("name", "jaseci")}-es-elastic-user',
                     "elastic",
-                    kube.resolve_namespace(elasticsearch.get("namespace", "elastic")),
+                    kube.resolve_namespace(
+                        elasticsearch.get("namespace", "elastic"), elasticsearch
+                    ),
                 )
                 self.config[
                     "auth"
