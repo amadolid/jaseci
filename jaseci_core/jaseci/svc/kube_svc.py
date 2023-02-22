@@ -168,10 +168,11 @@ class KubeService(JsOrc.CommonService):
             return False
 
     def resolve_namespace(self, namespace: str, conf: dict = None):
-        namespace = "NO_NAMESPACE"
         if conf and conf["kind"] not in self._no_namespace:
             namespace = f"{self.namespace}-{namespace}"
             conf["metadata"]["namespace"] = namespace
+        else:
+            namespace = "NO_NAMESPACE"
         return namespace
 
     def create(
