@@ -604,8 +604,8 @@ class JsOrc:
                                 for conf in confs:
                                     conf = deepcopy(conf)
                                     name = conf["metadata"]["name"]
-                                    namespace = conf["metadata"].get(
-                                        "namespace", "default"
+                                    namespace = kube.resolve_namespace(
+                                        kind, conf["metadata"]
                                     )
                                     _confs = old_config_map.get(kind, {})
                                     if name in _confs.keys():
@@ -649,9 +649,12 @@ class JsOrc:
                                 ):
                                     old_config_map.get(kind, {}).pop(name)
 
-                                for to_be_removed in old_config_map.get(
+                                for to_be_removed, conf in old_config_map.get(
                                     kind, {}
                                 ).keys():
+                                    namespace = kube.resolve_namespace(
+                                        kind, conf["metadata"]
+                                    )
                                     res = kube.read(kind, to_be_removed, namespace)
                                     if not isinstance(res, ApiException) and (
                                         (isinstance(res, dict) and res.get("metadata"))
@@ -665,7 +668,7 @@ class JsOrc:
                                             kube.delete(kind, to_be_removed, namespace)
                                         else:
                                             logger.info(
-                                                f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{kube.namespace}`!"
+                                                f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{namespace}`!"
                                             )
                         cls.svc_reset(regeneration_queue)
                     sleep(1)
@@ -680,7 +683,7 @@ class JsOrc:
                         for conf in confs:
                             conf = deepcopy(conf)
                             name = conf["metadata"]["name"]
-                            namespace = conf["metadata"].get("namespace", "default")
+                            namespace = kube.resolve_namespace(kind, conf["metadata"])
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404 and conf:
                                 kube.create(kind, name, conf, namespace)

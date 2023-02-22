@@ -48,6 +48,8 @@ class KubeService(JsOrc.CommonService):
         self.reg_api = AdmissionregistrationV1Api(self.app)
         self.custom = CustomObjectsApi(self.app)
 
+        self._cached_namespace = set()
+
         self.ping()
         self.defaults()
 
@@ -167,13 +169,34 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(self, namespace: str, conf: dict = None):
-        if conf and conf["kind"] not in self._no_namespace:
-            namespace = f"{self.namespace}-{namespace}"
-            conf["metadata"]["namespace"] = namespace
+    def resolve_namespace(self, kind: str, metadata: dict = {}):
+        if kind in self._no_namespace:
+            return "NO_NAMESPACE"
         else:
-            namespace = "NO_NAMESPACE"
-        return namespace
+            namespace = f'{self.namespace}-{metadata.get("namespace", "default")}'
+            metadata["namespace"] = namespace
+
+            if namespace not in self._cached_namespace:
+                res = self.read("Namespace", namespace, None)
+                if hasattr(res, "status") and res.status == 404:
+                    self.create(
+                        "Namespace",
+                        namespace,
+                        {
+                            "apiVersion": "v1",
+                            "kind": "Namespace",
+                            "metadata": {
+                                "name": namespace,
+                                "labels": {"name": namespace},
+                            },
+                        },
+                        None,
+                    )
+                    # don't add it on cache since create is possible to fail
+                elif (isinstance(res, dict) and "metadata" in res) or res.metadata:
+                    self._cached_namespace.add(namespace)
+
+            return namespace
 
     def create(
         self,
@@ -183,7 +206,6 @@ class KubeService(JsOrc.CommonService):
         namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(namespace, conf)
         try:
             logger.info(
                 f"{log_pref} Creating {kind} for `{name}` with namespace: `{namespace}`"
@@ -205,7 +227,6 @@ class KubeService(JsOrc.CommonService):
         namespace: str,
         log_pref: str = "",
     ):
-        namespace = self.resolve_namespace(namespace, conf)
         try:
             logger.info(
                 f"{log_pref} Patching {kind} for `{name}` with namespace: `{namespace}`"
@@ -220,7 +241,6 @@ class KubeService(JsOrc.CommonService):
             )
 
     def read(self, kind: str, name: str, namespace: str, log_pref: str = ""):
-        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Retrieving {kind} for `{name}` with namespace: `{namespace}`"
@@ -236,7 +256,6 @@ class KubeService(JsOrc.CommonService):
             return e
 
     def delete(self, kind: str, name: str, namespace: str, log_pref: str = ""):
-        namespace = self.resolve_namespace(namespace)
         try:
             logger.info(
                 f"{log_pref} Deleting {kind} for `{name}` with namespace: `{namespace}`"
@@ -252,7 +271,6 @@ class KubeService(JsOrc.CommonService):
             return e
 
     def is_pod_running(self, name: str, namespace: str):
-        namespace = self.resolve_namespace(namespace)
         try:
             return (
                 self.core.list_namespaced_pod(
@@ -266,7 +284,6 @@ class KubeService(JsOrc.CommonService):
             return False
 
     def get_secret(self, name: str, attr: str, namespace: str, log_pref: str = ""):
-        namespace = self.resolve_namespace(namespace)
         try:
             return b64decode(
                 self.core.read_namespaced_secret(

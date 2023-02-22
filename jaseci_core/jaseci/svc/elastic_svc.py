@@ -17,9 +17,9 @@ class ElasticService(JsOrc.CommonService):
     #                     BUILDER                     #
     ###################################################
 
-    def __init__(self, config: dict, manifest: dict):
-        if not config.get("auth"):
-            elasticsearches = manifest.get("Elasticsearch", [])
+    def run(self):
+        if not self.config.get("auth"):
+            elasticsearches = self.manifest.get("Elasticsearch", [])
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
                 elasticsearch: dict = elasticsearches[0]["metadata"]
@@ -28,13 +28,10 @@ class ElasticService(JsOrc.CommonService):
                     "elastic",
                     kube.resolve_namespace(elasticsearch.get("namespace", "elastic")),
                 )
-                config[
+                self.config[
                     "auth"
                 ] = f'basic {b64encode(f"elastic:{sec}".encode()).decode()}'
 
-        super().__init__(config, manifest)
-
-    def run(self):
         self.app = Elastic(self.config)
         self.app.health("timeout=1s")
 
