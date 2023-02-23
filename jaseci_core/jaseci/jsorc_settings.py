@@ -1,6 +1,6 @@
 import os
 import yaml
-
+import re
 from time import time
 
 internal = re.compile(r"\(([a-zA-Z0-9_\.\[\]\$\#\@\!]*?)\)")
