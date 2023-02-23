@@ -178,7 +178,7 @@ class KubeService(JsOrc.CommonService):
         else:
             namespace = metadata.get("namespace", "default")
 
-        if namespace not in self._cached_namespace:
+        if namespace and namespace not in self._cached_namespace:
             res = self.read("Namespace", namespace, None)
             if hasattr(res, "status") and res.status == 404:
                 self.create(
