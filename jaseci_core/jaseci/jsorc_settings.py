@@ -165,8 +165,8 @@ class JsOrcSettings:
             f':{os.getenv("ELASTIC_PORT", "9200")}'
         ),
         "auth": os.getenv("ELASTIC_AUTH"),
-        "common_index": "common",
-        "activity_index": "activity",
+        "common_index": f"{KUBE_NAMESPACE}-common",
+        "activity_index": f"{KUBE_NAMESPACE}-activity",
     }
 
     ELASTIC_MANIFEST = load_default_yaml("elastic")
