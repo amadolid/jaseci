@@ -42,8 +42,8 @@ class JsOrcApi:
                         namespace,
                     )
                     if not res.get(kind):
-                        res[kind] = []
-                    res[kind].append(conf)
+                        res[kind] = {}
+                    res[kind].update({conf["metadata"]["name"]: conf})
 
             return res
         except Exception:
@@ -67,8 +67,8 @@ class JsOrcApi:
                 labels["config_version"] = config_version
 
             if not new_config.get(kind):
-                new_config[kind] = []
-            new_config[kind].append(conf)
+                new_config[kind] = {}
+            new_config[kind].update({conf["metadata"]["name"]: conf})
 
         old_config = self._h.get_glob(name)
         if old_config:

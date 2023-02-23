@@ -607,10 +607,9 @@ class JsOrc:
                                 "__UNSAFE_PARAPHRASE__", ""
                             )
                             for kind, confs in service.manifest.items():
-                                for conf in confs:
+                                for name, conf in confs.items():
                                     conf = deepcopy(conf)
                                     metadata: dict = conf["metadata"]
-                                    name = metadata["name"]
                                     namespace = kube.resolve_namespace(
                                         kind, metadata, service.dedicated
                                     )
@@ -687,11 +686,9 @@ class JsOrc:
                 kube = cls.svc("kube", KubeService)
                 while not cls.db_check():
                     for kind, confs in cls.settings("DB_REGEN_MANIFEST", {}).items():
-                        for conf in confs:
+                        for name, conf in confs.items():
                             conf = deepcopy(conf)
-                            metadata = conf["metadata"]
-                            name = metadata["name"]
-                            namespace = kube.resolve_namespace(kind, metadata)
+                            namespace = kube.resolve_namespace(kind, conf["metadata"])
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404 and conf:
                                 kube.create(kind, name, conf, namespace)

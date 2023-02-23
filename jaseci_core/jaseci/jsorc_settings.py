@@ -3,20 +3,31 @@ import yaml
 
 from time import time
 
+internal = re.compile(r"\(([a-zA-Z0-9_\.\[\]\$\#\@\!]*?)\)")
+full = re.compile(r"^\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)\@\!]*?)\}\}$")
+partial = re.compile(r"\{\{([a-zA-Z0-9_\.\[\]\$\#\(\)\@\!]*?)\}\}")
+
+
+def convert_yaml_manifest(file):
+    manifest = {}
+    try:
+        for conf in yaml.safe_load_all(file):
+            kind = conf["kind"]
+            if not manifest.get(kind):
+                manifest[kind] = {}
+            manifest[kind].update({conf["metadata"]["name"]: conf})
+    except yaml.YAMLError as exc:
+        print(exc)
+
+    return manifest
+
 
 def load_default_yaml(file):
     manifest = {}
     with open(
         f"{os.path.dirname(os.path.abspath(__file__))}/manifests/{file}.yaml", "r"
     ) as stream:
-        try:
-            for conf in yaml.safe_load_all(stream):
-                kind = conf["kind"]
-                if not manifest.get(kind):
-                    manifest[kind] = []
-                manifest[kind].append(conf)
-        except yaml.YAMLError as exc:
-            print(exc)
+        manifest = convert_yaml_manifest(stream)
 
     return manifest
 
