@@ -1,6 +1,7 @@
 import signal
 import psycopg2
 
+from json import dumps
 from time import sleep
 from copy import deepcopy
 from datetime import datetime
@@ -8,7 +9,7 @@ from typing import TypeVar, Any, Union
 
 from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
-from .jsorc_utils import State, CommonService as cs, ManifestType, placeholder_resolver
+from .jsorc_utils import State, CommonService as cs, ManifestType
 
 from kubernetes.client.rest import ApiException
 
@@ -227,7 +228,9 @@ class JsOrc:
                 else {}
             )
 
-        instance: cs = instance["type"](config, manifest, instance["manifest_type"])
+        instance: cs = instance["type"](
+            config, manifest, instance["manifest_type"], instance
+        )
 
         if instance.has_failed() and service not in cls._regeneration_queues:
             cls._regeneration_queues.append(service)
@@ -262,13 +265,6 @@ class JsOrc:
             instance = cls._service_instances.pop(service)
             del instance
         return cls.svc(service)
-
-    @classmethod
-    def _service(cls, service: str) -> dict:
-        if service not in cls._services:
-            raise Exception(f"Service {service} is not existing!")
-
-        return cls._services[service][0]
 
     # ---------------- repository ----------------- #
 
@@ -442,20 +438,6 @@ class JsOrc:
         cls._regeneration_queues.append(service)
 
     @classmethod
-    def manifest_resolver(cls, service: cs) -> dict:
-        from jaseci.svc.kube_svc import KubeService
-
-        # resolve namespace first
-        manifest = cls.svc("kube", KubeService).resolve_manifest(
-            deepcopy(service.manifest), service.manifest_type
-        )
-
-        # resolve placeholder
-        placeholder_resolver(manifest, manifest)
-
-        return manifest
-
-    @classmethod
     def regenerate(cls):
         if not cls._regenerating:
             cls._regenerating = True
@@ -476,13 +458,26 @@ class JsOrc:
         while cls._regeneration_queues:
             regeneration_queue = cls._regeneration_queues.pop(0)
             service = cls.svc(regeneration_queue)
-
+            hook = cls.hook(use_proxy=service.source["proxy"])
             if not service.is_running() and service.enabled and service.automated:
                 if service.manifest and kube.is_running():
-                    manifest = cls.manifest_resolver(service)
+                    manifest = kube.resolve_manifest(
+                        deepcopy(service.manifest), service.manifest_type
+                    )
+
+                    rmhists: dict = hook.get_or_create_glob(
+                        "RESOLVED_MANIFEST_HISTORY", {}
+                    )
+
+                    _rmhist = rmhists.get(service.source["manifest"], [{}])[0]
+                    rmhist = deepcopy(_rmhist)
+
                     for kind, confs in manifest.items():
                         for name, conf in confs.items():
                             namespace = conf["metadata"].get("namespace")
+
+                            if kind in rmhist and name in rmhist[kind]:
+                                rmhist[kind].pop(name, None)
 
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404:
@@ -506,35 +501,32 @@ class JsOrc:
                                 ).get("config_version", 1):
                                     kube.patch(kind, name, conf, namespace)
 
-                        # if (
-                        #     old_config_map
-                        #     and type(old_config_map) is dict
-                        #     and kind in old_config_map
-                        #     and name in old_config_map[kind].keys()
-                        # ):
-                        #     old_config_map.get(kind, {}).pop(name)
+                    for kind, confs in rmhist.items():
+                        for name, conf in confs.items():
+                            namespace = conf["metadata"].get("namespace")
+                            res = kube.read(kind, name, namespace, quiet=True)
+                            if not isinstance(res, ApiException) and (
+                                (isinstance(res, dict) and res.get("metadata"))
+                                or res.metadata
+                            ):
+                                if kind not in cls.settings(
+                                    "UNSAFE_KINDS"
+                                ) or service.manifest_unsafe_paraphrase == cls.settings(
+                                    "UNSAFE_PARAPHRASE"
+                                ):
+                                    kube.delete(kind, name, namespace)
+                                else:
+                                    logger.info(
+                                        f"You don't have permission to delete `{kind}` for `{name}` with namespace `{namespace}`!"
+                                    )
 
-                        # for to_be_removed, conf in old_config_map.get(
-                        #     kind, {}
-                        # ).keys():
-                        #     namespace = kube.resolve_namespace(
-                        #         kind, conf["metadata"], service.manifest_type
-                        #     )
-                        #     res = kube.read(kind, to_be_removed, namespace)
-                        #     if not isinstance(res, ApiException) and (
-                        #         (isinstance(res, dict) and res.get("metadata"))
-                        #         or res.metadata
-                        #     ):
-                        #         if kind not in cls.settings(
-                        #             "UNSAFE_KINDS"
-                        #         ) or service.manifest_unsafe_paraphrase == cls.settings(
-                        #             "UNSAFE_PARAPHRASE"
-                        #         ):
-                        #             kube.delete(kind, to_be_removed, namespace)
-                        #         else:
-                        #             logger.info(
-                        #                 f"You don't have permission to delete `{kind}` for `{to_be_removed}` with namespace `{namespace}`!"
-                        #             )
+                    if _rmhist != manifest:
+                        if service.source["manifest"] not in rmhists:
+                            rmhists[service.source["manifest"]] = [manifest]
+                        else:
+                            rmhists[service.source["manifest"]].insert(0, manifest)
+                        hook.save_glob("RESOLVED_MANIFEST_HISTORY", dumps(rmhists))
+
                 cls.svc_reset(regeneration_queue)
             sleep(1)
 

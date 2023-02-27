@@ -58,7 +58,7 @@ class JsOrcApi:
         """
         apply manifest yaml to specific service
         """
-        svc = JsOrc._service(service)
+        svc = JsOrc.svc(service)
 
         new_config = {}
 
@@ -77,7 +77,7 @@ class JsOrcApi:
         if unsafe_paraphrase == JsOrc.settings("UNSAFE_PARAPHRASE"):
             new_config["__UNSAFE_PARAPHRASE__"] = unsafe_paraphrase
 
-        self._h.save_glob(svc["manifest"], dumps(new_config))
+        self._h.save_glob(svc.source["manifest"], dumps(new_config))
         JsOrc.add_regeneration_queue(service)
 
         return new_config

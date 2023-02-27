@@ -144,10 +144,12 @@ class CommonService:
         config: dict,
         manifest: dict,
         manifest_type: ManifestType = ManifestType.DEDICATED,
+        source: dict = {},
     ):
         self.app = None
         self.error = None
         self.state = State.NOT_STARTED
+        self.source = source
 
         # ------------------- CONFIG -------------------- #
 

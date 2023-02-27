@@ -19,10 +19,13 @@ class ElasticService(JsOrc.CommonService):
 
     def run(self):
         if not self.config.get("auth"):
-            elasticsearches = JsOrc.manifest_resolver(self).get("Elasticsearch", [])
+            kube = JsOrc.svc("kube", KubeService)
+            elasticsearches = kube.resolve_manifest(
+                self.manifest, self.manifest_type
+            ).get("Elasticsearch", [])
             if elasticsearches:
                 metadata: dict = elasticsearches["jaseci"]["metadata"]
-                auth = JsOrc.svc("kube", KubeService).get_secret(
+                auth = kube.get_secret(
                     f'{metadata.get("name")}-es-elastic-user',
                     "elastic",
                     metadata.get("namespace"),

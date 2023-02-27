@@ -13,7 +13,7 @@ from kubernetes.client import (
 from kubernetes.client.rest import ApiException
 
 from jaseci import JsOrc
-from jaseci.jsorc_utils import ManifestType
+from jaseci.jsorc_utils import ManifestType, placeholder_resolver
 from jaseci.utils.utils import logger
 
 
@@ -328,4 +328,7 @@ class KubeService(JsOrc.CommonService):
                             isinstance(res, dict) and "metadata" in res
                         ) or res.metadata:
                             self._cached_namespace.add(namespace)
+
+        placeholder_resolver(manifest, manifest)
+
         return manifest
