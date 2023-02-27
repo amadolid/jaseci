@@ -476,14 +476,21 @@ class JsOrc:
                         for name, conf in confs.items():
                             namespace = conf["metadata"].get("namespace")
 
+                            logger.info("1######################################")
                             if kind in rmhist and name in rmhist[kind]:
+                                logger.info(name)
                                 rmhist[kind].pop(name, None)
+
+                            logger.info("2######################################")
 
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404:
                                 kube.create(kind, name, conf, namespace)
                             elif not isinstance(res, ApiException):
+                                logger.info("3######################################")
                                 config_version = 1
+
+                                logger.info(res)
                                 if isinstance(res, dict):
                                     if "labels" in res["metadata"]:
                                         config_version = (
@@ -499,7 +506,10 @@ class JsOrc:
                                 if config_version != conf.get("metadata").get(
                                     "labels", {}
                                 ).get("config_version", 1):
+                                    logger.info(f"patching {name} - {namespace}")
                                     kube.patch(kind, name, conf, namespace)
+
+                                logger.info("4######################################")
 
                     for kind, confs in rmhist.items():
                         for name, conf in confs.items():
