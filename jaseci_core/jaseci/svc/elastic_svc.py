@@ -19,10 +19,12 @@ class ElasticService(JsOrc.CommonService):
 
     def run(self):
         if not self.config.get("auth") and self.resolved_manifest:
+            print("#############################################################")
             elasticsearches = self.resolved_manifest.get("Elasticsearch", [])
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
                 elasticsearch: dict = deepcopy(elasticsearches[0]["metadata"])
+                print(elasticsearches)
                 sec = kube.get_secret(
                     f'{elasticsearch.get("name")}-es-elastic-user',
                     "elastic",
@@ -31,6 +33,8 @@ class ElasticService(JsOrc.CommonService):
                 self.config[
                     "auth"
                 ] = f'basic {b64encode(f"elastic:{sec}".encode()).decode()}'
+                print(self.config["auth"])
+            print("#############################################################")
 
         self.app = Elastic(self.config)
         self.app.health("timeout=1s")
