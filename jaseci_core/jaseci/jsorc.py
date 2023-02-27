@@ -8,7 +8,7 @@ from typing import TypeVar, Any, Union
 
 from .utils.utils import logger
 from .jsorc_settings import JsOrcSettings
-from .jsorc_utils import CommonService as cs, ManifestType, placeholder_resolver
+from .jsorc_utils import State, CommonService as cs, ManifestType, placeholder_resolver
 
 from kubernetes.client.rest import ApiException
 
@@ -263,6 +263,13 @@ class JsOrc:
             del instance
         return cls.svc(service)
 
+    @classmethod
+    def _service(cls, service: str) -> dict:
+        if service not in cls._services:
+            raise Exception(f"Service {service} is not existing!")
+
+        return cls._services[service][0]
+
     # ---------------- repository ----------------- #
 
     @classmethod
@@ -428,6 +435,11 @@ class JsOrc:
     #################################################
     #                  AUTOMATION                   #
     #################################################
+
+    @classmethod
+    def add_regeneration_queue(cls, service: str):
+        cls.svc(service).state = State.RESTART
+        cls._regeneration_queues.append(service)
 
     @classmethod
     def manifest_resolver(cls, service: cs) -> dict:

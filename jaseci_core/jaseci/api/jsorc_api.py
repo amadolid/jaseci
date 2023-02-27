@@ -53,42 +53,32 @@ class JsOrcApi:
             logger.exception("Error loading yaml!")
             return {"message": "load_yaml is not supported on non automated JsOrc!"}
 
-    @Interface.admin_api(cli_args=["name"])
-    def apply_yaml(self, name: str, file: list, unsafe_paraphrase: str = ""):
+    @Interface.admin_api(cli_args=["service"])
+    def apply_yaml(self, service: str, file: list, unsafe_paraphrase: str = ""):
         """
         apply manifest yaml to specific service
         """
+        svc = JsOrc._service(service)
 
         new_config = {}
 
         config_version = str(time())
 
-        for conf in yaml.safe_load_all(b64decode(file[0]["base64"])):
-            kind = conf["kind"]
-            labels = conf.get("metadata").get("labels")
-            if not labels.get("config_version"):
-                labels["config_version"] = config_version
+        for kind, confs in convert_yaml_manifest(b64decode(file[0]["base64"])).items():
+            for name, conf in confs.items():
+                labels: dict = conf["metadata"].get("labels", {})
+                if not labels.get("config_version"):
+                    labels["config_version"] = config_version
 
-            if not new_config.get(kind):
-                new_config[kind] = {}
-            new_config[kind].update({conf["metadata"]["name"]: conf})
+                if not new_config.get(kind):
+                    new_config[kind] = {}
+                new_config[kind].update({name: conf})
 
-        old_config = self._h.get_glob(name)
-        if old_config:
-            old_config = loads(old_config)
-            old_config.pop("__OLD_CONFIG__", {})
-            for kind, confs in old_config.items():
-                _confs = {}
-                for conf in confs:
-                    _confs.update({conf["metadata"]["name"]: conf})
-                old_config[kind] = _confs
+        if unsafe_paraphrase == JsOrc.settings("UNSAFE_PARAPHRASE"):
+            new_config["__UNSAFE_PARAPHRASE__"] = unsafe_paraphrase
 
-            new_config["__OLD_CONFIG__"] = old_config
-
-            if unsafe_paraphrase == JsOrc.settings("UNSAFE_PARAPHRASE"):
-                new_config["__UNSAFE_PARAPHRASE__"] = unsafe_paraphrase
-
-        self._h.save_glob(name, dumps(new_config))
+        self._h.save_glob(svc["manifest"], dumps(new_config))
+        JsOrc.add_regeneration_queue(service)
 
         return new_config
 

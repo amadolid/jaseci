@@ -177,9 +177,10 @@ class KubeService(JsOrc.CommonService):
         conf: dict,
         namespace: str,
         log_pref: str = "",
+        quiet: bool = False,
     ):
         try:
-            logger.info(
+            quiet or logger.info(
                 f"{log_pref} Creating {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
@@ -187,7 +188,7 @@ class KubeService(JsOrc.CommonService):
             else:
                 self.create_apis[kind](namespace=namespace, body=conf)
         except ApiException as e:
-            logger.error(
+            quiet or logger.error(
                 f"{log_pref} Error creating {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
 
@@ -198,9 +199,10 @@ class KubeService(JsOrc.CommonService):
         conf: dict,
         namespace: str,
         log_pref: str = "",
+        quiet: bool = False,
     ):
         try:
-            logger.info(
+            quiet or logger.info(
                 f"{log_pref} Patching {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
@@ -208,13 +210,20 @@ class KubeService(JsOrc.CommonService):
             else:
                 self.patch_apis[kind](name=name, namespace=namespace, body=conf)
         except ApiException as e:
-            logger.error(
+            quiet or logger.error(
                 f"{log_pref} Error patching {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
 
-    def read(self, kind: str, name: str, namespace: str, log_pref: str = ""):
+    def read(
+        self,
+        kind: str,
+        name: str,
+        namespace: str,
+        log_pref: str = "",
+        quiet: bool = False,
+    ):
         try:
-            logger.info(
+            quiet or logger.info(
                 f"{log_pref} Retrieving {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
@@ -222,14 +231,21 @@ class KubeService(JsOrc.CommonService):
             else:
                 return self.read_apis[kind](name=name, namespace=namespace)
         except ApiException as e:
-            logger.error(
+            quiet or logger.error(
                 f"{log_pref} Error retrieving {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
             return e
 
-    def delete(self, kind: str, name: str, namespace: str, log_pref: str = ""):
+    def delete(
+        self,
+        kind: str,
+        name: str,
+        namespace: str,
+        log_pref: str = "",
+        quiet: bool = False,
+    ):
         try:
-            logger.info(
+            quiet or logger.info(
                 f"{log_pref} Deleting {kind} for `{name}` with namespace: `{namespace}`"
             )
             if kind in self._no_namespace:
@@ -237,7 +253,7 @@ class KubeService(JsOrc.CommonService):
             else:
                 return self.delete_apis[kind](name=name, namespace=namespace)
         except ApiException as e:
-            logger.error(
+            quiet or logger.error(
                 f"{log_pref} Error deleting {kind} for `{name}` with namespace: `{namespace}` -- {e}"
             )
             return e
@@ -255,7 +271,14 @@ class KubeService(JsOrc.CommonService):
         except Exception:
             return False
 
-    def get_secret(self, name: str, attr: str, namespace: str, log_pref: str = ""):
+    def get_secret(
+        self,
+        name: str,
+        attr: str,
+        namespace: str,
+        log_pref: str = "",
+        quiet: bool = False,
+    ):
         try:
             return b64decode(
                 self.core.read_namespaced_secret(
@@ -264,7 +287,7 @@ class KubeService(JsOrc.CommonService):
                 ).data[attr]
             ).decode()
         except Exception as e:
-            logger.exception(
+            quiet or logger.exception(
                 f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace: `{namespace}` -- {e}"
             )
             return None
