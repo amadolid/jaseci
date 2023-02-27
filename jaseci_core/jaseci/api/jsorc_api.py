@@ -66,9 +66,11 @@ class JsOrcApi:
 
         for kind, confs in convert_yaml_manifest(b64decode(file[0]["base64"])).items():
             for name, conf in confs.items():
-                labels: dict = conf["metadata"].get("labels", {})
+                metadata = conf["metadata"]
+                labels: dict = metadata.get("labels", {})
                 if not labels.get("config_version"):
                     labels["config_version"] = config_version
+                    metadata["labels"] = labels
 
                 if not new_config.get(kind):
                     new_config[kind] = {}
