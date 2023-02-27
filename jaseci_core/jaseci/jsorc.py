@@ -462,7 +462,7 @@ class JsOrc:
             if not service.is_running() and service.enabled and service.automated:
                 if service.manifest and kube.is_running():
                     manifest = kube.resolve_manifest(
-                        deepcopy(service.manifest), service.manifest_type
+                        hook.get_glob(service.source["manifest"]), service.manifest_type
                     )
 
                     rmhists: dict = hook.get_or_create_glob(
@@ -536,6 +536,7 @@ class JsOrc:
                         else:
                             rmhists[service.source["manifest"]].insert(0, manifest)
                         hook.save_glob("RESOLVED_MANIFEST_HISTORY", dumps(rmhists))
+                        hook.commit()
 
                 cls.svc_reset(regeneration_queue)
             sleep(1)
