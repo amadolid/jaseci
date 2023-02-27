@@ -26,7 +26,7 @@ class ElasticService(JsOrc.CommonService):
             logger.info(elasticsearches)
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
-                elasticsearch: dict = deepcopy(elasticsearches[0]["metadata"])
+                elasticsearch: dict = deepcopy(elasticsearches["jaseci"]["metadata"])
                 logger.info(elasticsearches)
                 sec = kube.get_secret(
                     f'{elasticsearch.get("name")}-es-elastic-user',
