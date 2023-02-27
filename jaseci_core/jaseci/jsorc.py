@@ -474,8 +474,6 @@ class JsOrc:
         # resolve placeholder
         placeholder_resolver(manifest, manifest)
 
-        service.resolved_manifest = manifest
-
         return manifest
 
     @classmethod

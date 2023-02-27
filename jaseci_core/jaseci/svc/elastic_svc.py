@@ -18,9 +18,9 @@ class ElasticService(JsOrc.CommonService):
     ###################################################
 
     def run(self):
-        if not self.config.get("auth") and self.resolved_manifest:
+        if not self.config.get("auth"):
             print("#############################################################")
-            elasticsearches = self.resolved_manifest.get("Elasticsearch", [])
+            elasticsearches = JsOrc.manifest_resolver(self).get("Elasticsearch", [])
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
                 elasticsearch: dict = deepcopy(elasticsearches[0]["metadata"])
