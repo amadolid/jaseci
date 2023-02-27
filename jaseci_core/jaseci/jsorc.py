@@ -430,12 +430,11 @@ class JsOrc:
     #################################################
 
     @classmethod
-    def manifest_resolver(cls, service: cs) -> tuple:
+    def manifest_resolver(cls, service: cs) -> dict:
         from jaseci.svc.kube_svc import KubeService
 
         kube = cls.svc("kube", KubeService)
         manifest = deepcopy(service.manifest)
-        unsafe_paraphrase = manifest.pop("__UNSAFE_PARAPHRASE__", "")
 
         # resolve namespace first
         for kind, confs in manifest.items():
@@ -475,7 +474,9 @@ class JsOrc:
         # resolve placeholder
         placeholder_resolver(manifest, manifest)
 
-        return manifest, unsafe_paraphrase
+        service.resolved_manifest = manifest
+
+        return manifest
 
     @classmethod
     def regenerate(cls):
@@ -501,7 +502,7 @@ class JsOrc:
 
             if not service.is_running() and service.enabled and service.automated:
                 if service.manifest and kube.is_running():
-                    manifest, unsafe_paraphrase = cls.manifest_resolver(service)
+                    manifest = cls.manifest_resolver(service)
                     for kind, confs in manifest.items():
                         for name, conf in confs.items():
                             namespace = conf["metadata"].get("namespace")
@@ -549,7 +550,7 @@ class JsOrc:
                         #     ):
                         #         if kind not in cls.settings(
                         #             "UNSAFE_KINDS"
-                        #         ) or unsafe_paraphrase == cls.settings(
+                        #         ) or service.manifest_unsafe_paraphrase == cls.settings(
                         #             "UNSAFE_PARAPHRASE"
                         #         ):
                         #             kube.delete(kind, to_be_removed, namespace)

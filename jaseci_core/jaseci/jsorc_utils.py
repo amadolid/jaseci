@@ -159,7 +159,8 @@ class CommonService:
 
         self.manifest = manifest
         self.manifest_type = manifest_type
-        self.manifest_unsafe_paraphrase = (manifest.pop("__UNSAFE_PARAPHRASE__", ""),)
+        self.manifest_unsafe_paraphrase = manifest.pop("__UNSAFE_PARAPHRASE__", "")
+        self.resolved_manifest: dict = None
 
         self.start()
 
