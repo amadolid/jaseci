@@ -2,7 +2,7 @@ from jaseci import JsOrc
 from jaseci.svc.kube_svc import KubeService
 from requests import get, post
 from datetime import datetime
-from copy import copy, deepcopy
+from copy import copy
 from base64 import b64encode
 
 
@@ -19,25 +19,17 @@ class ElasticService(JsOrc.CommonService):
 
     def run(self):
         if not self.config.get("auth"):
-            from jaseci.utils.utils import logger
-
-            logger.info("#############################################################")
             elasticsearches = JsOrc.manifest_resolver(self).get("Elasticsearch", [])
-            logger.info(elasticsearches)
             if elasticsearches:
-                kube = JsOrc.svc("kube", KubeService)
-                elasticsearch: dict = deepcopy(elasticsearches["jaseci"]["metadata"])
-                logger.info(elasticsearches)
-                sec = kube.get_secret(
-                    f'{elasticsearch.get("name")}-es-elastic-user',
+                metadata: dict = elasticsearches["jaseci"]["metadata"]
+                auth = JsOrc.svc("kube", KubeService).get_secret(
+                    f'{metadata.get("name")}-es-elastic-user',
                     "elastic",
-                    elasticsearch.get("namespace"),
+                    metadata.get("namespace"),
                 )
                 self.config[
                     "auth"
-                ] = f'basic {b64encode(f"elastic:{sec}".encode()).decode()}'
-                logger.info(self.config["auth"])
-            logger.info("#############################################################")
+                ] = f'basic {b64encode(f"elastic:{auth}".encode()).decode()}'
 
         self.app = Elastic(self.config)
         self.app.health("timeout=1s")
