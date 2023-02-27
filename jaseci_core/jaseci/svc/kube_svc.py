@@ -1,6 +1,4 @@
 from base64 import b64decode
-from jaseci import JsOrc, ManifestType
-
 
 from kubernetes import config as kubernetes_config
 from kubernetes.client import (
@@ -14,6 +12,8 @@ from kubernetes.client import (
 )
 from kubernetes.client.rest import ApiException
 
+from jaseci import JsOrc
+from jaseci.jsorc_utils import ManifestType
 from jaseci.utils.utils import logger
 
 
