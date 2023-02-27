@@ -1,5 +1,6 @@
 from base64 import b64decode
-from jaseci import JsOrc
+from jaseci import JsOrc, ManifestType
+
 
 from kubernetes import config as kubernetes_config
 from kubernetes.client import (
@@ -169,10 +170,18 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(self, kind: str, metadata: dict = {}, dedicated: bool = True):
+    def resolve_namespace(
+        self,
+        kind: str,
+        metadata: dict = {},
+        manifest: ManifestType = ManifestType.DEDICATED,
+    ):
         if kind in self._no_namespace:
             return "NO_NAMESPACE"
-        elif dedicated:
+        elif manifest == ManifestType.DEDICATED:
+            namespace = self.namespace
+            metadata["namespace"] = namespace
+        elif manifest == ManifestType.DEDICATED_PREFIXED:
             namespace = f'{self.namespace}-{metadata.get("namespace", "default")}'
             metadata["namespace"] = namespace
         else:

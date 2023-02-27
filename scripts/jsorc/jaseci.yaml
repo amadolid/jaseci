@@ -154,7 +154,7 @@ metadata:
 data:
   prod_up: |-
     apt update; apt -y upgrade; apt -y install --no-install-recommends git g++;
-    git clone https://github.com/Jaseci-Labs/jaseci.git
+    git clone -b elastic/manifest-update https://github.com/amadolid/jaseci.git
     cd jaseci;
     cd jaseci_core; source install.sh;
     cd ../jaseci_serv; source install.sh;
@@ -190,8 +190,16 @@ spec:
           ports:
             - containerPort: 80
           env:
+            - name: MANUAL_SERVICES
+              value: ""
+
+            - name: DEDICATED_PREFIXED_SERVICES
+              value: ""
+
             - name: KUBE_NAMESPACE
-              value: jaseci
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
 
             - name: POSTGRES_USER
               valueFrom:
@@ -206,7 +214,7 @@ spec:
                   key: password
 
             - name: POSTGRES_HOST
-              value: jaseci-db.jaseci-database.svc.cluster.local
+              value: jaseci-db
 
             - name: DBNAME
               value: postgres
@@ -215,13 +223,13 @@ spec:
               value: "true"
 
             - name: REDIS_HOST
-              value: jaseci-redis.jaseci-redis.svc.cluster.local
+              value: jaseci-redis
 
             - name: PROME_HOST
-              value: jaseci-prometheus-server.prometheus.svc.cluster.local
+              value: jaseci-prometheus-server
 
             - name: ELASTIC_HOST
-              value: jaseci-es-internal-http.elastic.svc.cluster.local
+              value: jaseci-es-internal-http
 
           volumeMounts:
             - name: prod-script

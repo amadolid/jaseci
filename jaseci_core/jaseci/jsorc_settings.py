@@ -1,7 +1,69 @@
 import os
-import yaml
+import re
 
 from time import time
+from yaml import safe_load_all, YAMLError
+
+placeholder_full = re.compile(r"^\$j\{(.*?)\}$")
+placeholder_partial = re.compile(r"\$j\{(.*?)\}")
+placeholder_splitter = re.compile(r"\.?([^\.\[\"\]]+)(?:\[\"?([^\"\]]+)\"?\])?")
+# original
+# placeholder_splitter = re.compile(r"([^\.\[\"\]]+)(?:\[\"?([^\"\]]+)\"?\])?(?:\.([^\.\[\"\]]+))?")
+
+
+def get_splitter(val: str):
+    matches = placeholder_splitter.findall(val)
+    _matches = []
+    for match in matches:
+        for m in match:
+            if m:
+                _matches.append(m)
+    return _matches
+
+
+def get_value(source: dict, keys: list):
+    if keys:
+        key = keys.pop(0)
+        if key in source:
+            if keys:
+                if isinstance(source[key], dict):
+                    return get_value(source[key], keys)
+            else:
+                return source[key]
+    return None
+
+
+def parse(manifest, data: dict or list):
+    for k, d in data.items() if isinstance(data, dict) else enumerate(data):
+        if isinstance(d, (dict, list)):
+            parse(manifest, d)
+        elif isinstance(d, str):
+            matcher = placeholder_full.search(d)
+            if matcher:
+                keys = get_splitter(matcher.group(1))
+                data[k] = get_value(manifest, keys)
+            else:
+                for matcher in placeholder_partial.findall(d):
+                    keys = get_splitter(matcher)
+                    data[k] = data[k].replace(
+                        "$j{" + matcher + "}", get_value(manifest, keys)
+                    )
+
+
+def convert_yaml_manifest(file):
+    manifest = {}
+    try:
+        for conf in safe_load_all(file):
+            kind = conf["kind"]
+            if not manifest.get(kind):
+                manifest[kind] = {}
+            manifest[kind].update({conf["metadata"]["name"]: conf})
+    except YAMLError as exc:
+        manifest = {"error": f"{exc}"}
+
+    parse(manifest, manifest)
+
+    return manifest
 
 
 def load_default_yaml(file):
@@ -9,14 +71,7 @@ def load_default_yaml(file):
     with open(
         f"{os.path.dirname(os.path.abspath(__file__))}/manifests/{file}.yaml", "r"
     ) as stream:
-        try:
-            for conf in yaml.safe_load_all(stream):
-                kind = conf["kind"]
-                if not manifest.get(kind):
-                    manifest[kind] = []
-                manifest[kind].append(conf)
-        except yaml.YAMLError as exc:
-            print(exc)
+        manifest = convert_yaml_manifest(stream)
 
     return manifest
 
@@ -32,6 +87,17 @@ class JsOrcSettings:
 
     UNSAFE_PARAPHRASE = "I know what I'm doing!"
     UNSAFE_KINDS = ["PersistentVolumeClaim"]
+
+    SERVICE_MANIFEST_MAP = {}
+    for svc in os.getenv("MANUAL_SERVICES", "").split(","):
+        svc = svc.strip()
+        if svc:
+            SERVICE_MANIFEST_MAP[svc] = 0
+
+    for svc in os.getenv("DEDICATED_PREFIXED_SERVICES", "").split(","):
+        svc = svc.strip()
+        if svc:
+            SERVICE_MANIFEST_MAP[svc] = 2
 
     ###############################################################################################################
     # -------------------------------------------------- JSORC -------------------------------------------------- #

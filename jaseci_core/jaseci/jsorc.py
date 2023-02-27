@@ -36,6 +36,12 @@ class State(Enum):
         return self == State.FAILED
 
 
+class ManifestType(Enum):
+    MANUAL = 0
+    DEDICATED = 1
+    DEDICATED_PREFIXED = 2
+
+
 class JsOrc:
     #######################################################################################################
     #                                             INNER CLASS                                             #
@@ -54,11 +60,15 @@ class JsOrc:
         def daemon(self):
             return __class__._daemon
 
-        def __init__(self, config: dict, manifest: dict, dedicated: bool = True):
+        def __init__(
+            self,
+            config: dict,
+            manifest: dict,
+            manifest_type: ManifestType = ManifestType.DEDICATED,
+        ):
             self.app = None
             self.error = None
             self.state = State.NOT_STARTED
-            self.dedicated = dedicated
 
             # ------------------- CONFIG -------------------- #
 
@@ -70,6 +80,7 @@ class JsOrc:
             # ------------------ MANIFEST ------------------- #
 
             self.manifest = manifest
+            self.manifest_type = manifest_type
             self.manifest_meta = {
                 "__OLD_CONFIG__": manifest.pop("__OLD_CONFIG__", {}),
                 "__UNSAFE_PARAPHRASE__": manifest.pop("__UNSAFE_PARAPHRASE__", ""),
@@ -381,7 +392,7 @@ class JsOrc:
             )
 
         instance: JsOrc.CommonService = instance["type"](
-            config, manifest, instance["dedicated"]
+            config, manifest, instance["manifest_type"]
         )
 
         if instance.has_failed() and service not in cls._regeneration_queues:
@@ -457,9 +468,9 @@ class JsOrc:
         name: str = None,
         config: str = None,
         manifest: str = None,
+        manifest_type: ManifestType = None,
         priority: int = 0,
         proxy: bool = False,
-        dedicated: bool = True,
     ):
         """
         Save the class in services options
@@ -468,7 +479,7 @@ class JsOrc:
         manifest: manifest name from datasource
         priority: duplicate name will use the highest priority
         proxy: allow proxy service
-        dedicated: if service will spawn to be dedicated to this app
+        manifest_type: manifest process type
         """
 
         def decorator(service: T) -> T:
@@ -479,9 +490,13 @@ class JsOrc:
                     "type": service,
                     "config": config or f"{name.upper()}_CONFIG",
                     "manifest": manifest,
+                    "manifest_type": manifest_type
+                    if manifest_type
+                    else ManifestType(
+                        cls.settings("SERVICE_MANIFEST_MAP").get(name, 1)
+                    ),
                     "priority": priority,
                     "proxy": proxy,
-                    "dedicated": dedicated,
                     "date_added": int(datetime.utcnow().timestamp() * 1000),
                 },
             )
@@ -607,12 +622,11 @@ class JsOrc:
                                 "__UNSAFE_PARAPHRASE__", ""
                             )
                             for kind, confs in service.manifest.items():
-                                for conf in confs:
+                                for name, conf in confs.items():
                                     conf = deepcopy(conf)
                                     metadata: dict = conf["metadata"]
-                                    name = metadata["name"]
                                     namespace = kube.resolve_namespace(
-                                        kind, metadata, service.dedicated
+                                        kind, metadata, service.manifest_type
                                     )
                                     _confs = old_config_map.get(kind, {})
                                     if name in _confs.keys():
@@ -660,7 +674,7 @@ class JsOrc:
                                     kind, {}
                                 ).keys():
                                     namespace = kube.resolve_namespace(
-                                        kind, conf["metadata"], service.dedicated
+                                        kind, conf["metadata"], service.manifest_type
                                     )
                                     res = kube.read(kind, to_be_removed, namespace)
                                     if not isinstance(res, ApiException) and (
@@ -687,11 +701,9 @@ class JsOrc:
                 kube = cls.svc("kube", KubeService)
                 while not cls.db_check():
                     for kind, confs in cls.settings("DB_REGEN_MANIFEST", {}).items():
-                        for conf in confs:
+                        for name, conf in confs.items():
                             conf = deepcopy(conf)
-                            metadata = conf["metadata"]
-                            name = metadata["name"]
-                            namespace = kube.resolve_namespace(kind, metadata)
+                            namespace = kube.resolve_namespace(kind, conf["metadata"])
                             res = kube.read(kind, name, namespace)
                             if hasattr(res, "status") and res.status == 404 and conf:
                                 kube.create(kind, name, conf, namespace)
