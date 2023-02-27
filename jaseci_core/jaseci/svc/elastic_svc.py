@@ -23,6 +23,7 @@ class ElasticService(JsOrc.CommonService):
 
             logger.info("#############################################################")
             elasticsearches = JsOrc.manifest_resolver(self).get("Elasticsearch", [])
+            logger.info(elasticsearches)
             if elasticsearches:
                 kube = JsOrc.svc("kube", KubeService)
                 elasticsearch: dict = deepcopy(elasticsearches[0]["metadata"])
