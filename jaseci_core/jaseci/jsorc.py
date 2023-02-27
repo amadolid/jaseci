@@ -1,9 +1,9 @@
 import signal
 import psycopg2
 
-from json import dumps
 from time import sleep
 from copy import deepcopy
+from json import dumps, loads
 from datetime import datetime
 from typing import TypeVar, Any, Union
 
@@ -462,7 +462,8 @@ class JsOrc:
             if not service.is_running() and service.enabled and service.automated:
                 if service.manifest and kube.is_running():
                     manifest = kube.resolve_manifest(
-                        hook.get_glob(service.source["manifest"]), service.manifest_type
+                        loads(hook.get_glob(service.source["manifest"])),
+                        service.manifest_type,
                     )
 
                     rmhists: dict = hook.get_or_create_glob(
