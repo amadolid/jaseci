@@ -433,43 +433,10 @@ class JsOrc:
     def manifest_resolver(cls, service: cs) -> dict:
         from jaseci.svc.kube_svc import KubeService
 
-        kube = cls.svc("kube", KubeService)
-        manifest = deepcopy(service.manifest)
-
         # resolve namespace first
-        for kind, confs in manifest.items():
-            if kind not in kube._no_namespace:
-                for conf in confs.values():
-                    metadata: dict = conf["metadata"]
-                    namespace = metadata.get("namespace", "default")
-                    if service.manifest_type == ManifestType.DEDICATED:
-                        namespace = kube.namespace
-                        metadata["namespace"] = namespace
-                    elif service.manifest_type == ManifestType.DEDICATED_PREFIXED:
-                        namespace = f"{kube.namespace}-{namespace}"
-                        metadata["namespace"] = namespace
-
-                    if namespace and namespace not in kube._cached_namespace:
-                        res = kube.read("Namespace", namespace, None)
-                        if hasattr(res, "status") and res.status == 404:
-                            kube.create(
-                                "Namespace",
-                                namespace,
-                                {
-                                    "apiVersion": "v1",
-                                    "kind": "Namespace",
-                                    "metadata": {
-                                        "name": namespace,
-                                        "labels": {"name": namespace},
-                                    },
-                                },
-                                None,
-                            )
-                            # don't add it on cache since create is possible to fail
-                        elif (
-                            isinstance(res, dict) and "metadata" in res
-                        ) or res.metadata:
-                            kube._cached_namespace.add(namespace)
+        manifest = cls.svc("kube", KubeService).resolve_manifest(
+            deepcopy(service.manifest), service.manifest_type
+        )
 
         # resolve placeholder
         placeholder_resolver(manifest, manifest)
@@ -571,10 +538,11 @@ class JsOrc:
 
         if kube.is_running():
             while not cls.db_check():
-                for kind, confs in cls.settings("DB_REGEN_MANIFEST", {}).items():
+                for kind, confs in kube.resolve_manifest(
+                    cls.settings("DB_REGEN_MANIFEST", {})
+                ).items():
                     for name, conf in confs.items():
-                        conf = deepcopy(conf)
-                        namespace = kube.resolve_namespace(kind, conf["metadata"])
+                        namespace = conf["metadata"].get("namespace")
                         res = kube.read(kind, name, namespace)
                         if hasattr(res, "status") and res.status == 404 and conf:
                             kube.create(kind, name, conf, namespace)

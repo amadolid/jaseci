@@ -9,6 +9,7 @@ from time import time
 from base64 import b64decode
 
 from jaseci import JsOrc
+from jaseci.jsorc_utils import convert_yaml_manifest, ManifestType
 from jaseci.utils.utils import logger
 from jaseci.svc.kube_svc import KubeService
 from jaseci.utils.actions.actions_manager import ActionManager
@@ -22,7 +23,7 @@ class JsOrcApi:
     """
 
     @Interface.admin_api()
-    def load_yaml(self, files: list):
+    def load_yaml(self, files: list, manifest_type: str = "DEDICATED"):
         """
         applying list of yaml files without associating to any modules/services
         """
@@ -32,19 +33,21 @@ class JsOrcApi:
 
             res = {}
             for file in files:
-                for conf in yaml.safe_load_all(b64decode(file["base64"])):
-                    kind = conf["kind"]
-                    namespace = kube.resolve_namespace(kind, conf["metadata"])
-                    kube.create(
-                        kind,
-                        conf["metadata"]["name"],
-                        conf,
-                        namespace,
-                    )
-                    if not res.get(kind):
-                        res[kind] = {}
-                    res[kind].update({conf["metadata"]["name"]: conf})
-
+                for kind, confs in kube.resolve_manifest(
+                    convert_yaml_manifest(b64decode(file["base64"])),
+                    ManifestType[manifest_type],
+                ).items():
+                    for name, conf in confs.items():
+                        metadata: dict = conf["metadata"]
+                        kube.create(
+                            kind,
+                            metadata["name"],
+                            conf,
+                            metadata.get("namespace"),
+                        )
+                        if not res.get(kind):
+                            res[kind] = {}
+                        res[kind].update({name: conf})
             return res
         except Exception:
             logger.exception("Error loading yaml!")

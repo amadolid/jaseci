@@ -170,45 +170,6 @@ class KubeService(JsOrc.CommonService):
             logger.info(f"Kubernetes cluster environment check failed: {e}")
             return False
 
-    def resolve_namespace(
-        self,
-        kind: str,
-        metadata: dict = {},
-        manifest: ManifestType = ManifestType.DEDICATED,
-    ):
-        if kind in self._no_namespace:
-            return "NO_NAMESPACE"
-        elif manifest == ManifestType.DEDICATED:
-            namespace = self.namespace
-            metadata["namespace"] = namespace
-        elif manifest == ManifestType.DEDICATED_PREFIXED:
-            namespace = f'{self.namespace}-{metadata.get("namespace", "default")}'
-            metadata["namespace"] = namespace
-        else:
-            namespace = metadata.get("namespace", "default")
-
-        if namespace and namespace not in self._cached_namespace:
-            res = self.read("Namespace", namespace, None)
-            if hasattr(res, "status") and res.status == 404:
-                self.create(
-                    "Namespace",
-                    namespace,
-                    {
-                        "apiVersion": "v1",
-                        "kind": "Namespace",
-                        "metadata": {
-                            "name": namespace,
-                            "labels": {"name": namespace},
-                        },
-                    },
-                    None,
-                )
-                # don't add it on cache since create is possible to fail
-            elif (isinstance(res, dict) and "metadata" in res) or res.metadata:
-                self._cached_namespace.add(namespace)
-
-        return namespace
-
     def create(
         self,
         kind: str,
@@ -307,3 +268,41 @@ class KubeService(JsOrc.CommonService):
                 f"{log_pref} Error getting secret `{attr}` from `{name}` with namespace: `{namespace}` -- {e}"
             )
             return None
+
+    def resolve_manifest(
+        self, manifest: dict, manifest_type: ManifestType = ManifestType.DEDICATED
+    ) -> dict:
+        for kind, confs in manifest.items():
+            if kind not in self._no_namespace:
+                for conf in confs.values():
+                    metadata: dict = conf["metadata"]
+                    namespace = metadata.get("namespace", "default")
+                    if manifest_type == ManifestType.DEDICATED:
+                        namespace = self.namespace
+                        metadata["namespace"] = namespace
+                    elif manifest_type == ManifestType.DEDICATED_PREFIXED:
+                        namespace = f"{self.namespace}-{namespace}"
+                        metadata["namespace"] = namespace
+
+                    if namespace and namespace not in self._cached_namespace:
+                        res = self.read("Namespace", namespace, None)
+                        if hasattr(res, "status") and res.status == 404:
+                            self.create(
+                                "Namespace",
+                                namespace,
+                                {
+                                    "apiVersion": "v1",
+                                    "kind": "Namespace",
+                                    "metadata": {
+                                        "name": namespace,
+                                        "labels": {"name": namespace},
+                                    },
+                                },
+                                None,
+                            )
+                            # don't add it on cache since create is possible to fail
+                        elif (
+                            isinstance(res, dict) and "metadata" in res
+                        ) or res.metadata:
+                            self._cached_namespace.add(namespace)
+        return manifest
