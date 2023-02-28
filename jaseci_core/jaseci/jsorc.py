@@ -305,7 +305,7 @@ class JsOrc:
         name: str = None,
         config: str = None,
         manifest: str = None,
-        manifest_type: ManifestType = None,
+        manifest_type: ManifestType = ManifestType.DEDICATED,
         priority: int = 0,
         proxy: bool = False,
     ):
@@ -327,11 +327,7 @@ class JsOrc:
                     "type": service,
                     "config": config or f"{name.upper()}_CONFIG",
                     "manifest": manifest,
-                    "manifest_type": manifest_type
-                    if manifest_type
-                    else ManifestType(
-                        cls.settings("SERVICE_MANIFEST_MAP").get(name, 1)
-                    ),
+                    "manifest_type": manifest_type,
                     "priority": priority,
                     "proxy": proxy,
                     "date_added": int(datetime.utcnow().timestamp() * 1000),
