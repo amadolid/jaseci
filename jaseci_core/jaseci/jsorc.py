@@ -433,7 +433,13 @@ class JsOrc:
         cls, name: str, manifest_type: ManifestType = ManifestType.DEDICATED
     ) -> tuple:
         manual_namespace = cls.settings("SERVICE_MANIFEST_MAP").get(name)
+        logger.info("##################")
+        logger.info(manual_namespace)
+        logger.info("##################")
         if manual_namespace:
+            logger.info("##################")
+            logger.info(True)
+            logger.info("##################")
             if manual_namespace == "SOURCE":
                 manifest_type = ManifestType.SOURCE
             else:
