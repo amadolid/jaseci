@@ -572,7 +572,8 @@ class JsOrc:
         if kube.is_running():
             while not cls.db_check():
                 for kind, confs in kube.resolve_manifest(
-                    cls.settings("DB_REGEN_MANIFEST", {})
+                    cls.settings("DB_REGEN_MANIFEST", {}),
+                    *cls.overrided_namespace("database"),
                 ).items():
                     for name, conf in confs.items():
                         namespace = conf["metadata"].get("namespace")

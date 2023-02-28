@@ -190,12 +190,6 @@ spec:
           ports:
             - containerPort: 80
           env:
-            - name: MANUAL_SERVICES
-              value: ""
-
-            - name: DEDICATED_PREFIXED_SERVICES
-              value: ""
-
             - name: KUBE_NAMESPACE
               valueFrom:
                 fieldRef:
@@ -228,8 +222,14 @@ spec:
             - name: PROME_HOST
               value: jaseci-prometheus-server
 
+            - name: PROME_NAMEPACE
+              value: testing
+
             - name: ELASTIC_HOST
               value: jaseci-es-internal-http
+
+            - name: ELASTIC_NAMEPACE
+              value: SOURCE
 
           volumeMounts:
             - name: prod-script
