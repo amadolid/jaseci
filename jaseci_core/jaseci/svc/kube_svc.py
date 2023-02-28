@@ -298,6 +298,10 @@ class KubeService(JsOrc.CommonService):
         manifest_type: ManifestType = ManifestType.DEDICATED,
         manual_namespace: str = None,
     ) -> dict:
+        logger.info("############################################")
+        logger.info(manifest_type)
+        logger.info(manual_namespace)
+        logger.info("############################################")
         for kind, confs in manifest.items():
             if kind not in self._no_namespace:
                 for conf in confs.values():
