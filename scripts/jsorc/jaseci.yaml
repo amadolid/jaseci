@@ -222,13 +222,13 @@ spec:
             - name: PROME_HOST
               value: jaseci-prometheus-server
 
-            - name: PROME_NAMEPACE
+            - name: PROME_NAMESPACE
               value: testing
 
             - name: ELASTIC_HOST
               value: jaseci-es-internal-http
 
-            - name: ELASTIC_NAMEPACE
+            - name: ELASTIC_NAMESPACE
               value: SOURCE
 
           volumeMounts:
