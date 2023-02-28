@@ -293,7 +293,10 @@ class KubeService(JsOrc.CommonService):
             return None
 
     def resolve_manifest(
-        self, manifest: dict, manifest_type: ManifestType = ManifestType.DEDICATED
+        self,
+        manifest: dict,
+        manifest_type: ManifestType = ManifestType.DEDICATED,
+        manual_namespace: str = None,
     ) -> dict:
         for kind, confs in manifest.items():
             if kind not in self._no_namespace:
@@ -303,8 +306,8 @@ class KubeService(JsOrc.CommonService):
                     if manifest_type == ManifestType.DEDICATED:
                         namespace = self.namespace
                         metadata["namespace"] = namespace
-                    elif manifest_type == ManifestType.DEDICATED_PREFIXED:
-                        namespace = f"{self.namespace}-{namespace}"
+                    elif manifest_type == ManifestType.MANUAL:
+                        namespace = manual_namespace
                         metadata["namespace"] = namespace
 
                     if namespace and namespace not in self._cached_namespace:

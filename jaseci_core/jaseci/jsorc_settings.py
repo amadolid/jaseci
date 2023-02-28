@@ -1,6 +1,6 @@
 import os
 from time import time
-from .jsorc_utils import load_default_yaml
+from .jsorc_utils import load_default_yaml, get_service_map
 
 
 class JsOrcSettings:
@@ -15,16 +15,7 @@ class JsOrcSettings:
     UNSAFE_PARAPHRASE = "I know what I'm doing!"
     UNSAFE_KINDS = ["PersistentVolumeClaim"]
 
-    SERVICE_MANIFEST_MAP = {}
-    for svc in os.getenv("MANUAL_SERVICES", "").split(","):
-        svc = svc.strip()
-        if svc:
-            SERVICE_MANIFEST_MAP[svc] = 0
-
-    for svc in os.getenv("DEDICATED_PREFIXED_SERVICES", "").split(","):
-        svc = svc.strip()
-        if svc:
-            SERVICE_MANIFEST_MAP[svc] = 2
+    SERVICE_MANIFEST_MAP = get_service_map("database", "redis", "elastic", "prome")
 
     ###############################################################################################################
     # -------------------------------------------------- JSORC -------------------------------------------------- #

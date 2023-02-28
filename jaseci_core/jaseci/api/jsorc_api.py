@@ -23,7 +23,12 @@ class JsOrcApi:
     """
 
     @Interface.admin_api()
-    def load_yaml(self, files: list, manifest_type: str = "DEDICATED"):
+    def load_yaml(
+        self,
+        files: list,
+        manifest_type: str = "DEDICATED",
+        manual_namespace: str = "default",
+    ):
         """
         applying list of yaml files without associating to any modules/services
         """
@@ -36,6 +41,7 @@ class JsOrcApi:
                 for kind, confs in kube.resolve_manifest(
                     convert_yaml_manifest(b64decode(file["base64"])),
                     ManifestType[manifest_type],
+                    manual_namespace,
                 ).items():
                     for name, conf in confs.items():
                         metadata: dict = conf["metadata"]

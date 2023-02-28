@@ -21,7 +21,7 @@ class ElasticService(JsOrc.CommonService):
         if not self.config.get("auth"):
             kube = JsOrc.svc("kube", KubeService)
             elasticsearches = kube.resolve_manifest(
-                self.manifest, self.manifest_type
+                self.manifest, *JsOrc.overrided_namespace("elastic", self.manifest_type)
             ).get("Elasticsearch", [])
             if elasticsearches:
                 metadata: dict = elasticsearches["jaseci"]["metadata"]

@@ -39,6 +39,16 @@ def load_default_yaml(file):
     return manifest
 
 
+def get_service_map(*services):
+    service_map = {}
+    for service in services:
+        namespace = os.getenv(f"{service.upper()}_NAMESPACE")
+        if namespace:
+            service_map[service] = namespace
+
+    return service_map
+
+
 #######################################################################################################
 #                                              RESOLVER                                               #
 #######################################################################################################
@@ -112,9 +122,9 @@ class State(Enum):
 
 
 class ManifestType(Enum):
-    MANUAL = 0
-    DEDICATED = 1
-    DEDICATED_PREFIXED = 2
+    SOURCE = -1
+    DEDICATED = 0
+    MANUAL = 1
 
 
 #######################################################################################################

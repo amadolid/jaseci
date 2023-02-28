@@ -428,6 +428,21 @@ class JsOrc:
     def settings(cls, name: str, default: T = None) -> Union[T, Any]:
         return getattr(cls._settings, name, default)
 
+    @classmethod
+    def overrided_namespace(
+        cls, name: str, manifest_type: ManifestType = ManifestType.DEDICATED
+    ) -> tuple:
+        manual_namespace = cls.settings("SERVICE_MANIFEST_MAP").get(name)
+        if manual_namespace:
+            if manual_namespace == "SOURCE":
+                manifest_type = ManifestType.SOURCE
+            else:
+                manual_namespace == manual_namespace.lower()
+                manifest_type = ManifestType.MANUAL
+                return manifest_type, manual_namespace
+
+        return (manifest_type,)
+
     #################################################
     #                  AUTOMATION                   #
     #################################################
@@ -463,7 +478,9 @@ class JsOrc:
                 if service.manifest and kube.is_running():
                     manifest = kube.resolve_manifest(
                         loads(hook.get_glob(service.source["manifest"])),
-                        service.manifest_type,
+                        *cls.overrided_namespace(
+                            regeneration_queue, service.manifest_type
+                        ),
                     )
 
                     rmhists: dict = hook.get_or_create_glob(
