@@ -970,6 +970,9 @@ spec:
               mountPath: /host/root
               mountPropagation: HostToContainer
               readOnly: true
+          hostRootFsMount:
+            enabled: false
+            mountPropagation: HostToContainer
       hostNetwork: true
       hostPID: true
       securityContext:
