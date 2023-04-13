@@ -37,6 +37,7 @@ setup(
         "psycopg2-binary==2.9.5",
         "pygls",
         "mock",
+        "apache-libcloud",
     ],
     package_data={
         "": ["*.ini", "*.yaml", "jac.g4", "VERSION"],
