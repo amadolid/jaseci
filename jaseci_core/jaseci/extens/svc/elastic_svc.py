@@ -96,14 +96,10 @@ class Elastic:
             self.headers["Authorization"] = config["auth"]
 
     def _get(self, url: str, json: dict = None):
-        return get(
-            f"{self.url}{url}", json=json, headers=self.headers, verify=False
-        ).json()
+        return get(f"{self.url}{url}", json=json, headers=self.headers).json()
 
     def _post(self, url: str, json: dict = None):
-        return post(
-            f"{self.url}{url}", json=json, headers=self.headers, verify=False
-        ).json()
+        return post(f"{self.url}{url}", json=json, headers=self.headers).json()
 
     def post(self, url: str, body: dict, index: str = "", suffix: str = ""):
         return self._post(f"/{index or self.common_index}{suffix}{url}", body)
