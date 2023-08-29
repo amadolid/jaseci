@@ -1,0 +1,7 @@
+openai
+elasticsearch==8.9.0
+tenacity>=8.2.1
+PyPDF2>=3.0.1
+docx2txt>=0.8
+python-pptx>=0.6.21
+tiktoken>=0.2.0
