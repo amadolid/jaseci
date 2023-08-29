@@ -53,22 +53,7 @@ class FileTest(CoreTest):
             {
                 "id": f"{uuid}",
                 "name": "tmp",
-                "content_type": None,
-                "field": None,
-                "absolute_name": f"{uuid}-tmp",
-                "absolute_path": f"/tmp/{uuid}-tmp",
-                "persist": False,
-            },
-            reps[1],
-        )
-
-        reps = self.call_walker("download_file")
-        uuid = reps[0]
-        self.assertEqual(
-            {
-                "id": f"{uuid}",
-                "name": "tmp",
-                "content_type": None,
+                "content_type": "application/pdf",
                 "field": None,
                 "absolute_name": f"{uuid}-tmp",
                 "absolute_path": f"/tmp/{uuid}-tmp",
@@ -85,7 +70,7 @@ class FileTest(CoreTest):
             {
                 "id": f"{uuid}",
                 "name": "tmp",
-                "content_type": None,
+                "content_type": "application/pdf",
                 "field": None,
                 "absolute_name": f"{uuid}-tmp",
                 "absolute_path": f"/tmp/{uuid}-tmp",
@@ -128,4 +113,4 @@ class FileTest(CoreTest):
         self.assertEqual("file", kwargs["files"][0][0])
         self.assertEqual("tmp", kwargs["files"][0][1][0])
         self.assertIsInstance(kwargs["files"][0][1][1], BufferedReader)
-        self.assertIsNone(kwargs["files"][0][1][2])
+        self.assertEqual("application/pdf", kwargs["files"][0][1][2])
