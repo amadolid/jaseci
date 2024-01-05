@@ -33,6 +33,7 @@ def load_standard():
     import jaseci.extens.act_lib.regex  # noqa
     import jaseci.extens.act_lib.maths  # noqa
     import jaseci.extens.act_lib.socket  # noqa
+    import jaseci.extens.act_lib.djson  # noqa
 
 
 load_standard()
