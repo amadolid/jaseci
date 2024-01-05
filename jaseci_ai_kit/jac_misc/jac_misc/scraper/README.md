@@ -1,26 +1,11 @@
 # **SCRAPER (`Playwright Python`)**
 
-## wbs.**`url_to_filename`**
-> **`Arguments`:** \
-> **url**: str
->
-> **`Return`:** \
-> str
->
-> **`Usage`:** \
-> To convert url to a valid file name
->
-
-##### **`HOW TO TRIGGER`**
-```js
-wbs.url_to_filename("https://google.com")
-```
-
 ## wbs.**`scrape`**
 > **`Arguments`:** \
 > **pages**: list (structure below) \
 > **pre_configs**: list (structure below)\
-> **detailed**: bool = False
+> **detailed**: bool = False\
+> **target**: str = None
 >
 > **`Return`:** \
 > str or dict
@@ -29,7 +14,8 @@ wbs.url_to_filename("https://google.com")
 > To scrape specified url
 >
 > **`Remarks`:** \
-> **detailed** true will return dict with scanned/scraped urls
+> **detailed** true will return dict with scanned/scraped urls\
+> **target** optional client id for websocket progress notifications
 >
 ##### **`STRUCTURE`**
 ```python

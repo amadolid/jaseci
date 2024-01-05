@@ -4,7 +4,7 @@ import asyncio
 import websockets
 import logging
 import bcrypt
-from os import environ
+from os import getenv
 from redis import Redis
 from orjson import loads, dumps
 from json import dumps as jdumps
@@ -16,7 +16,7 @@ logging.basicConfig(
     level=logging.INFO,
 )
 
-EVENT_THRESHOLD = int(environ.get("EVENT_THRESHOLD", "50"))
+EVENT_THRESHOLD = int(getenv("EVENT_THRESHOLD", "50"))
 EVENT_COUNT = 0
 
 
@@ -35,11 +35,11 @@ class LoggerAdapter(logging.LoggerAdapter):
 
 
 class JsSocket:
-    # _prefix = environ.get("REDIS_PREFIX", "jws-")
+    # _prefix = getenv("REDIS_PREFIX", "jws-")
     # _redis = Redis(
-    #     host=environ.get("REDIS_HOST", "localhost"),
-    #     port=int(environ.get("REDIS_PORT", "6379")),
-    #     db=int(environ.get("REDIS_DB", "0")),
+    #     host=getenv("REDIS_HOST", "localhost"),
+    #     port=int(getenv("REDIS_PORT", "6379")),
+    #     db=int(getenv("REDIS_DB", "0")),
     #     decode_responses=True,
     # )
     # _redis.ping()
