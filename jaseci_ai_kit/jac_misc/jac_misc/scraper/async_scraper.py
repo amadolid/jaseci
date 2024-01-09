@@ -1,6 +1,10 @@
 import asyncio
+import websocket
+from os import getenv
 from re import search
+from orjson import dumps
 from playwright.async_api import async_playwright, Page
+from websocket import create_connection as _create_connection
 
 from jac_misc.scraper.utils import (
     notify_client,
@@ -11,11 +15,49 @@ from jac_misc.scraper.utils import (
 )
 
 
+def create_connection() -> websocket:
+    ws = _create_connection(getenv("SCRAPER_SOCKET_URL", "ws://jaseci-socket/ws"))
+    ws.send(dumps({"type": "client_connect", "data": {}}))
+    return ws
+
+
+def notify_client(
+    websocket: websocket,
+    target: str,
+    pages: list,
+    urls: dict,
+    processing: dict,
+    content=None,
+):
+    if websocket and target:
+        data = {
+            "processing": processing,
+            "pending": [p["goto"]["url"] for p in pages],
+            "scanned": list(urls["scanned"]),
+        }
+        if content:
+            data["response"] = content
+
+        websocket.send(
+            dumps(
+                {
+                    "type": "notify_client",
+                    "data": {
+                        "target": target,
+                        "data": {"type": "scraper", "data": data},
+                    },
+                }
+            )
+        )
+
+
 async def scrape(
     pages: list, pre_configs: list = [], detailed: bool = False, target: str = None
 ):
     content = ""
     urls = {"scanned": set(), "scraped": set(), "crawled": set()}
+
+    ws = create_connection()
 
     async with async_playwright() as aspw:
         browser = await aspw.chromium.launch()
@@ -27,7 +69,7 @@ async def scrape(
             pg_goto = pg.get("goto") or {}
             url = pg_goto.get("url") or "N/A"
 
-            notify_client(target, pages, urls, {"url": url, "status": "started"})
+            notify_client(ws, target, pages, urls, {"url": url, "status": "started"})
 
             await goto(page, pg_goto, urls)
 
@@ -35,7 +77,7 @@ async def scrape(
 
             await crawler(page, pg.get("crawler") or {}, urls, pages, pre_configs)
 
-            notify_client(target, pages, urls, {"url": url, "status": "completed"})
+            notify_client(ws, target, pages, urls, {"url": url, "status": "completed"})
 
         await browser.close()
 
@@ -48,7 +90,8 @@ async def scrape(
             "scraped": list(urls["scraped"]),
         }
 
-    notify_client(target, pages, urls, None, content)
+    notify_client(ws, target, pages, urls, None, content)
+    ws.close()
 
     return content
 
