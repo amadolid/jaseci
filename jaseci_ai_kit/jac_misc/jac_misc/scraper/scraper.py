@@ -26,18 +26,25 @@ if any(["uvicorn" in arg for arg in argv]):
             pre_loaded=True,
         )
         class SocketService(Ss):
+            def run(self):
+                self.queue = []
+                super().run()
+
             def on_open(self, ws: wsa):
                 self.send(
                     ws,
                     {"type": "client_connect", "data": {}},
                 )
 
+                for que in self.queue:
+                    logger.info(f"resending {que}")
+                    self.send(ws, que)
+
             def send(self, ws: wsa, data: dict):
                 try:
                     ws.send(dumps(data))
                 except BrokenPipeError:
-                    ss = JsOrc.svc_reset("socket", Ss)
-                    ss.send(ss.app, data)
+                    JsOrc.svc_reset("socket", SocketService).queue.append(data)
                 except Exception:
                     logger.exception("Failed to send event!")
 
@@ -63,14 +70,13 @@ if any(["uvicorn" in arg for arg in argv]):
 
     @app.post("/scrape/")
     async def scrape(sr: ScraperRequest):
-        task = asyncio.create_task(
-            async_scrape(sr.pages, sr.pre_configs, sr.detailed, sr.target)
-        )
-
-        if not sr.is_async:
-            return await task
-
-        return Response()
+        if sr.is_async:
+            asyncio.create_task(
+                async_scrape(sr.pages, sr.pre_configs, sr.detailed, sr.target)
+            )
+            return Response()
+        else:
+            return await async_scrape(sr.pages, sr.pre_configs, sr.detailed, sr.target)
 
     @app.get("/jaseci_actions_spec/")
     def action_list():
