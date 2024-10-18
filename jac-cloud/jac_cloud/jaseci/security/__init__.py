@@ -7,12 +7,12 @@ from bson import ObjectId
 
 from fastapi import Depends, Request
 from fastapi.exceptions import HTTPException
-from fastapi.security import HTTPBearer
+from fastapi.security import APIKeyHeader, HTTPBearer
 
 from jwt import decode, encode
 
-from ..datasources.redis import CodeRedis, TokenRedis
-from ..models.user import User as BaseUser
+from ..datasources.redis import CodeRedis, TokenRedis, WebhookRedis
+from ..models import User as BaseUser, Webhook
 from ..utils import logger, random_string, utc_timestamp
 from ...core.architype import NodeAnchor
 
@@ -84,14 +84,21 @@ def invalidate_token(user_id: ObjectId) -> None:
     TokenRedis.hdelete_rgx(f"{user_id}:*")
 
 
+def validate_request(request: Request, walker: str, node: str) -> None:
+    """Trigger initial validation for request."""
+    if ((walkers := getattr(request, "_walkers", None)) and walker not in walkers) or (
+        (nodes := getattr(request, "_nodes", None)) and node not in nodes
+    ):
+        raise HTTPException(status_code=403)
+
+
 def authenticate(request: Request) -> None:
     """Authenticate current request and attach authenticated user and their root."""
     authorization = request.headers.get("Authorization")
     if authorization and authorization.lower().startswith("bearer"):
         token = authorization[7:]
-        decrypted = decrypt(token)
         if (
-            decrypted
+            (decrypted := decrypt(token))
             and decrypted["expiration"] > utc_timestamp()
             and TokenRedis.hget(f"{decrypted['id']}:{token}")
             and (user := User.Collection.find_by_id(decrypted["id"]))
@@ -104,4 +111,35 @@ def authenticate(request: Request) -> None:
     raise HTTPException(status_code=401)
 
 
+def authenticate_webhook(request: Request) -> None:
+    """Authenticate current request and attach authenticated user and their root."""
+    if (
+        (key := request.headers.get("X-API-Key"))
+        and (decrypted := key.split(":"))
+        and (root := NodeAnchor.Collection.find_by_id(ObjectId(decrypted[0])))
+    ):
+        request._root = root  # type: ignore[attr-defined]
+        if (cache := WebhookRedis.hget(key)) and cache["expiration"] > utc_timestamp():
+            request._walkers = cache["walkers"]  # type: ignore[attr-defined]
+            request._nodes = cache["nodes"]  # type: ignore[attr-defined]
+            return
+        elif (webhook := Webhook.Collection.find_by_key(key)) and WebhookRedis.hset(
+            key,
+            {
+                "walkers": webhook.walkers,
+                "nodes": webhook.nodes,
+                "expiration": webhook.expiration.timestamp(),
+            },
+        ):
+            request._walkers = webhook.walkers  # type: ignore[attr-defined]
+            request._nodes = webhook.nodes  # type: ignore[attr-defined]
+            return
+
+    raise HTTPException(status_code=401)
+
+
 authenticator = [Depends(HTTPBearer()), Depends(authenticate)]
+authenticator_webhook = [
+    Depends(APIKeyHeader(name="X-API-Key")),
+    Depends(authenticate_webhook),
+]

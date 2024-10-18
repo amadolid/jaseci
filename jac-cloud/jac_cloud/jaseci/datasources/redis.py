@@ -73,7 +73,7 @@ class Redis:
             return []
 
     @classmethod
-    def set(cls, key: str, data: dict | bool) -> bool:
+    def set(cls, key: str, data: dict | bool | float) -> bool:
         """Push key value pair."""
         try:
             redis = cls.get_rd()
@@ -114,7 +114,7 @@ class Redis:
             return []
 
     @classmethod
-    def hset(cls, key: str, data: dict | bool) -> bool:
+    def hset(cls, key: str, data: dict | bool | float) -> bool:
         """Push key value pair to group."""
         try:
             redis = cls.get_rd()
@@ -166,6 +166,16 @@ class TokenRedis(Redis):
     """
 
     __table__ = "token"
+
+
+class WebhookRedis(Redis):
+    """Token Memory Interface.
+
+    This interface is for Token Management.
+    You may override this if you wish to implement different structure
+    """
+
+    __table__ = "webhook"
 
 
 class AsyncRedis:
@@ -224,7 +234,7 @@ class AsyncRedis:
             return []
 
     @classmethod
-    async def set(cls, key: str, data: dict | bool) -> bool:
+    async def set(cls, key: str, data: dict | bool | float) -> bool:
         """Push key value pair."""
         try:
             redis = cls.get_rd()
@@ -265,7 +275,7 @@ class AsyncRedis:
             return []
 
     @classmethod
-    async def hset(cls, key: str, data: dict | bool) -> bool:
+    async def hset(cls, key: str, data: dict | bool | float) -> bool:
         """Push key value pair to group."""
         try:
             redis = cls.get_rd()
