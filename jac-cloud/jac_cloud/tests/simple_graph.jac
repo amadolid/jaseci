@@ -721,3 +721,13 @@ walker check_memory_sync {
         report n;
     }
 }
+
+walker webhook {
+    can enter1 with `root entry {
+        report here;
+    }
+
+    class __specs__ {
+        has webhook: dict = {};
+    }
+}
