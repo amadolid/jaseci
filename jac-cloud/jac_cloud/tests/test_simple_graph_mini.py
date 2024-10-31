@@ -390,19 +390,19 @@ class SimpleGraphTest(IsolatedAsyncioTestCase):
                             "single": {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 6992,
+                                "size": 7206,
                             }
                         },
                         "multiple": [
                             {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 6992,
+                                "size": 7206,
                             },
                             {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 6992,
+                                "size": 7206,
                             },
                         ],
                         "singleOptional": None,
