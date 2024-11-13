@@ -53,10 +53,11 @@ from ..jaseci.datasources import Collection as BaseCollection
 from ..jaseci.utils import logger
 
 MANUAL_SAVE = getenv("MANUAL_SAVE")
-GENERIC_ID_REGEX = compile(r"^(n|e|w):([^:]*):([a-f\d]{24})$", IGNORECASE)
+GENERIC_ID_REGEX = compile(r"^(n|e|w|o):([^:]*):([a-f\d]{24})$", IGNORECASE)
 NODE_ID_REGEX = compile(r"^n:([^:]*):([a-f\d]{24})$", IGNORECASE)
 EDGE_ID_REGEX = compile(r"^e:([^:]*):([a-f\d]{24})$", IGNORECASE)
 WALKER_ID_REGEX = compile(r"^w:([^:]*):([a-f\d]{24})$", IGNORECASE)
+OBJECT_ID_REGEX = compile(r"^o:([^:]*):([a-f\d]{24})$", IGNORECASE)
 T = TypeVar("T")
 TBA = TypeVar("TBA", bound="BaseArchitype")
 
@@ -167,12 +168,14 @@ class BulkWrite:
             NodeAnchor: [],
             EdgeAnchor: [],
             WalkerAnchor: [],
+            ObjectAnchor: [],
         }
     )
 
     del_ops_nodes: list[ObjectId] = field(default_factory=list)
     del_ops_edges: list[ObjectId] = field(default_factory=list)
     del_ops_walker: list[ObjectId] = field(default_factory=list)
+    del_ops_object: list[ObjectId] = field(default_factory=list)
 
     def del_node(self, id: ObjectId) -> None:
         """Add node to delete many operations."""
@@ -200,6 +203,15 @@ class BulkWrite:
             )
 
         self.del_ops_walker.append(id)
+
+    def del_object(self, id: ObjectId) -> None:
+        """Add walker to delete many operations."""
+        if not self.del_ops_object:
+            self.operations[ObjectAnchor].append(
+                DeleteMany({"_id": {"$in": self.del_ops_object}})
+            )
+
+        self.del_ops_object.append(id)
 
     @property
     def has_operations(self) -> bool:
@@ -244,6 +256,8 @@ class BulkWrite:
                     EdgeAnchor.Collection.bulk_write(edge_operation, False, session)
                 if walker_operation := self.operations[WalkerAnchor]:
                     WalkerAnchor.Collection.bulk_write(walker_operation, False, session)
+                if object_operation := self.operations[ObjectAnchor]:
+                    ObjectAnchor.Collection.bulk_write(object_operation, False, session)
                 self.commit(session)
                 break
             except (ConnectionFailure, OperationFailure) as ex:
@@ -346,13 +360,15 @@ class BaseAnchor:
                     cls = EdgeAnchor
                 case "w":
                     cls = WalkerAnchor
+                case "o":
+                    cls = ObjectAnchor
                 case _:
-                    raise ValueError(f"{ref_id}] is not a valid reference!")
+                    raise ValueError(f"[{ref_id}] is not a valid reference!")
             anchor = object.__new__(cls)
             anchor.name = str(match.group(2))
             anchor.id = ObjectId(match.group(3))
             return anchor
-        raise ValueError(f"{ref_id}] is not a valid reference!")
+        raise ValueError(f"[{ref_id}] is not a valid reference!")
 
     ####################################################
     #                 QUERY OPERATIONS                 #
@@ -859,6 +875,58 @@ class WalkerAnchor(BaseAnchor, _WalkerAnchor):  # type: ignore[misc]
 @dataclass(eq=False, repr=False, kw_only=True)
 class ObjectAnchor(BaseAnchor, Anchor):  # type: ignore[misc]
     """Object Anchor."""
+
+    architype: "ObjectArchitype"
+
+    class Collection(BaseCollection["ObjectAnchor"]):
+        """ObjectAnchor collection interface."""
+
+        __collection__: str | None = "object"
+        __default_indexes__: list[dict] = [
+            {"keys": [("_id", ASCENDING), ("name", ASCENDING), ("root", ASCENDING)]}
+        ]
+
+        @classmethod
+        def __document__(cls, doc: Mapping[str, Any]) -> "ObjectAnchor":
+            """Parse document to NodeAnchor."""
+            doc = cast(dict, doc)
+
+            architype = architype_to_dataclass(
+                ObjectArchitype.__get_class__(doc.get("name") or "Root"),
+                doc.pop("architype"),
+            )
+            anchor = ObjectAnchor(
+                architype=architype,
+                id=doc.pop("_id"),
+                access=Permission.deserialize(doc.pop("access")),
+                state=AnchorState(connected=True),
+                persistent=True,
+                **doc,
+            )
+            architype.__jac__ = anchor
+            anchor.sync_hash()
+            return anchor
+
+    @classmethod
+    def ref(cls, ref_id: str) -> "ObjectAnchor":
+        """Return NodeAnchor instance if existing."""
+        if match := NODE_ID_REGEX.search(ref_id):
+            anchor = object.__new__(cls)
+            anchor.name = str(match.group(1))
+            anchor.id = ObjectId(match.group(2))
+            return anchor
+        raise ValueError(f"[{ref_id}] is not a valid reference!")
+
+    def insert(
+        self,
+        bulk_write: BulkWrite,
+    ) -> None:
+        """Append Insert Query."""
+        bulk_write.operations[ObjectAnchor].append(InsertOne(self.serialize()))
+
+    def delete(self, bulk_write: BulkWrite) -> None:
+        """Append Delete Query."""
+        bulk_write.del_node(self.id)
 
 
 class BaseArchitype:
