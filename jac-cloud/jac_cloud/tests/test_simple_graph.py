@@ -560,19 +560,19 @@ class SimpleGraphTest(JacCloudTest):
                             "single": {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 15376,
+                                "size": 16466,
                             }
                         },
                         "multiple": [
                             {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 15376,
+                                "size": 16466,
                             },
                             {
                                 "name": "simple_graph.jac",
                                 "content_type": "application/octet-stream",
-                                "size": 15376,
+                                "size": 16466,
                             },
                         ],
                         "singleOptional": None,
@@ -635,6 +635,38 @@ class SimpleGraphTest(JacCloudTest):
             "check_memory_sync", json={"other_node_id": a_node["id"]}, user=1
         )
         self.assertEqual(200, res["status"])
+
+    def trigger_visit_sequence(self) -> None:
+        """Test visit sequence."""
+        res = self.post_api("visit_sequence")
+
+        self.assertEqual(200, res["status"])
+        self.assertEqual(
+            [
+                "walker entry",
+                "walker enter to root",
+                "a-1",
+                "a-2",
+                "a-3",
+                "a-4",
+                "a-5",
+                "a-6",
+                "b-1",
+                "b-2",
+                "b-3",
+                "b-4",
+                "b-5",
+                "b-6",
+                "c-1",
+                "c-2",
+                "c-3",
+                "c-4",
+                "c-5",
+                "c-6",
+                "walker exit",
+            ],
+            res["returns"],
+        )
 
     def test_all_features(self) -> None:
         """Test Full Features."""
@@ -738,3 +770,9 @@ class SimpleGraphTest(JacCloudTest):
         ###################################################
 
         self.trigger_memory_sync()
+
+        ###################################################
+        #                  VISIT SEQUENCE                 #
+        ###################################################
+
+        self.trigger_visit_sequence()
