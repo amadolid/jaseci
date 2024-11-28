@@ -25,6 +25,7 @@ from jaclang.plugin.feature import (
     EdgeArchitype,
     EdgeDir,
     ExecutionContext,
+    JID,
     JacFeature as Jac,
     NodeAnchor,
     NodeArchitype,
@@ -55,11 +56,15 @@ class JacCallableImplementation:
     """Callable Implementations."""
 
     @staticmethod
-    def get_object(id: str) -> Architype | None:
+    def get_object(id: str | JID) -> Architype | None:
         """Get object by id."""
         if id == "root":
             return Jac.get_context().root.architype
-        elif obj := Jac.get_context().mem.find_by_id(UUID(id)):
+
+        if isinstance(id, str):
+            id = JID(id)
+
+        if obj := Jac.get_context().mem.find_by_id(id):
             return obj.architype
 
         return None
@@ -226,13 +231,11 @@ class JacNodeImpl:
     ) -> list[EdgeArchitype]:
         """Get edges connected to this node."""
         ret_edges: list[EdgeArchitype] = []
-        for anchor in node.edges:
+        for anchor in Jac.get_context().mem.find(node.edges):
             if (
-                (source := anchor.source)
-                and (target := anchor.target)
+                (source := anchor.source.anchor)
+                and (target := anchor.target.anchor)
                 and (not filter_func or filter_func([anchor.architype]))
-                and source.architype
-                and target.architype
             ):
                 if (
                     dir in [EdgeDir.OUT, EdgeDir.ANY]
@@ -260,13 +263,11 @@ class JacNodeImpl:
     ) -> list[NodeArchitype]:
         """Get set of nodes connected to this node."""
         ret_edges: list[NodeArchitype] = []
-        for anchor in node.edges:
+        for anchor in Jac.get_context().mem.find(node.edges):
             if (
-                (source := anchor.source)
-                and (target := anchor.target)
+                (source := anchor.source.anchor)
+                and (target := anchor.target.anchor)
                 and (not filter_func or filter_func([anchor.architype]))
-                and source.architype
-                and target.architype
             ):
                 if (
                     dir in [EdgeDir.OUT, EdgeDir.ANY]
@@ -289,7 +290,7 @@ class JacNodeImpl:
     def remove_edge(node: NodeAnchor, edge: EdgeAnchor) -> None:
         """Remove reference without checking sync status."""
         for idx, ed in enumerate(node.edges):
-            if ed.id == edge.id:
+            if ed == edge.id:
                 node.edges.pop(idx)
                 break
 
@@ -301,8 +302,10 @@ class JacEdgeImpl:
     @hookimpl
     def detach(edge: EdgeAnchor) -> None:
         """Detach edge from nodes."""
-        Jac.remove_edge(node=edge.source, edge=edge)
-        Jac.remove_edge(node=edge.target, edge=edge)
+        if source := edge.source.anchor:
+            Jac.remove_edge(node=source, edge=edge)
+        if target := edge.target.anchor:
+            Jac.remove_edge(node=target, edge=edge)
 
 
 class JacWalkerImpl:
@@ -332,7 +335,7 @@ class JacWalkerImpl:
                     if isinstance(anchor, NodeAnchor):
                         wanch.next.append(anchor)
                     elif isinstance(anchor, EdgeAnchor):
-                        if target := anchor.target:
+                        if target := anchor.target.anchor:
                             wanch.next.append(target)
                         else:
                             raise ValueError("Edge has no target.")
@@ -363,7 +366,7 @@ class JacWalkerImpl:
                     if isinstance(anchor, NodeAnchor):
                         wanch.ignores.append(anchor)
                     elif isinstance(anchor, EdgeAnchor):
-                        if target := anchor.target:
+                        if target := anchor.target.anchor:
                             wanch.ignores.append(target)
                         else:
                             raise ValueError("Edge has no target.")
@@ -380,8 +383,10 @@ class JacWalkerImpl:
             walker = op1.__jac__
             if isinstance(op2, NodeArchitype):
                 node = op2.__jac__
-            elif isinstance(op2, EdgeArchitype):
-                node = op2.__jac__.target
+            elif isinstance(op2, EdgeArchitype) and (
+                target := op2.__jac__.target.anchor
+            ):
+                node = target
             else:
                 raise TypeError("Invalid target object")
         elif isinstance(op2, WalkerArchitype):
@@ -389,8 +394,10 @@ class JacWalkerImpl:
             walker = op2.__jac__
             if isinstance(op1, NodeArchitype):
                 node = op1.__jac__
-            elif isinstance(op1, EdgeArchitype):
-                node = op1.__jac__.target
+            elif isinstance(op1, EdgeArchitype) and (
+                target := op1.__jac__.target.anchor
+            ):
+                node = target
             else:
                 raise TypeError("Invalid target object")
         else:
@@ -613,15 +620,15 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def get_object_func() -> Callable[[str], Architype | None]:
+    def get_object_func() -> Callable[[str | JID], Architype | None]:
         """Get object by id func."""
         return JacCallableImplementation.get_object
 
     @staticmethod
     @hookimpl
-    def object_ref(obj: Architype) -> str:
+    def object_ref(obj: Architype) -> JID:
         """Get object's id."""
-        return obj.__jac__.id.hex
+        return obj.__jac__.id
 
     @staticmethod
     @hookimpl
@@ -988,13 +995,11 @@ class JacFeatureImpl(
 
         for i in left:
             node = i.__jac__
-            for anchor in set(node.edges):
+            for anchor in Jac.get_context().mem.find(node.edges):
                 if (
-                    (source := anchor.source)
-                    and (target := anchor.target)
+                    (source := anchor.source.anchor)
+                    and (target := anchor.target.anchor)
                     and (not filter_func or filter_func([anchor.architype]))
-                    and source.architype
-                    and target.architype
                 ):
                     if (
                         dir in [EdgeDir.OUT, EdgeDir.ANY]
@@ -1054,12 +1059,12 @@ class JacFeatureImpl(
 
             eanch = edge.__jac__ = EdgeAnchor(
                 architype=edge,
-                source=source,
-                target=target,
+                source=source.id,
+                target=target.id,
                 is_undirected=is_undirected,
             )
-            source.edges.append(eanch)
-            target.edges.append(eanch)
+            source.edges.append(eanch.id)
+            target.edges.append(eanch.id)
 
             if conn_assign:
                 for fld, val in zip(conn_assign[0], conn_assign[1]):
@@ -1098,7 +1103,8 @@ class JacFeatureImpl(
             match anchor:
                 case NodeAnchor():
                     for edge in anchor.edges:
-                        Jac.destroy(edge)
+                        if eanch := edge.anchor:
+                            Jac.destroy(eanch)
                 case EdgeAnchor():
                     Jac.detach(anchor)
                 case _:

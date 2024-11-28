@@ -26,6 +26,7 @@ from jaclang.plugin.spec import (
     EdgeArchitype,
     EdgeDir,
     ExecutionContext,
+    JID,
     NodeAnchor,
     NodeArchitype,
     P,
@@ -265,17 +266,17 @@ class JacFeature(
         return plugin_manager.hook.reset_graph(root=root)
 
     @staticmethod
-    def get_object(id: str) -> Architype | None:
+    def get_object(id: str | JID) -> Architype | None:
         """Get object given id."""
         return plugin_manager.hook.get_object_func()(id=id)
 
     @staticmethod
-    def get_object_func() -> Callable[[str], Architype | None]:
+    def get_object_func() -> Callable[[str | JID], Architype | None]:
         """Get object given id."""
         return plugin_manager.hook.get_object_func()
 
     @staticmethod
-    def object_ref(obj: Architype) -> str:
+    def object_ref(obj: Architype) -> JID:
         """Get object reference id."""
         return plugin_manager.hook.object_ref(obj=obj)
 

@@ -3,18 +3,88 @@
 from __future__ import annotations
 
 import inspect
-from dataclasses import asdict, dataclass, field, fields, is_dataclass
+from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import IntEnum
+from functools import cached_property
 from logging import getLogger
 from pickle import dumps
+from re import IGNORECASE, compile
 from types import UnionType
-from typing import Any, Callable, ClassVar, Optional, TypeVar
+from typing import Any, Callable, ClassVar, Generic, Optional, Type, TypeVar
 from uuid import UUID, uuid4
 
 logger = getLogger(__name__)
 
-TARCH = TypeVar("TARCH", bound="Architype")
-TANCH = TypeVar("TANCH", bound="Anchor")
+
+JID_REGEX = compile(
+    r"^(n|e|w):([^:]*):([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$",
+    IGNORECASE,
+)
+_ANCHOR = TypeVar("_ANCHOR", bound="Anchor")
+
+
+@dataclass(kw_only=True)
+class JID(Generic[_ANCHOR]):
+    """Jaclang ID Implementation."""
+
+    id: Any
+    type: Type[_ANCHOR]
+    name: str
+
+    def __repr__(self) -> str:
+        """Override string representation."""
+        return f"{self.type.__class__.__name__[:1].lower()}:{self.name}:{self.id}"
+
+    def __str__(self) -> str:
+        """Override string parsing."""
+        return f"{self.type.__class__.__name__[:1].lower()}:{self.name}:{self.id}"
+
+    def __hash__(self) -> int:
+        """Return default hasher."""
+        return hash(dumps(self))
+
+    def __init__(
+        self,
+        id: str | UUID | None = None,
+        type: Type[_ANCHOR] | None = None,
+        name: str = "",
+    ) -> None:
+        """Override JID initializer."""
+        match id:
+            case str():
+                if matched := JID_REGEX.search(id):
+                    self.id = UUID(matched.group(3))
+                    self.name = matched.group(2)
+                    # currently no way to base hinting on string regex!
+                    match matched.group(1).lower():
+                        case "n":
+                            self.type = NodeAnchor  # type: ignore [assignment]
+                        case "e":
+                            self.type = EdgeAnchor  # type: ignore [assignment]
+                        case "w":
+                            self.type = WalkerAnchor  # type: ignore [assignment]
+                        case _:
+                            self.type = ObjectAnchor  # type: ignore [assignment]
+                    return
+                raise ValueError("Not a valid JID format!")
+            case UUID():
+                self.id = id
+            case None:
+                self.id = uuid4()
+            case _:
+                raise ValueError("Not a valid id for JID!")
+
+        if type is None:
+            raise ValueError("Type is required from non string JID!")
+        self.type = type
+        self.name = name
+
+    @cached_property
+    def anchor(self) -> _ANCHOR | None:
+        """Get architype."""
+        from jaclang.plugin.feature import JacFeature
+
+        return JacFeature.get_context().mem.find_by_id(self)
 
 
 class AccessLevel(IntEnum):
@@ -64,96 +134,21 @@ class AnchorReport:
     context: dict[str, Any]
 
 
-@dataclass(eq=False, repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class Anchor:
     """Object Anchor."""
 
     architype: Architype
-    id: UUID = field(default_factory=uuid4)
-    root: Optional[UUID] = None
+    id: JID = field(default_factory=lambda: JID(type=Anchor))
+    root: Optional[JID[NodeAnchor]] = None
     access: Permission = field(default_factory=Permission)
     persistent: bool = False
     hash: int = 0
 
-    def is_populated(self) -> bool:
-        """Check if state."""
-        return "architype" in self.__dict__
-
-    def make_stub(self: TANCH) -> TANCH:
-        """Return unsynced copy of anchor."""
-        if self.is_populated():
-            unloaded = object.__new__(self.__class__)
-            unloaded.id = self.id
-            return unloaded
-        return self
-
-    def populate(self) -> None:
-        """Retrieve the Architype from db and return."""
-        from jaclang.plugin.feature import JacFeature as Jac
-
-        jsrc = Jac.get_context().mem
-
-        if anchor := jsrc.find_by_id(self.id):
-            self.__dict__.update(anchor.__dict__)
-
-    def __getattr__(self, name: str) -> object:
-        """Trigger load if detects unloaded state."""
-        if not self.is_populated():
-            self.populate()
-
-            if not self.is_populated():
-                raise ValueError(
-                    f"{self.__class__.__name__} [{self.id}] is not a valid reference!"
-                )
-
-            return getattr(self, name)
-
-        raise AttributeError(
-            f"'{self.__class__.__name__}' object has not attribute '{name}'"
-        )
-
-    def __getstate__(self) -> dict[str, Any]:  # NOTE: May be better type hinting
-        """Serialize Anchor."""
-        if self.is_populated():
-            unlinked = object.__new__(self.architype.__class__)
-            unlinked.__dict__.update(self.architype.__dict__)
-            unlinked.__dict__.pop("__jac__", None)
-
-            return {
-                "id": self.id,
-                "architype": unlinked,
-                "root": self.root,
-                "access": self.access,
-                "persistent": self.persistent,
-            }
-        else:
-            return {"id": self.id}
-
-    def __setstate__(self, state: dict[str, Any]) -> None:
-        """Deserialize Anchor."""
-        self.__dict__.update(state)
-
-        if self.is_populated() and self.architype:
-            self.architype.__jac__ = self
-            self.hash = hash(dumps(self))
-
-    def __repr__(self) -> str:
-        """Override representation."""
-        if self.is_populated():
-            attrs = ""
-            for f in fields(self):
-                if f.name in self.__dict__:
-                    attrs += f"{f.name}={self.__dict__[f.name]}, "
-            attrs = attrs[:-2]
-        else:
-            attrs = f"id={self.id}"
-
-        return f"{self.__class__.__name__}({attrs})"
-
     def report(self) -> AnchorReport:
         """Report Anchor."""
         return AnchorReport(
-            id=self.id.hex,
+            id=str(self.id),
             context=(
                 asdict(self.architype)
                 if is_dataclass(self.architype) and not isinstance(self.architype, type)
@@ -165,72 +160,53 @@ class Anchor:
         """Override hash for anchor."""
         return hash(self.id)
 
-    def __eq__(self, other: object) -> bool:
-        """Override equal implementation."""
-        if isinstance(other, Anchor):
-            return self.__class__ is other.__class__ and self.id == other.id
 
-        return False
-
-
-@dataclass(eq=False, repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class NodeAnchor(Anchor):
     """Node Anchor."""
 
     architype: NodeArchitype
-    edges: list[EdgeAnchor]
-
-    def __getstate__(self) -> dict[str, object]:
-        """Serialize Node Anchor."""
-        state = super().__getstate__()
-
-        if self.is_populated():
-            state["edges"] = [edge.make_stub() for edge in self.edges]
-
-        return state
+    id: JID["NodeAnchor"] = field(
+        default_factory=lambda: JID["NodeAnchor"](type=NodeAnchor)
+    )
+    edges: list[JID["EdgeAnchor"]]
 
 
-@dataclass(eq=False, repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class EdgeAnchor(Anchor):
     """Edge Anchor."""
 
     architype: EdgeArchitype
-    source: NodeAnchor
-    target: NodeAnchor
+    id: JID["EdgeAnchor"] = field(
+        default_factory=lambda: JID["EdgeAnchor"](type=EdgeAnchor)
+    )
+    source: JID["NodeAnchor"]
+    target: JID["NodeAnchor"]
     is_undirected: bool
 
-    def __getstate__(self) -> dict[str, object]:
-        """Serialize Node Anchor."""
-        state = super().__getstate__()
 
-        if self.is_populated():
-            state.update(
-                {
-                    "source": self.source.make_stub(),
-                    "target": self.target.make_stub(),
-                    "is_undirected": self.is_undirected,
-                }
-            )
-
-        return state
-
-
-@dataclass(eq=False, repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class WalkerAnchor(Anchor):
     """Walker Anchor."""
 
     architype: WalkerArchitype
+    id: JID["WalkerAnchor"] = field(
+        default_factory=lambda: JID["WalkerAnchor"](type=WalkerAnchor)
+    )
     path: list[Anchor] = field(default_factory=list)
     next: list[Anchor] = field(default_factory=list)
     ignores: list[Anchor] = field(default_factory=list)
     disengaged: bool = False
 
 
-@dataclass(eq=False, repr=False, kw_only=True)
+@dataclass(kw_only=True)
 class ObjectAnchor(Anchor):
-    """Edge Anchor."""
+    """Object Anchor."""
 
     architype: ObjectArchitype
+    id: JID["ObjectAnchor"] = field(
+        default_factory=lambda: JID["ObjectAnchor"](type=ObjectAnchor)
+    )
 
 
 class Architype:
@@ -239,23 +215,23 @@ class Architype:
     _jac_entry_funcs_: ClassVar[list[DSFunc]]
     _jac_exit_funcs_: ClassVar[list[DSFunc]]
 
-    def __init__(self) -> None:
-        """Create default architype."""
-        self.__jac__ = Anchor(architype=self)
-
     def __repr__(self) -> str:
         """Override repr for architype."""
         return f"{self.__class__.__name__}"
+
+    @cached_property
+    def __jac__(self) -> Anchor:
+        """Build anchor reference."""
+        return Anchor(architype=self)
 
 
 class NodeArchitype(Architype):
     """Node Architype Protocol."""
 
-    __jac__: NodeAnchor
-
-    def __init__(self) -> None:
-        """Create node architype."""
-        self.__jac__ = NodeAnchor(architype=self, edges=[])
+    @cached_property
+    def __jac__(self) -> NodeAnchor:
+        """Build anchor reference."""
+        return NodeAnchor(architype=self, edges=[])
 
 
 class EdgeArchitype(Architype):
@@ -267,21 +243,19 @@ class EdgeArchitype(Architype):
 class WalkerArchitype(Architype):
     """Walker Architype Protocol."""
 
-    __jac__: WalkerAnchor
-
-    def __init__(self) -> None:
-        """Create walker architype."""
-        self.__jac__ = WalkerAnchor(architype=self)
+    @cached_property
+    def __jac__(self) -> WalkerAnchor:
+        """Build anchor reference."""
+        return WalkerAnchor(architype=self)
 
 
 class ObjectArchitype(Architype):
     """Walker Architype Protocol."""
 
-    __jac__: ObjectAnchor
-
-    def __init__(self) -> None:
-        """Create walker architype."""
-        self.__jac__ = ObjectAnchor(architype=self)
+    @cached_property
+    def __jac__(self) -> ObjectAnchor:
+        """Build anchor reference."""
+        return ObjectAnchor(architype=self)
 
 
 @dataclass(eq=False)
@@ -299,9 +273,10 @@ class Root(NodeArchitype):
     _jac_entry_funcs_: ClassVar[list[DSFunc]] = []
     _jac_exit_funcs_: ClassVar[list[DSFunc]] = []
 
-    def __init__(self) -> None:
-        """Create root node."""
-        self.__jac__ = NodeAnchor(architype=self, persistent=True, edges=[])
+    @cached_property
+    def __jac__(self) -> NodeAnchor:
+        """Build anchor reference."""
+        return NodeAnchor(architype=self, persistent=True, edges=[])
 
 
 @dataclass(eq=False)

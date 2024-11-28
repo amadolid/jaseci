@@ -27,6 +27,7 @@ from jaclang.runtimelib.constructs import (
     DSFunc,
     EdgeAnchor,
     EdgeArchitype,
+    JID,
     NodeAnchor,
     NodeArchitype,
     Root,
@@ -258,13 +259,13 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def get_object_func() -> Callable[[str], Architype | None]:
+    def get_object_func() -> Callable[[str | JID], Architype | None]:
         """Get object by id func."""
         raise NotImplementedError
 
     @staticmethod
     @hookspec(firstresult=True)
-    def object_ref(obj: Architype) -> str:
+    def object_ref(obj: Architype) -> JID:
         """Get object's id."""
         raise NotImplementedError
 
