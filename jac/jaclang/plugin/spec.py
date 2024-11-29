@@ -15,7 +15,6 @@ from typing import (
     TypeVar,
     Union,
 )
-from uuid import UUID
 
 from jaclang.compiler import absyntree as ast
 from jaclang.compiler.constant import EdgeDir
@@ -56,7 +55,7 @@ class JacAccessValidationSpec:
     @staticmethod
     @hookspec(firstresult=True)
     def allow_root(
-        architype: Architype, root_id: UUID, level: AccessLevel | int | str
+        architype: Architype, root_id: JID, level: AccessLevel | int | str
     ) -> None:
         """Allow all access from target root graph to current Architype."""
         raise NotImplementedError
@@ -64,7 +63,7 @@ class JacAccessValidationSpec:
     @staticmethod
     @hookspec(firstresult=True)
     def disallow_root(
-        architype: Architype, root_id: UUID, level: AccessLevel | int | str
+        architype: Architype, root_id: JID, level: AccessLevel | int | str
     ) -> None:
         """Disallow all access from target root graph to current Architype."""
         raise NotImplementedError

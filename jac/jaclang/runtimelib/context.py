@@ -6,17 +6,18 @@ import unittest
 from contextvars import ContextVar
 from dataclasses import MISSING
 from typing import Any, Callable, Optional, cast
+from uuid import UUID
 
-from .architype import JID, NodeAnchor, Root
+from .architype import JacLangJID, NodeAnchor, Root
 from .memory import Memory, ShelfStorage
 
 
 EXECUTION_CONTEXT = ContextVar[Optional["ExecutionContext"]]("ExecutionContext")
 
-SUPER_ROOT_JID = JID[NodeAnchor]("n::00000000-0000-0000-0000-000000000000")
+SUPER_ROOT_UUID = UUID("00000000-0000-0000-0000-000000000000")
 SUPER_ROOT_ARCHITYPE = object.__new__(Root)
 SUPER_ROOT_ANCHOR = NodeAnchor(
-    id=SUPER_ROOT_JID, architype=SUPER_ROOT_ARCHITYPE, persistent=False, edges=[]
+    id=SUPER_ROOT_UUID, architype=SUPER_ROOT_ARCHITYPE, persistent=False, edges=[]
 )
 SUPER_ROOT_ARCHITYPE.__jac__ = SUPER_ROOT_ANCHOR
 
@@ -38,7 +39,9 @@ class ExecutionContext:
     ) -> NodeAnchor:
         """Load initial anchors."""
         if anchor_id:
-            if isinstance(anchor := self.mem.find_by_id(JID(anchor_id)), NodeAnchor):
+            if isinstance(
+                anchor := self.mem.find_by_id(JacLangJID(anchor_id)), NodeAnchor
+            ):
                 return anchor
             raise ValueError(f"Invalid anchor id {anchor_id} !")
         return default
@@ -64,11 +67,11 @@ class ExecutionContext:
         ctx.reports = []
 
         if not isinstance(
-            system_root := ctx.mem.find_by_id(SUPER_ROOT_JID), NodeAnchor
+            system_root := ctx.mem.find_by_id(SUPER_ROOT_ANCHOR.jid), NodeAnchor
         ):
             system_root = Root().__jac__
-            system_root.id = SUPER_ROOT_JID
-            ctx.mem.set(system_root.id, system_root)
+            system_root.id = SUPER_ROOT_UUID
+            ctx.mem.set(system_root.jid, system_root)
 
         ctx.system_root = system_root
 

@@ -45,7 +45,7 @@ class Memory:
 
     def find_one(
         self,
-        ids: JID | Iterable[JID],
+        ids: JID[_ANCHOR] | Iterable[JID[_ANCHOR]],
         filter: Callable[[_ANCHOR], _ANCHOR] | None = None,
     ) -> _ANCHOR | None:
         """Find one anchor from memory by ids with filter."""
@@ -87,9 +87,9 @@ class ShelfStorage(Memory):
     def close(self) -> None:
         """Close memory handler."""
         if isinstance(self.__shelf__, Shelf):
-            for anchor in self.__gc__:
-                self.__shelf__.pop(str(anchor.id), None)
-                self.__mem__.pop(anchor.id, None)
+            for jid in self.__gc__:
+                self.__shelf__.pop(str(jid), None)
+                self.__mem__.pop(jid, None)
 
             keys = set(self.__mem__.keys())
 
@@ -113,7 +113,7 @@ class ShelfStorage(Memory):
                     and d.persistent
                     and d.hash != hash(dumps(d))
                 ):
-                    _id = str(d.id)
+                    _id = str(d.jid)
                     if p_d := self.__shelf__.get(_id):
                         if (
                             isinstance(p_d, NodeAnchor)
@@ -126,11 +126,15 @@ class ShelfStorage(Memory):
                                 continue
                             p_d.edges = d.edges
 
-                        if Jac.check_write_access(d):
-                            if hash(dumps(p_d.access)) != hash(dumps(d.access)):
-                                p_d.access = d.access
-                            if hash(dumps(p_d.architype)) != hash(dumps(d.architype)):
-                                p_d.architype = d.architype
+                        if hash(dumps(p_d.architype)) != hash(
+                            dumps(d.architype)
+                        ) and Jac.check_write_access(d):
+                            p_d.architype = d.architype
+
+                        if hash(dumps(p_d.access)) != hash(
+                            dumps(d.access)
+                        ) and Jac.check_write_access(d):
+                            p_d.access = d.access
 
                         self.__shelf__[_id] = p_d
                     elif not (
@@ -158,7 +162,8 @@ class ShelfStorage(Memory):
                     and id not in self.__gc__
                     and (_anchor := self.__shelf__.get(str(id)))
                 ):
-                    self.__mem__[id] = anchor = _anchor
+                    anchor = self.__mem__[id] = _anchor
+                    anchor.architype.__jac__ = anchor
                 if (
                     anchor
                     and isinstance(anchor, id.type)
@@ -179,5 +184,6 @@ class ShelfStorage(Memory):
             and isinstance(_data, id.type)
         ):
             data = self.__mem__[id] = _data
+            data.architype.__jac__ = data
 
         return data

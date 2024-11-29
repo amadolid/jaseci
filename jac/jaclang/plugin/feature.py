@@ -15,7 +15,6 @@ from typing import (
     TypeAlias,
     Union,
 )
-from uuid import UUID
 
 from jaclang.plugin.spec import (
     AccessLevel,
@@ -37,6 +36,7 @@ from jaclang.plugin.spec import (
     ast,
     plugin_manager,
 )
+from jaclang.runtimelib.constructs import ObjectArchitype
 
 
 class JacAccessValidation:
@@ -50,7 +50,7 @@ class JacAccessValidation:
     @staticmethod
     def allow_root(
         architype: Architype,
-        root_id: UUID,
+        root_id: JID,
         level: AccessLevel | int | str = AccessLevel.READ,
     ) -> None:
         """Allow all access from target root graph to current Architype."""
@@ -61,7 +61,7 @@ class JacAccessValidation:
     @staticmethod
     def disallow_root(
         architype: Architype,
-        root_id: UUID,
+        root_id: JID,
         level: AccessLevel | int | str = AccessLevel.READ,
     ) -> None:
         """Disallow all access from target root graph to current Architype."""
@@ -197,7 +197,7 @@ class JacClassReferences:
     EdgeDir: ClassVar[TypeAlias] = EdgeDir
     DSFunc: ClassVar[TypeAlias] = DSFunc
     RootType: ClassVar[TypeAlias] = Root
-    Obj: ClassVar[TypeAlias] = Architype
+    Obj: ClassVar[TypeAlias] = ObjectArchitype
     Node: ClassVar[TypeAlias] = NodeArchitype
     Edge: ClassVar[TypeAlias] = EdgeArchitype
     Walker: ClassVar[TypeAlias] = WalkerArchitype

@@ -172,7 +172,7 @@ def get_object(
     data = {}
     obj = Jac.get_object(id)
     if obj:
-        data = obj.__jac__.__getstate__()
+        data = obj.__jac__
     else:
         print(f"Object with id {id} not found.", file=sys.stderr)
 
