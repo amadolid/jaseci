@@ -7,7 +7,6 @@ from dataclasses import asdict, dataclass, field, is_dataclass
 from enum import IntEnum
 from functools import cached_property
 from logging import getLogger
-from pickle import dumps
 from re import IGNORECASE, compile
 from types import UnionType
 from typing import Any, Callable, ClassVar, Generic, Optional, Type, TypeVar
@@ -31,17 +30,22 @@ class JID(Generic[_ANCHOR]):
     type: Type[_ANCHOR]
     name: str
 
+    @cached_property
+    def __cached_repr__(self) -> str:
+        """Cached string representation."""
+        return f"{self.type.__class__.__name__[:1].lower()}:{self.name}:{self.id}"
+
     def __repr__(self) -> str:
         """Override string representation."""
-        return f"{self.type.__class__.__name__[:1].lower()}:{self.name}:{self.id}"
+        return self.__cached_repr__
 
     def __str__(self) -> str:
         """Override string parsing."""
-        return f"{self.type.__class__.__name__[:1].lower()}:{self.name}:{self.id}"
+        return self.__cached_repr__
 
     def __hash__(self) -> int:
         """Return default hasher."""
-        return hash(dumps(self))
+        return hash(self.__cached_repr__)
 
     def __init__(
         self,
