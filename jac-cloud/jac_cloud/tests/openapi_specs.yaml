@@ -4172,9 +4172,9 @@ paths:
       summary: Generate Key
       tags:
       - webhook
-  /webhook/walker/webhook:
+  /webhook/walker/sample_hook:
     post:
-      operationId: api_root_webhook_walker_webhook_post
+      operationId: api_root_webhook_walker_sample_hook_post
       responses:
         '200':
           content:
@@ -4183,16 +4183,16 @@ paths:
                 anyOf:
                 - $ref: '#/components/schemas/ContextResponse_NoneType_'
                 - {}
-                title: Response Api Root Webhook Walker Webhook Post
+                title: Response Api Root Webhook Walker Sample Hook Post
           description: Successful Response
       security:
       - APIKeyHeader: []
-      summary: /webhook
+      summary: /sample_hook
       tags:
       - webhook-walker
-  /webhook/walker/webhook/{node}:
+  /webhook/walker/sample_hook/{node}:
     post:
-      operationId: api_entry_webhook_walker_webhook__node__post
+      operationId: api_entry_webhook_walker_sample_hook__node__post
       parameters:
       - in: path
         name: node
@@ -4210,7 +4210,7 @@ paths:
                 anyOf:
                 - $ref: '#/components/schemas/ContextResponse_NoneType_'
                 - {}
-                title: Response Api Entry Webhook Walker Webhook  Node  Post
+                title: Response Api Entry Webhook Walker Sample Hook  Node  Post
           description: Successful Response
         '422':
           content:
@@ -4220,6 +4220,6 @@ paths:
           description: Validation Error
       security:
       - APIKeyHeader: []
-      summary: /webhook/{node}
+      summary: /sample_hook/{node}
       tags:
       - webhook-walker

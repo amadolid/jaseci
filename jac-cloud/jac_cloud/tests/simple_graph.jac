@@ -805,7 +805,7 @@ walker delete_custom_object {
     }
 }
 
-walker webhook {
+walker sample_hook {
     can enter1 with `root entry {
         report here;
     }
