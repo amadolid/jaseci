@@ -761,6 +761,42 @@ class SimpleGraphTest(JacCloudTest):
         self.assertEqual(200, res["status"])
         self.assertIsNone(obj)
 
+    def trigger_webhook_test(self) -> None:
+        """Test webhook."""
+        res = post(
+            f"{self.host}/webhook/generate-key",
+            json={
+                "name": "test",
+                "walkers": [],
+                "nodes": [],
+                "expiration": {"count": 60, "interval": "days"},
+            },
+            headers=self.users[0]["headers"],
+        )
+
+        res.raise_for_status()
+        key = res.json()["key"]
+
+        self.assertEqual(
+            {"status": 200, "reports": [True], "returns": [None]},
+            self.post_webhook("webhook_by_header", headers={"test_key": key}),
+        )
+
+        self.assertEqual(
+            {"status": 200, "reports": [True], "returns": [None]},
+            self.post_webhook(f"webhook_by_query?test_key={key}"),
+        )
+
+        self.assertEqual(
+            {"status": 200, "reports": [True], "returns": [None]},
+            self.post_webhook(f"webhook_by_path/{key}"),
+        )
+
+        self.assertEqual(
+            {"status": 200, "reports": [True], "returns": [None]},
+            self.post_webhook("webhook_by_body", {"test_key": key}),
+        )
+
     def test_all_features(self) -> None:
         """Test Full Features."""
         self.trigger_openapi_specs_test()
@@ -864,10 +900,16 @@ class SimpleGraphTest(JacCloudTest):
 
         self.trigger_memory_sync()
 
-        ##################################################
+        ###################################################
         #                 SAVABLE OBJECT                  #
         ###################################################
 
         obj_id = self.trigger_create_custom_object_test()
         self.trigger_update_custom_object_test(obj_id)
         self.trigger_delete_custom_object_test(obj_id)
+
+        ###################################################
+        #                     WEBHOOK                     #
+        ###################################################
+
+        self.trigger_webhook_test()
