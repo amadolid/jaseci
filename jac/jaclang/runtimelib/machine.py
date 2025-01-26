@@ -197,7 +197,8 @@ class JacAccessValidation:
             > AccessLevel.NO_ACCESS
         ):
             logger.info(
-                f"Current root doesn't have read access to {to.__class__.__name__}[{to.id}]"
+                "Current root doesn't have read access to "
+                f"{to.__class__.__name__} {to.archetype.__class__.__name__}[{to.id}]"
             )
         return access_level
 
@@ -209,7 +210,8 @@ class JacAccessValidation:
             > AccessLevel.READ
         ):
             logger.info(
-                f"Current root doesn't have connect access to {to.__class__.__name__}[{to.id}]"
+                "Current root doesn't have connect access to "
+                f"{to.__class__.__name__} {to.archetype.__class__.__name__}[{to.id}]"
             )
         return access_level
 
@@ -221,14 +223,15 @@ class JacAccessValidation:
             > AccessLevel.CONNECT
         ):
             logger.info(
-                f"Current root doesn't have write access to {to.__class__.__name__}[{to.id}]"
+                "Current root doesn't have write access to "
+                f"{to.__class__.__name__} {to.archetype.__class__.__name__}[{to.id}]"
             )
         return access_level
 
     @staticmethod
-    def check_access_level(to: Anchor) -> AccessLevel:
+    def check_access_level(to: Anchor, no_custom: bool) -> AccessLevel:
         """Access validation."""
-        if not to.persistent:
+        if not to.persistent or to.hash == 0:
             return AccessLevel.WRITE
 
         jctx = JacMachineInterface.get_context()
@@ -240,6 +243,12 @@ class JacAccessValidation:
         # if current root is the target anchor
         if jroot == jctx.system_root or jroot.id == to.root or jroot == to:
             return AccessLevel.WRITE
+
+        if (
+            not no_custom
+            and (custom_level := to.archetype.__jac_access__()) is not None
+        ):
+            return AccessLevel.cast(custom_level)
 
         access_level = AccessLevel.NO_ACCESS
 

@@ -73,7 +73,11 @@ obj Parent(Child) {
 }
 
 node Nested {
-    has val: int, arr: list[int], data: dict[str, int], parent: Parent, enum_field: Enum;
+    has val: int, arr: list[int], data: dict[str, int], parent: Parent, enum_field: Enum, access: str | None = None;
+
+    def __jac_access__ {
+        return self.access;
+    }
 }
 
 obj Kid {
@@ -211,6 +215,15 @@ walker update_nested_node {
         here.val = 1;
         here.enum_field = Enum.B;
         report here;
+    }
+}
+
+walker update_nested_node_access {
+    has access: str | None = None;
+
+    can enter_nested with Nested entry {
+        here.access = self.access;
+        return here;
     }
 }
 
