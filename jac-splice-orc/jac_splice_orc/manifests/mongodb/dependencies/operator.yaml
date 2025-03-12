@@ -14,56 +14,24 @@ kind: ClusterRole
 metadata:
   name: jac-orc-mongodb-operator
 rules:
-  - apiGroups:
-      - ""
+  - apiGroups: [""]
+    resources: ["services", "configmaps", "secrets"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["mongodbcommunity.mongodb.com"]
     resources:
-      - services
-      - configmaps
-      - secrets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - apps
-    resources:
-      - statefulsets
-    verbs:
-      - create
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - ""
-    resources:
-      - pods
-    verbs:
-      - delete
-      - get
-      - list
-      - patch
-      - update
-      - watch
-  - apiGroups:
-      - mongodbcommunity.mongodb.com
-    resources:
-      - mongodbcommunity
-      - mongodbcommunity/status
-      - mongodbcommunity/spec
-      - mongodbcommunity/finalizers
-    verbs:
-      - get
-      - patch
-      - list
-      - update
-      - watch
+      [
+        "mongodbcommunity",
+        "mongodbcommunity/status",
+        "mongodbcommunity/spec",
+        "mongodbcommunity/finalizers",
+      ]
+    verbs: ["get", "list", "patch", "update", "watch"]
 ---
 kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1

@@ -1,10 +1,8 @@
 """This module provides a FastAPI-based API for managing Kubernetes pods."""
 
-# from os import listdir
 from os.path import dirname, isdir
 from pathlib import Path
 from re import compile
-from subprocess import run
 
 from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
@@ -12,8 +10,9 @@ from fastapi.exceptions import HTTPException
 from jac_splice_orc import manifests
 
 from ..dtos.deployment import Deployment, DeploymentResponse
+from ..utils import apply_manifests
 
-PLACEHOLDER = compile(r"^\$j{([^\^:}]+)(?:\:([^\}]+))?}$")
+PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
 
 router = APIRouter(prefix="/deployment")
 
@@ -32,16 +31,8 @@ async def delete_pod(deployment: Deployment) -> DeploymentResponse:
 
     response = DeploymentResponse()
     if isdir(dependencies_path):
-        response.push(
-            run(
-                ["kubectl", "apply", "-f", dependencies_path],
-                capture_output=True,
-                text=True,
-            )
-        )
+        response.push(apply_manifests(dependencies_path, deployment.config))
 
-    response.push(
-        run(["kubectl", "apply", "-f", module_path], capture_output=True, text=True)
-    )
+    response.push(apply_manifests(module_path, deployment.config))
 
     return response
