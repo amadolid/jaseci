@@ -1,5 +1,8 @@
+"""Jac Orc Setup."""
+
 import os
-from setuptools import setup, find_packages
+
+from setuptools import find_packages, setup
 
 # Read the long description from README
 here = os.path.abspath(os.path.dirname(__file__))
@@ -30,6 +33,7 @@ setup(
         "python-dotenv~=1.0.1",
         "numpy~=2.0.1",
         "jaclang~=0.7.27",
+        "orjson~=3.10.15",
     ],
     entry_points={
         "jac": [
