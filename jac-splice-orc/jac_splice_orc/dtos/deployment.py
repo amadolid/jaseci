@@ -1,6 +1,7 @@
 """Jac Orc DTOs."""
 
 from subprocess import CompletedProcess
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -25,3 +26,10 @@ class DeploymentResponse(BaseModel):
 
         if errors := output.stderr.strip():
             self.errors.append(errors)
+
+
+class DryRunResponse(BaseModel):
+    """DeploymentResponse DTO."""
+
+    dependencies: dict[str, Any] = Field(default=None)
+    modules: dict[str, Any] = Field(default=None)

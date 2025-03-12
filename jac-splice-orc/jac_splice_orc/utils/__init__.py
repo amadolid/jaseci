@@ -5,6 +5,7 @@ from os import listdir, makedirs
 from pathlib import Path
 from re import compile
 from subprocess import CompletedProcess, run
+from typing import Any
 
 from orjson import dumps, loads
 
@@ -57,3 +58,29 @@ def apply_manifests(
     tmp.unlink()
 
     return output
+
+
+def view_manifests(
+    path: Path, config: dict[str, str | int | float | bool | list]
+) -> dict[str, Any]:
+    """View Manifests."""
+    manifests: dict[str, Any] = {}
+
+    for manifest in listdir(path):
+        if manifest.endswith(".yaml") or manifest.endswith(".yml"):
+            with open(f"{path}/{manifest}", "r") as stream:
+                raw = stream.read()
+
+            placeholders: dict[str, dict[str, Any]] = {}
+            for placeholder in set(PLACEHOLDERS.findall(raw)):
+                prefix = placeholder[0]
+                suffix = ""
+                if default := placeholder[1]:
+                    suffix = f":{default}"
+                    default = loads(default.encode())
+
+                current = config.get(prefix, default)
+                raw = raw.replace(f"$j{{{prefix}{suffix}}}", dumps(current).decode())
+                placeholders[prefix] = {"current": current, "default": default}
+            manifests[manifest] = {"placeholders": placeholders, "manifest": raw}
+    return manifests
