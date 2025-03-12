@@ -9,7 +9,12 @@ from fastapi.exceptions import HTTPException
 
 from jac_splice_orc import manifests
 
-from ..dtos.deployment import Deployment, DeploymentResponse, DryRunResponse
+from ..dtos.deployment import (
+    Deployment,
+    DeploymentResponse,
+    DryRunResponse,
+    Placeholder,
+)
 from ..utils import apply_manifests, view_manifests
 
 PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
@@ -52,8 +57,18 @@ def dry_run(deployment: Deployment) -> DryRunResponse:
 
     response = DryRunResponse()
     if isdir(dependencies_path):
-        response.dependencies = view_manifests(dependencies_path, deployment.config)
+        raw_manifests, placeholders = view_manifests(
+            dependencies_path, deployment.config
+        )
+        response.dependencies = raw_manifests
+        response.placeholders.update(
+            {key: Placeholder(**value) for key, value in placeholders.items()}
+        )
 
-    response.modules = view_manifests(module_path, deployment.config)
+    raw_manifests, placeholders = view_manifests(module_path, deployment.config)
+    response.modules = raw_manifests
+    response.placeholders.update(
+        {key: Placeholder(**value) for key, value in placeholders.items()}
+    )
 
     return response

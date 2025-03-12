@@ -28,8 +28,16 @@ class DeploymentResponse(BaseModel):
             self.errors.append(errors)
 
 
+class Placeholder(BaseModel):
+    """Placeholder DTO."""
+
+    default: Any
+    current: Any
+
+
 class DryRunResponse(BaseModel):
     """DeploymentResponse DTO."""
 
-    dependencies: dict[str, Any] = Field(default=None)
-    modules: dict[str, Any] = Field(default=None)
+    placeholders: dict[str, Placeholder] = Field(default_factory=dict)
+    dependencies: dict[str, str] = Field(default=None)
+    modules: dict[str, str] = Field(default=None)

@@ -4,10 +4,11 @@ from datetime import UTC, datetime, timedelta
 from os import listdir, makedirs
 from pathlib import Path
 from re import compile
+from shutil import rmtree
 from subprocess import CompletedProcess, run
 from typing import Any
 
-from orjson import dumps, loads
+from orjson import loads
 
 PLACEHOLDERS = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
 
@@ -42,8 +43,7 @@ def apply_manifests(
                     default = loads(default.encode())
 
                 raw = raw.replace(
-                    f"$j{{{prefix}{suffix}}}",
-                    dumps(config.get(prefix, default)).decode(),
+                    f"$j{{{prefix}{suffix}}}", str(config.get(prefix, default))
                 )
 
             with open(f"{tmp}/{manifest}", "w") as stream:
@@ -55,23 +55,23 @@ def apply_manifests(
         text=True,
     )
 
-    tmp.unlink()
+    rmtree(tmp)
 
     return output
 
 
 def view_manifests(
     path: Path, config: dict[str, str | int | float | bool | list]
-) -> dict[str, Any]:
+) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
     """View Manifests."""
-    manifests: dict[str, Any] = {}
+    manifests: dict[str, str] = {}
+    placeholders: dict[str, dict[str, Any]] = {}
 
     for manifest in listdir(path):
         if manifest.endswith(".yaml") or manifest.endswith(".yml"):
             with open(f"{path}/{manifest}", "r") as stream:
                 raw = stream.read()
 
-            placeholders: dict[str, dict[str, Any]] = {}
             for placeholder in set(PLACEHOLDERS.findall(raw)):
                 prefix = placeholder[0]
                 suffix = ""
@@ -80,7 +80,7 @@ def view_manifests(
                     default = loads(default.encode())
 
                 current = config.get(prefix, default)
-                raw = raw.replace(f"$j{{{prefix}{suffix}}}", dumps(current).decode())
+                raw = raw.replace(f"$j{{{prefix}{suffix}}}", str(current))
                 placeholders[prefix] = {"current": current, "default": default}
-            manifests[manifest] = {"placeholders": placeholders, "manifest": raw}
-    return manifests
+            manifests[manifest] = raw
+    return manifests, placeholders
