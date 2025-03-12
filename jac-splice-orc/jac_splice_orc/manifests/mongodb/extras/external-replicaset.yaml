@@ -11,8 +11,8 @@ spec:
     statefulset.kubernetes.io/pod-name: example-mongodb-0
   ports:
     - protocol: TCP
-      nodePort: 31181
-      port: 31181
+      nodePort: 30001
+      port: 30001
       targetPort: 27017
 ---
 kind: Service
@@ -27,8 +27,8 @@ spec:
     app: example-mongodb-svc
     statefulset.kubernetes.io/pod-name: example-mongodb-1
   ports:
-    - nodePort: 31182
-      port: 31182
+    - nodePort: 30002
+      port: 30002
       targetPort: 27017
 ---
 kind: Service
@@ -43,6 +43,6 @@ spec:
     app: example-mongodb-svc
     statefulset.kubernetes.io/pod-name: example-mongodb-2
   ports:
-    - nodePort: 31183
-      port: 31183
+    - nodePort: 30003
+      port: 30003
       targetPort: 27017
