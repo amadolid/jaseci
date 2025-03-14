@@ -111,4 +111,4 @@ metadata:
   namespace: $j{namespace:"default"}
 type: Opaque
 stringData:
-  password: $j{password:"12345678"}
+  password: '$j{password:"12345678"}'

@@ -9,7 +9,7 @@ from pydantic import BaseModel, Field
 class Deployment(BaseModel):
     """Deployment DTO."""
 
-    name: str
+    module: str
     config: dict = Field(default_factory=dict)
 
 
