@@ -15,7 +15,7 @@ repos:
     rev: 7.1.2
     hooks:
       - id: flake8
-        args: ["--config=backend/.flake8"]
+        args: ["--config=./jac-module-proxy/.flake8"]
         additional_dependencies:
           [
             pep8-naming,
