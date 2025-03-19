@@ -67,7 +67,7 @@ class KubernetesService:
                 cls.core.patch_namespaced_secret(
                     name="jac-orc",
                     namespace=cls.namespace,
-                    body={"data": {"MODULES": b64encode(dumps(modules))}},
+                    body={"data": {"MODULES": b64encode(dumps(modules)).decode()}},
                 )
             except Exception:
                 logger.exception(

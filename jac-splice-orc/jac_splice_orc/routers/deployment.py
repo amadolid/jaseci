@@ -3,6 +3,7 @@
 from os.path import dirname, isdir
 from pathlib import Path
 from re import compile
+from typing import Any
 
 from fastapi import APIRouter
 from fastapi.exceptions import HTTPException
@@ -41,6 +42,7 @@ def deployment(deployment: Deployment) -> DeploymentResponse:
 
     dependencies_path = Path(f"{module_path}/dependencies")
 
+    config1: dict[str, Any] = {}
     response = DeploymentResponse(deployment=deployment)
     if isdir(dependencies_path):
         output, config1 = apply_manifests(dependencies_path, deployment.config)
