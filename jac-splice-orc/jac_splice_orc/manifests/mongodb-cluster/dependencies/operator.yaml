@@ -1,32 +1,28 @@
 apiVersion: v1
 kind: Namespace
 metadata:
-  name: $j{namespace:"default"}
+  name: jac-orc
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
----
-apiVersion: v1
-kind: ServiceAccount
-metadata:
-  name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: jac-orc
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "configmaps", "secrets"]
+    resources: ["services", "configmaps", "secrets"]
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
   - apiGroups: ["apps"]
     resources: ["statefulsets"]
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["delete", "get", "list", "patch", "update", "watch"]
   - apiGroups: ["mongodbcommunity.mongodb.com"]
     resources:
       [
@@ -37,43 +33,17 @@ rules:
       ]
     verbs: ["get", "list", "patch", "update", "watch"]
 ---
-kind: RoleBinding
+kind: ClusterRoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
 subjects:
   - kind: ServiceAccount
+    namespace: jac-orc
     name: jac-orc-mongodb-operator
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: jac-orc-mongodb-operator
-  apiGroup: rbac.authorization.k8s.io
----
-kind: Role
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: mongodb-database
-  namespace: $j{namespace:"default"}
-rules:
-  - apiGroups: [""]
-    resources: ["secrets"]
-    verbs: ["get"]
-  - apiGroups: [""]
-    resources: ["pods"]
-    verbs: ["patch", "delete", "get"]
----
-kind: RoleBinding
-apiVersion: rbac.authorization.k8s.io/v1
-metadata:
-  name: mongodb-database
-  namespace: $j{namespace:"default"}
-subjects:
-  - kind: ServiceAccount
-    name: mongodb-database
-roleRef:
-  kind: Role
-  name: mongodb-database
   apiGroup: rbac.authorization.k8s.io
 ---
 apiVersion: apps/v1
@@ -84,7 +54,7 @@ metadata:
   labels:
     owner: mongodb
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: jac-orc
 spec:
   replicas: 1
   selector:
@@ -114,9 +84,7 @@ spec:
             - /usr/local/bin/entrypoint
           env:
             - name: WATCH_NAMESPACE
-              valueFrom:
-                fieldRef:
-                  fieldPath: metadata.namespace
+              value: "*"
             - name: POD_NAME
               valueFrom:
                 fieldRef:

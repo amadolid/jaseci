@@ -1,0 +1,114 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: $j{namespace:"default"}
+---
+kind: Role
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: mongodb-database
+  namespace: $j{namespace:"default"}
+rules:
+  - apiGroups: [""]
+    resources: ["secrets"]
+    verbs: ["get"]
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["patch", "delete", "get"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: mongodb-database
+  namespace: $j{namespace:"default"}
+subjects:
+  - kind: ServiceAccount
+    name: mongodb-database
+roleRef:
+  kind: Role
+  name: mongodb-database
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: mongodb-database
+  namespace: $j{namespace:"default"}
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: jac-orc-mongodb-operator
+  namespace: $j{namespace:"default"}
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "secrets"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["statefulsets"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+  - apiGroups: ["mongodbcommunity.mongodb.com"]
+    resources:
+      [
+        "mongodbcommunity",
+        "mongodbcommunity/status",
+        "mongodbcommunity/spec",
+        "mongodbcommunity/finalizers",
+      ]
+    verbs: ["get", "list", "patch", "update", "watch"]
+---
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: jac-orc-mongodb-operator
+  namespace: $j{namespace:"default"}
+subjects:
+  - kind: ServiceAccount
+    name: jac-orc-mongodb-operator
+roleRef:
+  kind: Role
+  name: jac-orc-mongodb-operator
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: jac-orc-mongodb-operator
+  namespace: $j{namespace:"default"}
+---
+apiVersion: mongodbcommunity.mongodb.com/v1
+kind: MongoDBCommunity
+metadata:
+  name: $j{name:"jac-mongodb"}
+  namespace: $j{namespace:"default"}
+spec:
+  members: $j{replicaset:3}
+  type: ReplicaSet
+  version: "6.0.5"
+  security:
+    authentication:
+      modes: ["SCRAM"]
+  users:
+    - name: $j{username:"my-user"}
+      db: admin
+      passwordSecretRef: # a reference to the secret that will be used to generate the user's password
+        name: $j{username:"my-user"}-password
+      roles:
+        - name: clusterAdmin
+          db: admin
+        - name: userAdminAnyDatabase
+          db: admin
+        - name: readWrite
+          db: $j{database:"jaseci"}
+      scramCredentialsSecretName: my-scram
+  additionalMongodConfig:
+    storage.wiredTiger.engineConfig.journalCompressor: zlib
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $j{username:"my-user"}-password
+  namespace: $j{namespace:"default"}
+type: Opaque
+stringData:
+  password: '$j{password:"12345678"}'

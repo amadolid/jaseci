@@ -4,12 +4,20 @@ metadata:
   name: jac-orc
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: Role
+kind: ClusterRole
 metadata:
   name: jac-orc
 rules:
   - apiGroups: [""]
-    resources: ["pods", "services", "configmaps", "serviceaccounts", "secrets"]
+    resources:
+      [
+        "namespaces",
+        "pods",
+        "services",
+        "configmaps",
+        "serviceaccounts",
+        "secrets",
+      ]
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
   - apiGroups: ["rbac.authorization.k8s.io"]
     resources: ["clusterroles", "clusterrolebindings", "roles", "rolebindings"]
@@ -31,14 +39,15 @@ rules:
     verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1
-kind: RoleBinding
+kind: ClusterRoleBinding
 metadata:
   name: jac-orc
 subjects:
   - kind: ServiceAccount
     name: jac-orc
+    # namespace: default
 roleRef:
-  kind: Role
+  kind: ClusterRole
   name: jac-orc
   apiGroup: rbac.authorization.k8s.io
 ---
