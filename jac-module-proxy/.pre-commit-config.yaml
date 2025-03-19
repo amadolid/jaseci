@@ -30,7 +30,4 @@ repos:
     rev: v1.15.0
     hooks:
       - id: mypy
-        additional_dependencies: [types-redis]
-        args:
-          - --follow-imports=silent
-          - --ignore-missing-imports
+        args: ["--config-file=./jac-module-proxy/mypy.ini"]

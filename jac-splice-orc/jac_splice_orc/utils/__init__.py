@@ -1,11 +1,13 @@
 """Importing required modules and classes."""
 
 from datetime import UTC, datetime, timedelta
-from os import listdir, makedirs
+from logging import StreamHandler, getLogger
+from os import getenv, listdir, makedirs
 from pathlib import Path
 from re import compile
 from shutil import rmtree
 from subprocess import CompletedProcess, run
+from sys import stdout
 from typing import Any
 
 from orjson import loads
@@ -84,3 +86,8 @@ def view_manifests(
                 placeholders[prefix] = {"current": current, "default": default}
             manifests[manifest] = raw
     return manifests, placeholders
+
+
+logger = getLogger(__name__)
+logger.setLevel(getenv("LOGGER_LEVEL", "DEBUG"))
+logger.addHandler(StreamHandler(stdout))

@@ -38,8 +38,5 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-dev = "server.runner:dev"
-prod = "server.runner:prod"
-
-# [tool.poetry.plugins."jac"]
-# export = "jac_splice_orc.plugin.splice_plugin:SpliceOrcPlugin"
+dev = "jac_splice_orc.runner:dev"
+prod = "jac_splice_orc.runner:prod"

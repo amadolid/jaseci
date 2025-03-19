@@ -414,6 +414,17 @@ files = [
 ]
 
 [[package]]
+name = "jaclang"
+version = "0.7.34"
+description = "Jac is a unique and powerful programming language that runs on top of Python, offering an unprecedented level of intelligence and intuitive understanding."
+optional = false
+python-versions = "<4.0.0,>=3.11.0"
+files = [
+    {file = "jaclang-0.7.34-py3-none-any.whl", hash = "sha256:83a6b87b14a0dab98d53ca2e5582b4eecb342c6ef66a7cf689eec490a00d88e4"},
+    {file = "jaclang-0.7.34.tar.gz", hash = "sha256:f4289b6192b588b4e9dfc007b89a1c409d9da5ae71e51bab5671c651285476f8"},
+]
+
+[[package]]
 name = "mccabe"
 version = "0.7.0"
 description = "McCabe checker, plugin for flake8"
@@ -688,13 +699,13 @@ files = [
 
 [[package]]
 name = "setuptools"
-version = "76.0.0"
+version = "76.1.0"
 description = "Easily download, build, install, upgrade, and uninstall Python packages"
 optional = false
 python-versions = ">=3.9"
 files = [
-    {file = "setuptools-76.0.0-py3-none-any.whl", hash = "sha256:199466a166ff664970d0ee145839f5582cb9bca7a0a3a2e795b6a9cb2308e9c6"},
-    {file = "setuptools-76.0.0.tar.gz", hash = "sha256:43b4ee60e10b0d0ee98ad11918e114c70701bc6051662a9a675a0496c1a158f4"},
+    {file = "setuptools-76.1.0-py3-none-any.whl", hash = "sha256:34750dcb17d046929f545dec9b8349fe42bf4ba13ddffee78428aec422dbfb73"},
+    {file = "setuptools-76.1.0.tar.gz", hash = "sha256:4959b9ad482ada2ba2320c8f1a8d8481d4d8d668908a7a1b84d987375cd7f5bd"},
 ]
 
 [package.extras]
@@ -751,4 +762,4 @@ test = ["covdefaults (>=2.3)", "coverage (>=7.2.7)", "coverage-enable-subprocess
 [metadata]
 lock-version = "2.0"
 python-versions = "3.13.2"
-content-hash = "a3caeb3ac5d5e5d19d737c6e6a6eadaf934e93503b85dcf3d4e44b09ed6f98b7"
+content-hash = "1dbe1252c4e2044ee03dd1353afe63014dca6982fe75ea31ce0bb960de3cba01"
