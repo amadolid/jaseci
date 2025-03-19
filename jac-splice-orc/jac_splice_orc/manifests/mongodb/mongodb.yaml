@@ -4,7 +4,7 @@ metadata:
   name: $j{name:"jac-mongodb"}
   namespace: $j{namespace:"default"}
 spec:
-  members: $j{replicaset:3}
+  members: $j{replicaset:1}
   type: ReplicaSet
   version: "6.0.5"
   security:
