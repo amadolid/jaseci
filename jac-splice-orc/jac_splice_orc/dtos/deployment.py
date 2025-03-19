@@ -5,16 +5,24 @@ from typing import Any
 
 from pydantic import BaseModel, Field
 
+ModulesType = dict[
+    str,  # Namespace
+    dict[
+        str,  # Module
+        dict[str, dict[str, Any]],  # Service / Python Library - Deployment Config
+    ],
+]
+
 
 class Deployment(BaseModel):
     """Deployment DTO."""
 
     module: str
-    config: dict = Field(default_factory=dict)
+    config: dict[str, Any] = Field(default_factory=dict)
 
 
-class DeploymentResponse(BaseModel):
-    """DeploymentResponse DTO."""
+class DeploymentResults(BaseModel):
+    """DeploymentResults DTO."""
 
     results: list[str] = Field(default_factory=list)
     errors: list[str] = Field(default_factory=list)
@@ -26,6 +34,14 @@ class DeploymentResponse(BaseModel):
 
         if errors := output.stderr.strip():
             self.errors.append(errors)
+
+
+class DeploymentResponse(BaseModel):
+    """DeploymentResponse DTO."""
+
+    deployment: Deployment
+    dependencies: DeploymentResults = Field(default_factory=DeploymentResults)
+    modules: DeploymentResults = Field(default_factory=DeploymentResults)
 
 
 class Placeholder(BaseModel):

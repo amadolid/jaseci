@@ -49,15 +49,16 @@ roleRef:
 ```python
 # valid format
 {
-    # supported values: mongodb | redis
-    # future update: mongodb | redis | jac-cloud | library
-    "redis": {
-
-        # namespace
+    # namespace
         "default": {
+
+          # supported values: mongodb | redis
+          # future update: mongodb | redis | jac-cloud | library
+          "redis": {
 
             # name of the service/library
             "testing-redis": {
+
                 # supported placeholders
                 # proceed to /deployment/dry_run for more info
                 ...

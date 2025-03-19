@@ -58,6 +58,7 @@ metadata:
 type: Opaque
 stringData:
   MODULES: ""
+  WORKER: "1"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -75,28 +76,29 @@ spec:
     spec:
       containers:
         - name: jac-orc
-          image: python:3.12-slim
+          image: python:3.13-slim
           ports:
             - containerPort: 8000
           command: ["/bin/sh", "-c"]
           args:
             - |
-              apt update
-              apt install -y apt-transport-https ca-certificates curl gnupg git
+              apt update && apt install -y apt-transport-https ca-certificates curl gnupg git
               curl -fsSL https://pkgs.k8s.io/core:/stable:/v1.32/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
               chmod 644 /etc/apt/keyrings/kubernetes-apt-keyring.gpg
               echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v1.32/deb/ /' | tee /etc/apt/sources.list.d/kubernetes.list
               chmod 644 /etc/apt/sources.list.d/kubernetes.list
-              apt update
-              apt install -y kubectl
-              git clone -b enhancements/pod-manager-2 https://github.com/Jaseci-Labs/jaseci.git
+              apt update && apt install -y kubectl
+              git clone --depth 1 -b enhancements/pod-manager-2 https://github.com/Jaseci-Labs/jaseci.git
               cd jaseci/jac-splice-orc
-              pip install -e .
-              python -m grpc_tools.protoc -I./jac_splice_orc/grpc_local --python_out=./jac_splice_orc/grpc_local --grpc_python_out=./jac_splice_orc/grpc_local ./jac_splice_orc/grpc_local/module_service.proto
-              uvicorn jac_splice_orc.main:app --host 0.0.0.0 --port 8000
+              pip install poetry && poetry install && poetry run prod
           envFrom:
             - secretRef:
                 name: jac-orc
+          env:
+            - name: NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
           resources:
             limits:
               cpu: "1"

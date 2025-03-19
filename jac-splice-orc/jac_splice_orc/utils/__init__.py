@@ -26,11 +26,13 @@ def utc_timestamp(**addons: int) -> int:
 
 
 def apply_manifests(
-    path: Path, config: dict[str, str | int | float | bool | list]
-) -> CompletedProcess[str]:
+    path: Path, config: dict[str, Any]
+) -> tuple[CompletedProcess[str], dict[str, Any]]:
     """Apply Manifests."""
     tmp = Path(f"{path}/tmp-{utc_timestamp()}")
     makedirs(tmp, exist_ok=True)
+
+    parsed_config: dict[str, Any] = {}
 
     for manifest in listdir(path):
         if manifest.endswith(".yaml") or manifest.endswith(".yml"):
@@ -44,9 +46,9 @@ def apply_manifests(
                     suffix = f":{default}"
                     default = loads(default.encode())
 
-                raw = raw.replace(
-                    f"$j{{{prefix}{suffix}}}", str(config.get(prefix, default))
-                )
+                current = config.get(prefix, default)
+                raw = raw.replace(f"$j{{{prefix}{suffix}}}", str(current))
+                parsed_config[prefix] = current
 
             with open(f"{tmp}/{manifest}", "w") as stream:
                 stream.write(raw)
@@ -59,15 +61,15 @@ def apply_manifests(
 
     rmtree(tmp)
 
-    return output
+    return output, parsed_config
 
 
 def view_manifests(
-    path: Path, config: dict[str, str | int | float | bool | list]
-) -> tuple[dict[str, str], dict[str, dict[str, Any]]]:
+    path: Path, config: dict[str, Any]
+) -> tuple[dict[str, str], dict[str, dict[str, dict[str, Any]]]]:
     """View Manifests."""
     manifests: dict[str, str] = {}
-    placeholders: dict[str, dict[str, Any]] = {}
+    placeholders: dict[str, dict[str, dict[str, Any]]] = {}
 
     for manifest in listdir(path):
         if manifest.endswith(".yaml") or manifest.endswith(".yml"):

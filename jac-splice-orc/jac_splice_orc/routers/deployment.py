@@ -15,11 +15,18 @@ from ..dtos.deployment import (
     DryRunResponse,
     Placeholder,
 )
+from ..services.kubernetes import KubernetesService
 from ..utils import apply_manifests, view_manifests
 
 PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
 
 router = APIRouter(prefix="/deployment")
+
+
+@router.get("")
+def get_deployments() -> dict:
+    """Get all deployments."""
+    return KubernetesService.get_modules()
 
 
 @router.post("")
@@ -34,11 +41,17 @@ def deployment(deployment: Deployment) -> DeploymentResponse:
 
     dependencies_path = Path(f"{module_path}/dependencies")
 
-    response = DeploymentResponse()
+    response = DeploymentResponse(deployment=deployment)
     if isdir(dependencies_path):
-        response.push(apply_manifests(dependencies_path, deployment.config))
+        output, config1 = apply_manifests(dependencies_path, deployment.config)
+        response.dependencies.push(output)
 
-    response.push(apply_manifests(module_path, deployment.config))
+    output, config2 = apply_manifests(module_path, deployment.config)
+    response.modules.push(output)
+
+    deployment.config = {**config1, **config2}
+
+    KubernetesService.update_modules(deployment)
 
     return response
 
