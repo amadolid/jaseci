@@ -57,7 +57,7 @@ metadata:
   name: jac-orc
 type: Opaque
 stringData:
-  MODULES: ""
+  MODULES: "{}"
   WORKER: "1"
 ---
 apiVersion: apps/v1

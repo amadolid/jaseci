@@ -1,5 +1,6 @@
 """This module provides a FastAPI-based API for managing Kubernetes pods."""
 
+from os import getenv
 from os.path import dirname, isdir
 from pathlib import Path
 from re import compile
@@ -20,6 +21,7 @@ from ..services.kubernetes import KubernetesService
 from ..utils import apply_manifests, view_manifests
 
 PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
+CLUSTER_WIDE = getenv("CLUSTER_WIDE") == "true"
 
 router = APIRouter(prefix="/deployment")
 

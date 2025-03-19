@@ -25,43 +25,11 @@ Before you begin, ensure that you have the following installed and configured:
 - **Kubernetes** (version 1.21 or later)
 - **kubectl** command-line tool
 - **Kubernetes Cluster**: Ensure you have access to a Kubernetes cluster (local or remote).
-## Specific Namespace
+
 ### Create Namespace
 > kubectl create namespace your_namespace
 
-### Complete [jac-orc.yaml](./jac_splice_orc/manifests/jac-orc.yaml)
-- Update Secret's `stringData.MODULE` to include default modules. This should be JSON string and with the following format:
-```python
-# valid format
-{
-    # namespace
-        "default": {
-
-          # supported values: mongodb | redis
-          # future update: mongodb | redis | jac-cloud | library
-          "redis": {
-
-            # name of the service/library
-            "testing-redis": {
-
-                # supported placeholders
-                # proceed to /deployment/dry_run for more info
-                ...
-            }
-        }
-    }
-    ...
-}
-```
-### Apply [jac-orc.yaml](./jac_splice_orc/manifests/jac-orc.yaml)
-
-> kubectl apply -f jac_splice_orc/manifests/jac-orc.yaml --namespace your_namespace
-
-## Cluster Wide
-### Create Namespace
-> kubectl create namespace your_namespace
-
-### Complete [jac-orc-cluster-wide.yaml](./jac_splice_orc/manifests/jac-orc-cluster-wide.yaml)
+### Complete [jac-orc.yaml](./jac_splice_orc/manifests/jac-orc.yaml) or [jac-orc-cluster-wide.yaml](./jac_splice_orc/manifests/jac-orc-cluster-wide.yaml)
 - Uncomment and update ClusterRoleBinding's `subjects[0].namespace` to your_namespace
 ```yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -100,11 +68,9 @@ roleRef:
     ...
 }
 ```
-### Apply [jac-orc-cluster-wide.yaml](./jac_splice_orc/manifests/jac-orc-cluster-wide.yaml)
+### Apply [jac-orc.yaml](./jac_splice_orc/manifests/jac-orc.yaml) or [jac-orc-cluster-wide.yaml](./jac_splice_orc/manifests/jac-orc-cluster-wide.yaml)
 
-> kubectl apply -f jac_splice_orc/manifests/jac-orc-cluster-wide.yaml --namespace your_namespace
-
----
+> kubectl apply -f jac_splice_orc/manifests/jac-orc.yaml --namespace your_namespace
 
 - This will spawn jac-orc pod and spawn default modules if specified
 ```log

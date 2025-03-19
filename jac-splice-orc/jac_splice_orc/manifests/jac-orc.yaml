@@ -4,6 +4,28 @@ metadata:
   name: jac-orc
 ---
 apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: jac-orc
+rules:
+  - apiGroups: ["apiextensions.k8s.io"]
+    resources: ["customresourcedefinitions"]
+    verbs: ["create", "delete", "get", "list", "patch", "update", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jac-orc
+subjects:
+  - kind: ServiceAccount
+    name: jac-orc
+    namespace: littlex
+roleRef:
+  kind: ClusterRole
+  name: jac-orc
+  apiGroup: rbac.authorization.k8s.io
+---
+apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: jac-orc
@@ -48,7 +70,7 @@ metadata:
   name: jac-orc
 type: Opaque
 stringData:
-  MODULES: ""
+  MODULES: "{}"
   WORKER: "1"
 ---
 apiVersion: apps/v1
@@ -90,6 +112,8 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: CLUSTER_WIDE
+              value: "true"
           resources:
             limits:
               cpu: "1"

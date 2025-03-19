@@ -1,9 +1,4 @@
 apiVersion: v1
-kind: Namespace
-metadata:
-  name: $j{namespace:"default"}
----
-apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jac-orc-mongodb-operator
