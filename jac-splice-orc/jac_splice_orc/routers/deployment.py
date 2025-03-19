@@ -35,6 +35,9 @@ def get_deployments() -> dict:
 @router.post("")
 def deployment(deployment: Deployment) -> DeploymentResponse:
     """Deploy module with configs."""
+    if CLUSTER_WIDE:
+        deployment.config["namespace"] = KubernetesService.namespace
+
     manifest_path = dirname(manifests.__file__)
     module_path = Path(f"{manifest_path}/{deployment.module}")
     if not isdir(module_path):
@@ -63,6 +66,9 @@ def deployment(deployment: Deployment) -> DeploymentResponse:
 @router.post("/dry_run")
 def dry_run(deployment: Deployment) -> DryRunResponse:
     """Delete the pod and service for the given module and return the result."""
+    if CLUSTER_WIDE:
+        deployment.config["namespace"] = KubernetesService.namespace
+
     manifest_path = dirname(manifests.__file__)
     module_path = Path(f"{manifest_path}/{deployment.module}")
     if not isdir(module_path):

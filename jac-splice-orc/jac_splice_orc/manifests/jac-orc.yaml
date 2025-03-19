@@ -19,7 +19,7 @@ metadata:
 subjects:
   - kind: ServiceAccount
     name: jac-orc
-    namespace: littlex
+    # namespace: littlex
 roleRef:
   kind: ClusterRole
   name: jac-orc
