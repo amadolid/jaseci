@@ -18,7 +18,6 @@ from ..dtos.deployment import (
     Placeholder,
 )
 from ..services.kubernetes import KubernetesService
-from ..utils import apply_manifests, view_manifests
 
 PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
 CLUSTER_WIDE = getenv("CLUSTER_WIDE") == "true"
@@ -50,10 +49,12 @@ def deployment(deployment: Deployment) -> DeploymentResponse:
     config1: dict[str, Any] = {}
     response = DeploymentResponse(deployment=deployment)
     if isdir(dependencies_path):
-        output, config1 = apply_manifests(dependencies_path, deployment.config)
+        output, config1 = KubernetesService.apply_manifests(
+            dependencies_path, deployment.config
+        )
         response.dependencies.push(output)
 
-    output, config2 = apply_manifests(module_path, deployment.config)
+    output, config2 = KubernetesService.apply_manifests(module_path, deployment.config)
     response.modules.push(output)
 
     deployment.config = {**config1, **config2}
@@ -80,7 +81,7 @@ def dry_run(deployment: Deployment) -> DryRunResponse:
 
     response = DryRunResponse()
     if isdir(dependencies_path):
-        raw_manifests, placeholders = view_manifests(
+        raw_manifests, placeholders = KubernetesService.view_manifests(
             dependencies_path, deployment.config
         )
         response.dependencies = raw_manifests
@@ -88,7 +89,9 @@ def dry_run(deployment: Deployment) -> DryRunResponse:
             {key: Placeholder(**value) for key, value in placeholders.items()}
         )
 
-    raw_manifests, placeholders = view_manifests(module_path, deployment.config)
+    raw_manifests, placeholders = KubernetesService.view_manifests(
+        module_path, deployment.config
+    )
     response.modules = raw_manifests
     response.placeholders.update(
         {key: Placeholder(**value) for key, value in placeholders.items()}

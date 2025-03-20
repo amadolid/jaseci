@@ -2,7 +2,12 @@
 
 from base64 import b64decode, b64encode
 from datetime import UTC, datetime
-from os import getenv
+from os import getenv, listdir, makedirs
+from pathlib import Path
+from re import compile
+from shutil import rmtree
+from subprocess import CompletedProcess, run
+from typing import Any
 
 from kubernetes import config
 from kubernetes.client import ApiClient, AppsV1Api, CoreV1Api
@@ -11,7 +16,9 @@ from kubernetes.client.rest import ApiException
 from orjson import dumps, loads
 
 from ..dtos.deployment import Deployment, ModulesType
-from ..utils import logger
+from ..utils import logger, utc_timestamp
+
+PLACEHOLDERS = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
 
 
 class KubernetesService:
@@ -19,9 +26,7 @@ class KubernetesService:
 
     try:
         config.load_incluster_config()
-        in_cluser = True
     except config.ConfigException:
-        in_cluser = False
         config.load_kube_config()
 
     namespace = getenv("NAMESPACE", "default")
@@ -48,31 +53,111 @@ class KubernetesService:
             return {}
 
     @classmethod
+    def create_namespace_if_not_existing(cls, namespace: str) -> None:
+        """Create namespace."""
+        try:
+            cls.core.create_namespace(
+                {
+                    "apiVersion": "v1",
+                    "kind": "Namespace",
+                    "metadata": {"name": namespace},
+                },
+            )
+        except Exception as e:
+            logger.error(f"Error creating namespace {namespace} skipping... {e}")
+
+    @classmethod
     def update_modules(cls, deployment: Deployment) -> None:
         """Update modules."""
-        if cls.in_cluser:
-            modules = cls.get_modules()
+        modules = cls.get_modules()
 
-            namespace: str = deployment.config["namespace"]
-            if not (target_namespace := modules.get(namespace)):
-                target_namespace = modules[namespace] = {}
+        namespace: str = deployment.config["namespace"]
+        if not (target_namespace := modules.get(namespace)):
+            target_namespace = modules[namespace] = {}
 
-            module: str = deployment.module
-            if not (target_module := target_namespace.get(module)):
-                target_module = target_namespace[module] = {}
+        module: str = deployment.module
+        if not (target_module := target_namespace.get(module)):
+            target_module = target_namespace[module] = {}
 
-            target_module[deployment.config["name"]] = deployment.config
+        target_module[deployment.config["name"]] = deployment.config
 
-            try:
-                cls.core.patch_namespaced_secret(
-                    name="jac-orc",
-                    namespace=cls.namespace,
-                    body={"data": {"MODULES": b64encode(dumps(modules)).decode()}},
-                )
-            except Exception:
-                logger.exception(
-                    f"Error updating modules with request: `{deployment.model_dump_json()}`"
-                )
+        try:
+            cls.core.patch_namespaced_secret(
+                name="jac-orc",
+                namespace=cls.namespace,
+                body={"data": {"MODULES": b64encode(dumps(modules)).decode()}},
+            )
+        except Exception:
+            logger.exception(
+                f"Error updating modules with request: `{deployment.model_dump_json()}`"
+            )
+
+    @classmethod
+    def apply_manifests(
+        cls, path: Path, config: dict[str, Any]
+    ) -> tuple[CompletedProcess[str], dict[str, Any]]:
+        """Apply Manifests."""
+        tmp = Path(f"{path}/tmp-{utc_timestamp()}")
+        makedirs(tmp, exist_ok=True)
+
+        parsed_config: dict[str, Any] = {}
+
+        for manifest in listdir(path):
+            if manifest.endswith(".yaml") or manifest.endswith(".yml"):
+                with open(f"{path}/{manifest}", "r") as stream:
+                    raw = stream.read()
+
+                for placeholder in set(PLACEHOLDERS.findall(raw)):
+                    prefix = placeholder[0]
+                    suffix = ""
+                    if default := placeholder[1]:
+                        suffix = f":{default}"
+                        default = loads(default.encode())
+
+                    current = config.get(prefix, default)
+                    raw = raw.replace(f"$j{{{prefix}{suffix}}}", str(current))
+                    parsed_config[prefix] = current
+
+                with open(f"{tmp}/{manifest}", "w") as stream:
+                    stream.write(raw)
+
+        cls.create_namespace_if_not_existing(parsed_config["namespace"])
+
+        output = run(
+            ["kubectl", "apply", "-f", tmp],
+            capture_output=True,
+            text=True,
+        )
+
+        rmtree(tmp)
+
+        return output, parsed_config
+
+    @classmethod
+    def view_manifests(
+        cls, path: Path, config: dict[str, Any]
+    ) -> tuple[dict[str, str], dict[str, dict[str, dict[str, Any]]]]:
+        """View Manifests."""
+        manifests: dict[str, str] = {}
+        placeholders: dict[str, dict[str, dict[str, Any]]] = {}
+
+        for manifest in listdir(path):
+            if manifest.endswith(".yaml") or manifest.endswith(".yml"):
+                with open(f"{path}/{manifest}", "r") as stream:
+                    raw = stream.read()
+
+                for placeholder in set(PLACEHOLDERS.findall(raw)):
+                    prefix = placeholder[0]
+                    suffix = ""
+                    if default := placeholder[1]:
+                        suffix = f":{default}"
+                        default = loads(default.encode())
+
+                    current = config.get(prefix, default)
+                    raw = raw.replace(f"$j{{{prefix}{suffix}}}", str(current))
+                    placeholders[prefix] = {"current": current, "default": default}
+                manifests[manifest] = raw
+        return manifests, placeholders
 
     @classmethod
     def restart(cls) -> None:

@@ -1,0 +1,35 @@
+apiVersion: v1
+kind: Secret
+metadata:
+  name: $j{name:jac-cloud}-envs
+  namespace: $j{namespace:default}
+type: Opaque
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: $j{name:jac-cloud}
+  namespace: $j{namespace:default}
+spec:
+  replicas: $j{replicas:1}
+  selector:
+    matchLabels:
+      app: $j{name:jac-cloud}
+  template:
+    metadata:
+      labels:
+        app: $j{name:jac-cloud}
+    spec:
+      containers:
+        - name: $j{name:jac-cloud}
+          image: $j{image:python:3.13-slim}
+          imagePullPolicy: IfNotPresent
+          command: ["/bin/sh", "-c"]
+          args:
+            - |
+              pip install jac-cloud
+              $jn{args:[]}
+          envFrom:
+            - secretRef:
+                name: $j{name:jac-cloud}-envs
+      restartPolicy: Always
