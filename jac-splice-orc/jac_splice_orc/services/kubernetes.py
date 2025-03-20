@@ -18,9 +18,9 @@ from orjson import dumps, loads
 from ..dtos.deployment import Deployment, ModulesType
 from ..utils import logger, utc_timestamp
 
-PLACEHOLDERS = compile(r"(\$j\s*{\s*([^:\s]+)\s*(?:\:\s*([\S\s]*?))?\s*})")
-PLACEHOLDERS_NEW_LINES = compile(
-    r"((\ *)\$jn\s*{\s*([^:\s]+)\s*(?:\:\s*(\[[\S\s]*?\]))?\s*})"
+PLACEHOLDERS_GENERIC = compile(r"(\$g\s*{\s*([^:\s]+)\s*(?:\:\s*([\S\s]*?))?\s*})")
+PLACEHOLDERS_ARRAY = compile(
+    r"((\ *)\$a\s*{\s*([^:\s]+)\s*(?:\:\s*(\[[\S\s]*?\]))?\s*})"
 )
 
 
@@ -110,25 +110,14 @@ class KubernetesService:
                 with open(f"{path}/{manifest}", "r") as stream:
                     raw = stream.read()
 
-                for placeholder in set(PLACEHOLDERS.findall(raw)):
+                for placeholder in set(PLACEHOLDERS_GENERIC.findall(raw)):
                     prefix = placeholder[1]
                     default = loads((placeholder[2] or '""').encode())
                     current = config.get(prefix, default)
                     raw = raw.replace(placeholder[0], str(current))
                     parsed_config[prefix] = current
 
-                for placeholder in set(PLACEHOLDERS.findall(raw)):
-                    prefix = placeholder[0]
-                    suffix = ""
-                    if default := placeholder[1]:
-                        suffix = f":{default}"
-                        default = loads(default.encode())
-
-                    current = config.get(prefix, default)
-                    raw = raw.replace(f"$j{{{prefix}{suffix}}}", str(current))
-                    parsed_config[prefix] = current
-
-                for placeholder in set(PLACEHOLDERS_NEW_LINES.findall(raw)):
+                for placeholder in set(PLACEHOLDERS_ARRAY.findall(raw)):
                     spaces = placeholder[1]
                     prefix = placeholder[2]
                     default = loads((placeholder[3] or "[]").encode())
@@ -168,14 +157,14 @@ class KubernetesService:
                 with open(f"{path}/{manifest}", "r") as stream:
                     raw = stream.read()
 
-                for placeholder in set(PLACEHOLDERS.findall(raw)):
+                for placeholder in set(PLACEHOLDERS_GENERIC.findall(raw)):
                     prefix = placeholder[1]
                     default = loads((placeholder[2] or '""').encode())
                     current = config.get(prefix, default)
                     raw = raw.replace(placeholder[0], str(current))
                     placeholders[prefix] = {"current": current, "default": default}
 
-                for placeholder in set(PLACEHOLDERS_NEW_LINES.findall(raw)):
+                for placeholder in set(PLACEHOLDERS_ARRAY.findall(raw)):
                     spaces = placeholder[1]
                     prefix = placeholder[2]
                     default = loads((placeholder[3] or "[]").encode())

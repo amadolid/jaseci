@@ -19,7 +19,7 @@ from ..dtos.deployment import (
 )
 from ..services.kubernetes import KubernetesService
 
-PLACEHOLDER = compile(r"\$j{([^\^:}]+)(?:\:([^\}]+))?}")
+PLACEHOLDER = compile(r"\$g{([^\^:}]+)(?:\:([^\}]+))?}")
 CLUSTER_WIDE = getenv("CLUSTER_WIDE") == "true"
 
 router = APIRouter(prefix="/deployment")

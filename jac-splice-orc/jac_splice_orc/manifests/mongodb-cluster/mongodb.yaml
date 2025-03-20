@@ -2,7 +2,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -15,7 +15,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 subjects:
   - kind: ServiceAccount
     name: mongodb-database
@@ -28,13 +28,13 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 rules:
   - apiGroups: [""]
     resources: ["pods", "services", "configmaps", "secrets"]
@@ -56,7 +56,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 subjects:
   - kind: ServiceAccount
     name: jac-orc-mongodb-operator
@@ -69,32 +69,32 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 ---
 apiVersion: mongodbcommunity.mongodb.com/v1
 kind: MongoDBCommunity
 metadata:
-  name: $j{name:"jac-mongodb"}
-  namespace: $j{namespace:"default"}
+  name: $g{name:"jac-mongodb"}
+  namespace: $g{namespace:"default"}
 spec:
-  members: $j{replicaset:1}
+  members: $g{replicaset:1}
   type: ReplicaSet
   version: "6.0.5"
   security:
     authentication:
       modes: ["SCRAM"]
   users:
-    - name: $j{username:"my-user"}
+    - name: $g{username:"my-user"}
       db: admin
       passwordSecretRef: # a reference to the secret that will be used to generate the user's password
-        name: $j{username:"my-user"}-password
+        name: $g{username:"my-user"}-password
       roles:
         - name: clusterAdmin
           db: admin
         - name: userAdminAnyDatabase
           db: admin
         - name: readWrite
-          db: $j{database:"jaseci"}
+          db: $g{database:"jaseci"}
       scramCredentialsSecretName: my-scram
   additionalMongodConfig:
     storage.wiredTiger.engineConfig.journalCompressor: zlib
@@ -102,8 +102,8 @@ spec:
 apiVersion: v1
 kind: Secret
 metadata:
-  name: $j{username:"my-user"}-password
-  namespace: $j{namespace:"default"}
+  name: $g{username:"my-user"}-password
+  namespace: $g{namespace:"default"}
 type: Opaque
 stringData:
-  password: '$j{password:"12345678"}'
+  password: '$g{password:"12345678"}'

@@ -2,19 +2,19 @@ apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 ---
 apiVersion: v1
 kind: ServiceAccount
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 rules:
   - apiGroups: [""]
     resources: ["pods", "services", "configmaps", "secrets"]
@@ -36,7 +36,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 subjects:
   - kind: ServiceAccount
     name: jac-orc-mongodb-operator
@@ -49,7 +49,7 @@ kind: Role
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 rules:
   - apiGroups: [""]
     resources: ["secrets"]
@@ -62,7 +62,7 @@ kind: RoleBinding
 apiVersion: rbac.authorization.k8s.io/v1
 metadata:
   name: mongodb-database
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 subjects:
   - kind: ServiceAccount
     name: mongodb-database
@@ -79,7 +79,7 @@ metadata:
   labels:
     owner: mongodb
   name: jac-orc-mongodb-operator
-  namespace: $j{namespace:"default"}
+  namespace: $g{namespace:"default"}
 spec:
   replicas: 1
   selector:
