@@ -1,6 +1,6 @@
 # JAC Orchestrator (`jac-splice-orc`)
 
-JAC Orchestrator (`jac-splice-orc`) is a system designed to dynamically import any Python module and deploy supported services (MongoDB, Redis) on demand.
+JAC Orchestrator (`jac-splice-orc`) is a system designed to dynamically import any Python module and deploy supported services (Jac-Cloud, MongoDB, Redis) on demand.
 
 Supported services will have their respective yaml templates the can be overriden. It will spawn pods that's accesible to the whole cluster via FQDN.
 
@@ -36,14 +36,28 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
   name: jac-orc
-subjects:
-  - kind: ServiceAccount
-    name: jac-orc
-    namespace: your_namespace
 roleRef:
   kind: ClusterRole
   name: jac-orc
   apiGroup: rbac.authorization.k8s.io
+subjects:
+  - kind: ServiceAccount
+    name: jac-orc
+    # namespace: your_namespace
+---
+
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: jac-reloader
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: jac-reloader
+subjects:
+  - kind: ServiceAccount
+    name: jac-reloader
+    # namespace: littlex
 ```
 - Update Secret's `stringData.MODULE` to include default modules. This should be JSON string and with the following format:
 ```python
@@ -52,8 +66,7 @@ roleRef:
     # namespace
         "default": {
 
-          # supported values: mongodb | redis
-          # future update: mongodb | redis | jac-cloud | library
+          # supported values: mongodb | redis | jac-cloud
           "redis": {
 
             # name of the service/library

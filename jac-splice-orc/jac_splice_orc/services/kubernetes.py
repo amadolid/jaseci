@@ -22,6 +22,9 @@ PLACEHOLDERS_GENERIC = compile(r"(\$g\s*{\s*([^:\s]+)\s*(?:\:\s*([\S\s]*?))?\s*}
 PLACEHOLDERS_ARRAY = compile(
     r"((\ *)\$a\s*{\s*([^:\s]+)\s*(?:\:\s*(\[[\S\s]*?\]))?\s*})"
 )
+PLACEHOLDERS_DICT = compile(
+    r"((\ *)(?:-\s)?\$d\s*{\s*([^:\s]+)\s*(?:\:\s*(\{[\S\s]*?\}))?\s*})"
+)
 
 
 class KubernetesService:
@@ -129,6 +132,18 @@ class KubernetesService:
                     raw = raw.replace(placeholder[0], current)
                     parsed_config[prefix] = _current
 
+                for placeholder in set(PLACEHOLDERS_DICT.findall(raw)):
+                    spaces = placeholder[1]
+                    prefix = placeholder[2]
+                    default = loads((placeholder[3] or "{}").encode())
+                    current = ""
+                    _current = config.get(prefix, default)
+                    for key, value in _current.items():
+                        current += f"{spaces}{key}: {value}\n"
+
+                    raw = raw.replace(placeholder[0], current)
+                    parsed_config[prefix] = _current
+
                 with open(f"{tmp}/{manifest}", "w") as stream:
                     stream.write(raw)
 
@@ -172,6 +187,18 @@ class KubernetesService:
                     _current = config.get(prefix, default)
                     for arg in _current:
                         current += f"{spaces}{arg}\n"
+
+                    raw = raw.replace(placeholder[0], current)
+                    placeholders[prefix] = {"current": _current, "default": default}
+
+                for placeholder in set(PLACEHOLDERS_DICT.findall(raw)):
+                    spaces = placeholder[1]
+                    prefix = placeholder[2]
+                    default = loads((placeholder[3] or "{}").encode())
+                    current = ""
+                    _current = config.get(prefix, default)
+                    for key, value in _current.items():
+                        current += f"{spaces}{key}: {value}\n"
 
                     raw = raw.replace(placeholder[0], current)
                     placeholders[prefix] = {"current": _current, "default": default}

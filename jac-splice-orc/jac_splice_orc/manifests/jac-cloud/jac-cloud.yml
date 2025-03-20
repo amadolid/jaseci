@@ -17,12 +17,16 @@ metadata:
   name: $g{name:"jac-cloud"}-envs
   namespace: $g{namespace:"default"}
 type: Opaque
+stringData:
+  - $d{env-vars:{}}
 ---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: $g{name:"jac-cloud"}
   namespace: $g{namespace:"default"}
+  annotations:
+    reloader.stakater.com/auto: "true"
 spec:
   replicas: $g{replicas:1}
   selector:
