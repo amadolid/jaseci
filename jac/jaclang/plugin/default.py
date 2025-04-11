@@ -874,7 +874,7 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def create_test(test_fun: Callable) -> Callable:
+    def jac_test(test_fun: Callable) -> Callable:
         """Create a new test."""
         file_path = inspect.getfile(test_fun)
         func_name = test_fun.__name__
@@ -1088,7 +1088,7 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def get_root() -> Root:
+    def root() -> Root:
         """Jac's assign comprehension feature."""
         return ExecutionContext.get_root()
 

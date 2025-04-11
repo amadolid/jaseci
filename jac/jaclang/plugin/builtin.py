@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 from jaclang.plugin.feature import JacFeature as Jac
 from jaclang.runtimelib.constructs import Architype, NodeArchitype
 
 __all__ = [
+    "ClassVar",
     "dotgen",
     "jid",
     "jobj",
@@ -27,7 +28,7 @@ def dotgen(
     """Print the dot graph."""
     from jaclang.plugin.feature import JacFeature as Jac
 
-    root = Jac.get_root()
+    root = Jac.root()
     node = node if node is not None else root
     depth = depth if depth is not None else -1
     traverse = traverse if traverse is not None else False

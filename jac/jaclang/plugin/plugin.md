@@ -279,7 +279,7 @@ def jac_import(
 ```
 ### **`create_test`**
 ```python
-def create_test(
+def jac_test(
     test_fun: Callable
 ) -> Callable:
     """Create a new test."""
@@ -362,7 +362,7 @@ def assign_compr(
 ```
 ### **`get_root`**
 ```python
-def get_root(
+def root(
 ) -> Root:
     """Get current root."""
 ```

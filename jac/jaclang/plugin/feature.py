@@ -365,9 +365,9 @@ class JacFeature(
         )
 
     @staticmethod
-    def create_test(test_fun: Callable) -> Callable:
+    def jac_test(test_fun: Callable) -> Callable:
         """Create a test."""
-        return plugin_manager.hook.create_test(test_fun=test_fun)
+        return plugin_manager.hook.jac_test(test_fun=test_fun)
 
     @staticmethod
     def run_test(
@@ -455,9 +455,9 @@ class JacFeature(
         return plugin_manager.hook.assign_compr(target=target, attr_val=attr_val)
 
     @staticmethod
-    def get_root() -> Root:
+    def root() -> Root:
         """Jac's root getter."""
-        return plugin_manager.hook.get_root()
+        return plugin_manager.hook.root()
 
     @staticmethod
     def get_root_type() -> Type[Root]:

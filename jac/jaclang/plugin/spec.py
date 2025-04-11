@@ -353,7 +353,7 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def create_test(test_fun: Callable) -> Callable:
+    def jac_test(test_fun: Callable) -> Callable:
         """Create a new test."""
         raise NotImplementedError
 
@@ -430,7 +430,7 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def get_root() -> Root:
+    def root() -> Root:
         """Jac's root getter."""
         raise NotImplementedError
 
