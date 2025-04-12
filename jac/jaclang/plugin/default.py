@@ -971,26 +971,26 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def edge_ref(
-        node_obj: NodeArchitype | list[NodeArchitype],
-        target_obj: Optional[NodeArchitype | list[NodeArchitype]],
+    def refs(
+        sources: NodeArchitype | list[NodeArchitype],
+        targets: Optional[NodeArchitype | list[NodeArchitype]],
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
         edges_only: bool,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
-        if isinstance(node_obj, NodeArchitype):
-            node_obj = [node_obj]
+        if isinstance(sources, NodeArchitype):
+            sources = [sources]
         targ_obj_set: Optional[list[NodeArchitype]] = (
-            [target_obj]
-            if isinstance(target_obj, NodeArchitype)
-            else target_obj if target_obj else None
+            [targets]
+            if isinstance(targets, NodeArchitype)
+            else targets if targets else None
         )
         if edges_only:
             connected_edges: list[EdgeArchitype] = []
-            for node in node_obj:
+            for node in sources:
                 edges = Jac.get_edges(
-                    node.__jac__, dir, filter_func, target_obj=targ_obj_set
+                    node.__jac__, dir, filter, target_obj=targ_obj_set
                 )
                 connected_edges.extend(
                     edge for edge in edges if edge not in connected_edges
@@ -998,14 +998,23 @@ class JacFeatureImpl(
             return connected_edges
         else:
             connected_nodes: list[NodeArchitype] = []
-            for node in node_obj:
+            for node in sources:
                 nodes = Jac.edges_to_nodes(
-                    node.__jac__, dir, filter_func, target_obj=targ_obj_set
+                    node.__jac__, dir, filter, target_obj=targ_obj_set
                 )
                 connected_nodes.extend(
                     node for node in nodes if node not in connected_nodes
                 )
             return connected_nodes
+
+    @staticmethod
+    @hookimpl
+    def filter(
+        items: list[Architype],
+        func: Callable[[Architype], bool],
+    ) -> list[Architype]:
+        """Jac's filter architype list."""
+        return [item for item in items if func(item)]
 
     @staticmethod
     @hookimpl

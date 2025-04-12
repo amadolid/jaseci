@@ -385,14 +385,23 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def edge_ref(
-        node_obj: NodeArchitype | list[NodeArchitype],
-        target_obj: Optional[NodeArchitype | list[NodeArchitype]],
+    def refs(
+        sources: NodeArchitype | list[NodeArchitype],
+        targets: NodeArchitype | list[NodeArchitype] | None,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
         edges_only: bool,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
+        raise NotImplementedError
+
+    @staticmethod
+    @hookspec(firstresult=True)
+    def filter(
+        items: list[Architype],
+        func: Callable[[Architype], bool],
+    ) -> list[Architype]:
+        """Jac's filter architype list."""
         raise NotImplementedError
 
     @staticmethod

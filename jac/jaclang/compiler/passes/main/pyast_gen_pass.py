@@ -3154,8 +3154,10 @@ class PyastGenPass(Pass):
                     pynode = self.sync(
                         ast3.Call(
                             func=self.jaclib_obj("filter"),
-                            args=[cast(ast3.expr, pynode)]
-                            + cast(ast3.Tuple, next_i.gen.py_ast[0]).elts,
+                            args=[
+                                cast(ast3.expr, pynode),
+                                cast(ast3.expr, next_i.gen.py_ast[0]),
+                            ],
                             keywords=[],
                         )
                     )
@@ -3196,132 +3198,61 @@ class PyastGenPass(Pass):
         """Generate ast for edge op ref call."""
         args = [loc]
         keywords = []
+        kwargs = False
 
-        if node.filter_cond and node.filter_cond.f_type:
-            args.append(self.sync(node.filter_cond.f_type.gen.py_ast[0]))
+        if targ:
+            if kwargs:
+                keywords.append(
+                    ast3.keyword(arg="targets", value=cast(ast3.expr, targ))
+                )
+            else:
+                args.append(targ)
+        else:
+            kwargs = True
 
-            edge_iter_name = "edge"
-            if node.filter_cond.compares:
+        if node.edge_dir != EdgeDir.OUT:
+            dir = self.sync(
+                ast3.Attribute(
+                    value=self.jaclib_obj("EdgeDir"),
+                    attr=node.edge_dir.name,
+                    ctx=ast3.Load(),
+                )
+            )
+            if kwargs:
+                keywords.append(self.sync(ast3.keyword(arg="dir", value=dir)))
+            else:
+                args.append(dir)
+        else:
+            kwargs = True
 
-                expr: ast3.expr | None = None
-                comp = node.filter_cond.compares.items[0]
-                if (
-                    len(node.filter_cond.compares.items) == 1
-                    and isinstance(comp.gen.py_ast[0], ast3.Compare)
-                    and isinstance(comp.gen.py_ast[0].left, ast3.Name)
-                ):
-                    expr = self.sync(
-                        ast3.Compare(
-                            left=self.sync(
-                                ast3.Attribute(
-                                    value=self.sync(
-                                        ast3.Name(
-                                            id=edge_iter_name,
-                                            ctx=ast3.Load(),
-                                        ),
-                                        jac_node=comp,
-                                    ),
-                                    attr=comp.gen.py_ast[0].left.id,
-                                    ctx=ast3.Load(),
-                                ),
-                                jac_node=comp,
-                            ),
-                            ops=comp.gen.py_ast[0].ops,
-                            comparators=comp.gen.py_ast[0].comparators,
-                        ),
-                        jac_node=comp,
-                    )
-                else:
-                    expr = self.sync(
-                        ast3.BoolOp(
-                            op=self.sync(ast3.And()),
-                            values=[
-                                self.sync(
-                                    ast3.Compare(
-                                        left=self.sync(
-                                            ast3.Attribute(
-                                                value=self.sync(
-                                                    ast3.Name(
-                                                        id=edge_iter_name,
-                                                        ctx=ast3.Load(),
-                                                    ),
-                                                    jac_node=comp,
-                                                ),
-                                                attr=comp.gen.py_ast[0].left.id,
-                                                ctx=ast3.Load(),
-                                            ),
-                                            jac_node=comp,
-                                        ),
-                                        ops=comp.gen.py_ast[0].ops,
-                                        comparators=comp.gen.py_ast[0].comparators,
-                                    ),
-                                    jac_node=comp,
-                                )
-                                for comp in node.filter_cond.compares.items
-                                if isinstance(comp.gen.py_ast[0], ast3.Compare)
-                                and isinstance(comp.gen.py_ast[0].left, ast3.Name)
-                            ],
-                        ),
-                    )
-                assert expr is not None
-
-                args.append(
+        if node.filter_cond:
+            if kwargs:
+                keywords.append(
                     self.sync(
-                        ast3.Lambda(
-                            args=self.sync(
-                                ast3.arguments(
-                                    posonlyargs=[],
-                                    args=[self.sync(ast3.arg(arg=edge_iter_name))],
-                                    kwonlyargs=[],
-                                    kw_defaults=[],
-                                    defaults=[],
-                                )
+                        ast3.keyword(
+                            arg="filter",
+                            value=cast(
+                                ast3.expr, self.sync(node.filter_cond.gen.py_ast[0])
                             ),
-                            body=expr,
                         )
                     )
                 )
-
-        if targ is not None:
-            keywords.append(
-                self.sync(
-                    ast3.keyword(
-                        arg="target",
-                        value=cast(ast3.expr, targ),
-                    )
-                )
-            )
-
-        if node.edge_dir != EdgeDir.OUT:
-            keywords.append(
-                self.sync(
-                    ast3.keyword(
-                        arg="dir",
-                        value=self.sync(
-                            ast3.Attribute(
-                                value=self.jaclib_obj("EdgeDir"),
-                                attr=node.edge_dir.name,
-                                ctx=ast3.Load(),
-                            )
-                        ),
-                    )
-                )
-            )
+            else:
+                args.append(self.sync(node.filter_cond.gen.py_ast[0]))
+        else:
+            kwargs = True
 
         if edges_only:
-            keywords.append(
-                self.sync(
-                    ast3.keyword(
-                        arg="edges_only",
-                        value=self.sync(ast3.Constant(value=edges_only)),
-                    )
-                )
-            )
+            edo = self.sync(ast3.Constant(value=edges_only))
+            if kwargs:
+                keywords.append(self.sync(ast3.keyword(arg="filter", value=edo)))
+            else:
+                args.append(edo)
 
         return self.sync(
             ast3.Call(
                 func=self.jaclib_obj("refs"),
-                args=[cast(ast3.expr, i) for i in args],
+                args=cast(list[ast3.expr], args),
                 keywords=keywords,
             )
         )
@@ -3391,7 +3322,37 @@ class PyastGenPass(Pass):
         compares: SubNodeList[BinaryExpr],
         """
         iter_name = "item"
-        comprs = [
+
+        comprs: list[ast3.Compare | ast3.Call] = (
+            [
+                self.sync(
+                    ast3.Call(
+                        func=self.sync(
+                            ast3.Name(
+                                id="isinstance",
+                                ctx=ast3.Load(),
+                            )
+                        ),
+                        args=cast(
+                            list[ast3.expr],
+                            [
+                                self.sync(
+                                    ast3.Name(
+                                        id="item",
+                                        ctx=ast3.Load(),
+                                    )
+                                ),
+                                self.sync(node.f_type.gen.py_ast[0]),
+                            ],
+                        ),
+                        keywords=[],
+                    )
+                )
+            ]
+            if node.f_type
+            else []
+        )
+        comprs.extend(
             self.sync(
                 ast3.Compare(
                     left=self.sync(
@@ -3416,9 +3377,9 @@ class PyastGenPass(Pass):
             for x in (node.compares.items if node.compares else [])
             if isinstance(x.gen.py_ast[0], ast3.Compare)
             and isinstance(x.gen.py_ast[0].left, ast3.Name)
-        ]
+        )
 
-        body = (
+        if body := (
             self.sync(
                 ast3.BoolOp(
                     op=self.sync(ast3.And()),
@@ -3427,40 +3388,23 @@ class PyastGenPass(Pass):
             )
             if len(comprs) > 1
             else (comprs[0] if comprs else None)
-        )
-
-        node.gen.py_ast = [
-            self.sync(
-                ast3.Tuple(
-                    elts=[
-                        (
-                            self.sync(cast(ast3.expr, node.f_type.gen.py_ast[0]))
-                            if node.f_type
-                            else self.sync(ast3.Constant(value=None))
-                        ),
-                        (
-                            self.sync(
-                                ast3.Lambda(
-                                    args=self.sync(
-                                        ast3.arguments(
-                                            posonlyargs=[],
-                                            args=[self.sync(ast3.arg(arg=iter_name))],
-                                            kwonlyargs=[],
-                                            kw_defaults=[],
-                                            defaults=[],
-                                        )
-                                    ),
-                                    body=body,
-                                )
+        ):
+            node.gen.py_ast = [
+                self.sync(
+                    ast3.Lambda(
+                        args=self.sync(
+                            ast3.arguments(
+                                posonlyargs=[],
+                                args=[self.sync(ast3.arg(arg=iter_name))],
+                                kwonlyargs=[],
+                                kw_defaults=[],
+                                defaults=[],
                             )
-                            if body
-                            else self.sync(ast3.Constant(value=None))
                         ),
-                    ],
-                    ctx=ast3.Load(),
+                        body=body,
+                    )
                 )
-            )
-        ]
+            ]
 
     def exit_assign_compr(self, node: ast.AssignCompr) -> None:
         """Sub objects.

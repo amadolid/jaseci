@@ -277,7 +277,7 @@ def jac_import(
 ) -> tuple[types.ModuleType, ...]:
     """Core Import Process."""
 ```
-### **`create_test`**
+### **`jac_test`**
 ```python
 def jac_test(
     test_fun: Callable
@@ -318,9 +318,9 @@ def report(
 ) -> Any:
     """Jac's report stmt feature."""
 ```
-### **`edge_ref`**
+### **`refs`**
 ```python
-def edge_ref(
+def refs(
     node_obj: NodeArchitype | list[NodeArchitype],
     target_obj: Optional[NodeArchitype | list[NodeArchitype]],
     dir: EdgeDir,
@@ -328,6 +328,14 @@ def edge_ref(
     edges_only: bool,
 ) -> list[NodeArchitype] | list[EdgeArchitype]:
     """Jac's apply_dir stmt feature."""
+```
+### **`filter`**
+```python
+def filter(
+    items: list[Architype],
+    func: Callable[[Architype], bool],
+) -> list[NodeArchitype] | list[EdgeArchitype]:
+    """Jac's filter architype list."""
 ```
 ### **`connect`**
 ```python

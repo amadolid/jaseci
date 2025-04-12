@@ -401,19 +401,19 @@ class JacFeature(
         plugin_manager.hook.report(expr=expr, custom=custom)
 
     @staticmethod
-    def edge_ref(
-        node_obj: NodeArchitype | list[NodeArchitype],
-        target_obj: Optional[NodeArchitype | list[NodeArchitype]],
-        dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+    def refs(
+        sources: NodeArchitype | list[NodeArchitype],
+        targets: NodeArchitype | list[NodeArchitype] | None = None,
+        dir: EdgeDir = EdgeDir.OUT,
+        filter: Callable[[list[EdgeArchitype]], list[EdgeArchitype]] | None = None,
         edges_only: bool = False,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
-        return plugin_manager.hook.edge_ref(
-            node_obj=node_obj,
-            target_obj=target_obj,
+        return plugin_manager.hook.refs(
+            sources=sources,
+            targets=targets,
             dir=dir,
-            filter_func=filter_func,
+            filter=filter,
             edges_only=edges_only,
         )
 
@@ -610,49 +610,13 @@ class JacFeature(
             left=left, right=right, dir=dir, filter_func=filter_func
         )
 
-    # FIXME: This is a convinience method to call JacFeature.connect, used by jaclib (not intended for overriden).
-    @staticmethod
-    def refs(
-        node: NodeArchitype | list[NodeArchitype],
-        edge: Type[EdgeArchitype] | None = None,
-        cond: Callable[[EdgeArchitype], bool] | None = None,
-        target: NodeArchitype | list[NodeArchitype] | None = None,
-        dir: EdgeDir = EdgeDir.OUT,
-        edges_only: bool = False,
-    ) -> list[NodeArchitype] | list[EdgeArchitype]:
-        """Jac's apply_dir stmt feature."""
-        filter_func = (
-            (
-                lambda edges: (  # noqa: E731
-                    [ed for ed in edges if isinstance(ed, edge) if not cond or cond(ed)]
-                )
-            )
-            if edge
-            else None
-        )
-        return JacFeature.edge_ref(
-            node_obj=node,
-            target_obj=target,
-            dir=dir,
-            filter_func=filter_func,
-            edges_only=edges_only,
-        )
-
-    # FIXME: This is a convinience method to call JacFeature.connect, used by jaclib (not intended for overriden).
     @staticmethod
     def filter(
-        items: list[NodeArchitype] | list[EdgeArchitype],
-        ty: Type[NodeArchitype] | Type[EdgeArchitype] | None = None,
-        fn: Callable[[NodeArchitype | EdgeArchitype], bool] | None = None,
-    ) -> list[NodeArchitype] | list[EdgeArchitype]:
-        """Jac's apply_dir stmt feature."""
-        if ty and fn:
-            return [item for item in items if isinstance(item, ty) and fn(item)]  # type: ignore[return-value]
-        if ty:
-            return [item for item in items if isinstance(item, ty)]  # type: ignore[return-value]
-        if fn:
-            return list(filter(fn, items))  # type: ignore[return-value]
-        return items
+        items: list[Architype],
+        func: Callable[[Architype], bool],
+    ) -> list[Architype]:
+        """Jac's filter architype list."""
+        return plugin_manager.hook.filter(items=items, func=func)
 
     # FIXME: This is basically an alias to the actual function used by jaclib.
     @staticmethod
