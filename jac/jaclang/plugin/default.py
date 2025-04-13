@@ -5,10 +5,10 @@ from __future__ import annotations
 import ast as ast3
 import fnmatch
 import html
-import inspect
 import os
 import types
 from dataclasses import dataclass, field
+from inspect import getfile, getmembers
 from logging import getLogger
 from typing import Any, Callable, Mapping, Optional, Sequence, Type, Union, cast
 from uuid import UUID
@@ -645,11 +645,12 @@ class JacFeatureImpl(
         """Create a new architype."""
         entries: list[Jac.DSFunc] = []
         exits: list[Jac.DSFunc] = []
-        for func in cls.__dict__.values():
-            if hasattr(func, "__jac_entry"):
-                entries.append(Jac.DSFunc(func.__name__, func))
-            if hasattr(func, "__jac_exit"):
-                exits.append(Jac.DSFunc(func.__name__, func))
+        for _n, func in getmembers(cls):
+            if callable(func):
+                if hasattr(func, "__jac_entry"):
+                    entries.append(Jac.DSFunc(func.__name__, func))
+                if hasattr(func, "__jac_exit"):
+                    exits.append(Jac.DSFunc(func.__name__, func))
 
         cls._jac_entry_funcs_ = entries
         cls._jac_exit_funcs_ = exits
@@ -742,7 +743,7 @@ class JacFeatureImpl(
     @hookimpl
     def jac_test(test_fun: Callable) -> Callable:
         """Create a new test."""
-        file_path = inspect.getfile(test_fun)
+        file_path = getfile(test_fun)
         func_name = test_fun.__name__
 
         def test_deco() -> None:
@@ -977,7 +978,6 @@ class JacFeatureImpl(
         conn_assign: Optional[tuple[tuple, tuple]],
     ) -> Callable[[NodeAnchor, NodeAnchor], EdgeArchitype]:
         """Jac's root getter."""
-
         ct = conn_type if conn_type else GenericEdge
 
         def builder(source: NodeAnchor, target: NodeAnchor) -> EdgeArchitype:
@@ -1052,14 +1052,14 @@ class JacFeatureImpl(
     @hookimpl
     def entry(func: Callable) -> Callable:
         """Mark a method as jac entry with this decorator."""
-        func.__jac_entry = True  # type: ignore[attr-defined]
+        setattr(func, "__jac_entry", None)  # noqa:B010
         return func
 
     @staticmethod
     @hookimpl
     def exit(func: Callable) -> Callable:
         """Mark a method as jac exit with this decorator."""
-        func.__jac_exit = True  # type: ignore[attr-defined]
+        setattr(func, "__jac_exit", None)  # noqa:B010
         return func
 
     @staticmethod
