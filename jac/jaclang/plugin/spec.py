@@ -391,12 +391,6 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def get_root_type() -> Type[Root]:
-        """Jac's root getter."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
     def build_edge(
         is_undirected: bool,
         conn_type: Optional[Type[EdgeArchitype] | EdgeArchitype],
@@ -419,6 +413,18 @@ class JacFeatureSpec(
         obj: Architype | Anchor,
     ) -> None:
         """Destroy object."""
+        raise NotImplementedError
+
+    @staticmethod
+    @hookspec(firstresult=True)
+    def entry(func: Callable) -> Callable:
+        """Mark a method as jac entry with this decorator."""
+        raise NotImplementedError
+
+    @staticmethod
+    @hookspec(firstresult=True)
+    def exit(func: Callable) -> Callable:
+        """Mark a method as jac exit with this decorator."""
         raise NotImplementedError
 
     @staticmethod

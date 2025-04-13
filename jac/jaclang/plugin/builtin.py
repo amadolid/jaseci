@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-from typing import Optional
+from typing import ClassVar, Optional
 
 from jaclang.plugin.feature import JacFeature as Jac
 from jaclang.runtimelib.constructs import Architype, NodeArchitype
 
 __all__ = [
+    "ClassVar",
     "dotgen",
     "jid",
     "jobj",

@@ -371,12 +371,6 @@ def root(
 ) -> Root:
     """Get current root."""
 ```
-### **`get_root_type`**
-```python
-def get_root_type(
-) -> Type[Root]:
-    """Get root type."""
-```
 ### **`build_edge`**
 ```python
 def build_edge(
@@ -399,6 +393,20 @@ def destroy(
     obj: Architype | Anchor,
 ) -> None:
     """Destroy object."""
+```
+### **`entry`**
+```python
+def entry(
+    func: Callable
+) -> None:
+    """Mark a method as jac entry with this decorator."""
+```
+### **`exit`**
+```python
+def exit(
+    func: Callable
+) -> None:
+    """Mark a method as jac exit with this decorator."""
 ```
 ### **`get_semstr_type`**
 ```python

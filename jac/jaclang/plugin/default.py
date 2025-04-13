@@ -971,12 +971,6 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def get_root_type() -> Type[Root]:
-        """Jac's root getter."""
-        return Jac.RootType
-
-    @staticmethod
-    @hookimpl
     def build_edge(
         is_undirected: bool,
         conn_type: Optional[Type[EdgeArchitype] | EdgeArchitype],
@@ -1053,6 +1047,20 @@ class JacFeatureImpl(
                     pass
 
             Jac.get_context().mem.remove(anchor.id)
+
+    @staticmethod
+    @hookimpl
+    def entry(func: Callable) -> Callable:
+        """Mark a method as jac entry with this decorator."""
+        func.__jac_entry = True  # type: ignore[attr-defined]
+        return func
+
+    @staticmethod
+    @hookimpl
+    def exit(func: Callable) -> Callable:
+        """Mark a method as jac exit with this decorator."""
+        func.__jac_exit = True  # type: ignore[attr-defined]
+        return func
 
     @staticmethod
     @hookimpl

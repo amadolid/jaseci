@@ -7,7 +7,6 @@ import types
 from typing import (
     Any,
     Callable,
-    ClassVar,
     Mapping,
     Optional,
     Sequence,
@@ -195,7 +194,6 @@ class JacClassReferences:
     """Default Classes References."""
 
     TYPE_CHECKING: bool = TYPE_CHECKING
-    static = ClassVar
     EdgeDir: TypeAlias = EdgeDir
     DSFunc: TypeAlias = DataSpatialFunction
     RootType: TypeAlias = Root  # TODO: Rename this to "Root" (for jaclib).
@@ -415,11 +413,6 @@ class JacFeature(
         return plugin_manager.hook.root()
 
     @staticmethod
-    def get_root_type() -> Type[Root]:
-        """Jac's root type getter."""
-        return plugin_manager.hook.get_root_type()
-
-    @staticmethod
     def build_edge(
         is_undirected: bool,
         conn_type: Optional[Type[EdgeArchitype] | EdgeArchitype],
@@ -443,6 +436,16 @@ class JacFeature(
     ) -> None:
         """Destroy object."""
         plugin_manager.hook.destroy(obj=obj)
+
+    @staticmethod
+    def entry(func: Callable) -> Callable:
+        """Mark a method as jac entry with this decorator."""
+        return plugin_manager.hook.entry(func=func)
+
+    @staticmethod
+    def exit(func: Callable) -> Callable:
+        """Mark a method as jac exit with this decorator."""
+        return plugin_manager.hook.exit(func=func)
 
     @staticmethod
     def get_semstr_type(

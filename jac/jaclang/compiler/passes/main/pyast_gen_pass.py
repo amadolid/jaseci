@@ -1033,9 +1033,7 @@ class PyastGenPass(Pass):
         if isinstance(node.signature, ast.EventSignature):
             decorator_list.append(
                 self.jaclib_obj(
-                    "with_entry"
-                    if node.signature.event.name == Tok.KW_ENTRY
-                    else "with_exit"
+                    "entry" if node.signature.event.name == Tok.KW_ENTRY else "exit"
                 )
             )
 
@@ -1315,7 +1313,7 @@ class PyastGenPass(Pass):
         if is_static_var:
             annotation = self.sync(
                 ast3.Subscript(
-                    value=self.jaclib_obj("static"),
+                    value=self.sync(ast3.Name(id="ClassVar", ctx=ast3.Load())),
                     slice=cast(ast3.expr, annotation),
                     ctx=ast3.Load(),
                 )
