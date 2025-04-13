@@ -2,17 +2,11 @@
 
 from __future__ import annotations
 
-from typing import ClassVar, Optional
+from abc import abstractmethod
+from typing import ClassVar, Optional, override
 
 from jaclang.plugin.feature import JacFeature as Jac
 from jaclang.runtimelib.constructs import Architype, NodeArchitype
-
-__all__ = [
-    "ClassVar",
-    "dotgen",
-    "jid",
-    "jobj",
-]
 
 
 def dotgen(
@@ -56,3 +50,13 @@ def jid(obj: Architype) -> str:
 def jobj(id: str) -> Architype | None:
     """Get the object from the id."""
     return Jac.get_object(id)
+
+
+__all__ = [
+    "abstractmethod",
+    "ClassVar",
+    "override",
+    "dotgen",
+    "jid",
+    "jobj",
+]

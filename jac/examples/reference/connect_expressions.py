@@ -1,23 +1,22 @@
 from __future__ import annotations
-from jaclang import *
+from jaclang.plugin.builtin import *
+from jaclang import JacFeature as _
 
 
-@node
-class node_a:
+class node_a(_.Node):
     value: int
 
 
-@walker
-class Creator:
-    @with_entry
-    def create(self, here: Jac.RootType) -> None:
+class Creator(_.Walker):
+    @_.entry
+    def create(self, here: _.Root) -> None:
         end = here
         i = 0
         while i < 7:
             if i % 2 == 0:
-                Jac.conn(end, (end := node_a(value=i)))
+                _.conn(end, (end := node_a(value=i)))
             else:
-                Jac.conn(
+                _.conn(
                     end,
                     (end := node_a(value=i + 10)),
                     edge=MyEdge,
@@ -25,17 +24,16 @@ class Creator:
                 )
             i += 1
 
-    @with_entry
-    def travel(self, here: Jac.RootType | node_a) -> None:
-        for i in Jac.refs(here, MyEdge, lambda edge: edge.val <= 6):
+    @_.entry
+    def travel(self, here: _.Root | node_a) -> None:
+        for i in _.refs(here, MyEdge, lambda edge: edge.val <= 6):
             print(i.value)
-        Jac.visit(self, Jac.refs(here))
+        _.visit(self, _.refs(here))
 
 
-@edge
-class MyEdge:
-    val: int = field(5)
+class MyEdge(_.Edge):
+    val: int = 5
 
 
 if __name__ == "__main__":
-    Jac.spawn(root(), Creator())
+    _.spawn(_.root(), Creator())

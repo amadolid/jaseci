@@ -1048,9 +1048,11 @@ class PyastGenPass(Pass):
                 )
             )
         if node.is_abstract:
-            decorator_list.append(self.jaclib_obj("abstract"))
+            decorator_list.append(
+                self.sync(ast3.Name(id="abstractmethod", ctx=ast3.Load()))
+            )
         if node.is_override:
-            decorator_list.append(self.jaclib_obj("override"))
+            decorator_list.append(self.sync(ast3.Name(id="override", ctx=ast3.Load())))
         if node.is_static:
             decorator_list.insert(
                 0, self.sync(ast3.Name(id="staticmethod", ctx=ast3.Load()))
@@ -2822,8 +2824,10 @@ class PyastGenPass(Pass):
                 self.sync(
                     ast3.Call(
                         func=self.jaclib_obj("filter"),
-                        args=cast(list[ast3.expr], [node.target.gen.py_ast[0]])
-                        + cast(ast3.Tuple, node.right.gen.py_ast[0]).elts,
+                        args=cast(
+                            list[ast3.expr],
+                            [node.target.gen.py_ast[0], node.right.gen.py_ast[0]],
+                        ),
                         keywords=[],
                     )
                 )
