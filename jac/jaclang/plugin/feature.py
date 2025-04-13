@@ -7,9 +7,11 @@ import types
 from typing import (
     Any,
     Callable,
+    ClassVar,
     Mapping,
     Optional,
     Sequence,
+    TYPE_CHECKING,
     Type,
     TypeAlias,
     Union,
@@ -192,6 +194,8 @@ class JacWalker:
 class JacClassReferences:
     """Default Classes References."""
 
+    TYPE_CHECKING: bool = TYPE_CHECKING
+    static = ClassVar
     EdgeDir: TypeAlias = EdgeDir
     DSFunc: TypeAlias = DSFunc
     RootType: TypeAlias = Root  # TODO: Rename this to "Root" (for jaclib).

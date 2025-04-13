@@ -797,17 +797,10 @@ class PyastGenPass(Pass):
                     )
                 )
             )
-        self.needs_typing()
         py_nodes.append(
             self.sync(
                 ast3.If(
-                    test=self.sync(
-                        ast3.Attribute(
-                            value=self.sync(ast3.Name(id="typing", ctx=ast3.Load())),
-                            attr="TYPE_CHECKING",
-                            ctx=ast3.Load(),
-                        )
-                    ),
+                    test=self.jaclib_obj("TYPE_CHECKING"),
                     body=[cast(ast3.stmt, node) for node in typecheck_nodes],
                     orelse=[cast(ast3.stmt, node) for node in runtime_nodes],
                 )
@@ -1322,7 +1315,7 @@ class PyastGenPass(Pass):
         if is_static_var:
             annotation = self.sync(
                 ast3.Subscript(
-                    value=self.sync(ast3.Name(id="ClassVar", ctx=ast3.Load())),
+                    value=self.jaclib_obj("static"),
                     slice=cast(ast3.expr, annotation),
                     ctx=ast3.Load(),
                 )

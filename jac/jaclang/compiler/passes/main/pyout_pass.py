@@ -13,19 +13,11 @@ from jaclang.compiler.constant import Constants as Con
 from jaclang.compiler.passes import Pass
 
 black_format: Callable | None = None
-isort_format: Callable | None = None
 try:
     from black import FileMode, format_str
 
     black_format = format_str
     FILE_MODE = FileMode()
-except Exception:
-    pass
-
-try:
-    from isort import code
-
-    isort_format = code
 except Exception:
     pass
 
@@ -72,8 +64,6 @@ class PyOutPass(Pass):
         """Generate Python."""
         with open(out_path, "w") as f:
             content = node.gen.py
-            if isort_format:
-                content = isort_format(content)
             if black_format:
                 content = black_format(content, mode=FILE_MODE)
             f.write(content)
