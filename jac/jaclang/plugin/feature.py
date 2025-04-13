@@ -22,7 +22,6 @@ from jaclang.plugin.spec import (
     AccessLevel,
     Anchor,
     Architype,
-    DSFunc,
     EdgeAnchor,
     EdgeArchitype,
     EdgeDir,
@@ -37,6 +36,7 @@ from jaclang.plugin.spec import (
     ast,
     plugin_manager,
 )
+from jaclang.runtimelib.architype import DataSpatialFunction
 
 
 class JacAccessValidation:
@@ -197,7 +197,7 @@ class JacClassReferences:
     TYPE_CHECKING: bool = TYPE_CHECKING
     static = ClassVar
     EdgeDir: TypeAlias = EdgeDir
-    DSFunc: TypeAlias = DSFunc
+    DSFunc: TypeAlias = DataSpatialFunction
     RootType: TypeAlias = Root  # TODO: Rename this to "Root" (for jaclib).
     Obj: TypeAlias = Architype
     Node: TypeAlias = NodeArchitype
@@ -283,58 +283,9 @@ class JacFeature(
         return plugin_manager.hook.object_ref(obj=obj)
 
     @staticmethod
-    def make_architype(
-        cls: type,
-        arch_base: Type,
-        on_entry: list[DSFunc],
-        on_exit: list[DSFunc],
-    ) -> Type[Architype]:
+    def make_architype(cls: Type[Architype]) -> Type[Architype]:
         """Create a obj architype."""
-        return plugin_manager.hook.make_architype(
-            cls=cls, on_entry=on_entry, on_exit=on_exit, arch_base=arch_base
-        )
-
-    @staticmethod
-    def make_obj(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a obj architype."""
-        return plugin_manager.hook.make_obj(on_entry=on_entry, on_exit=on_exit)
-
-    @staticmethod
-    def make_node(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a node architype."""
-        return plugin_manager.hook.make_node(on_entry=on_entry, on_exit=on_exit)
-
-    @staticmethod
-    def make_root(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a root node architype."""
-        return plugin_manager.hook.make_root(on_entry=on_entry, on_exit=on_exit)
-
-    @staticmethod
-    def make_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a edge architype."""
-        return plugin_manager.hook.make_edge(on_entry=on_entry, on_exit=on_exit)
-
-    @staticmethod
-    def make_generic_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a edge architype."""
-        return plugin_manager.hook.make_generic_edge(on_entry=on_entry, on_exit=on_exit)
-
-    @staticmethod
-    def make_walker(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a walker architype."""
-        return plugin_manager.hook.make_walker(on_entry=on_entry, on_exit=on_exit)
+        return plugin_manager.hook.make_architype(cls=cls)
 
     @staticmethod
     def impl_patch_filename(

@@ -216,10 +216,7 @@ def object_ref(
 ### **`make_architype`**
 ```python
 def make_architype(
-    cls: type,
-    arch_base: Type[Architype],
-    on_entry: list[DSFunc],
-    on_exit: list[DSFunc],
+    cls: Type[Architype]
 ) -> Type[Architype]:
     """Create a obj architype."""
 ```

@@ -3183,7 +3183,7 @@ class PyastGenPass(Pass):
         if edges_only:
             edo = self.sync(ast3.Constant(value=edges_only))
             if kwargs:
-                keywords.append(self.sync(ast3.keyword(arg="filter", value=edo)))
+                keywords.append(self.sync(ast3.keyword(arg="edges_only", value=edo)))
             else:
                 args.append(edo)
 

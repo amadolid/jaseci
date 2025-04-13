@@ -24,7 +24,6 @@ from jaclang.runtimelib.constructs import (
     AccessLevel,
     Anchor,
     Architype,
-    DSFunc,
     EdgeAnchor,
     EdgeArchitype,
     NodeAnchor,
@@ -270,61 +269,8 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def make_architype(
-        cls: type,
-        arch_base: Type,
-        on_entry: list[DSFunc],
-        on_exit: list[DSFunc],
-    ) -> Type[Architype]:
+    def make_architype(cls: Type[Architype]) -> Type[Architype]:
         """Create a obj architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_obj(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a obj architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_node(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a node architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_root(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a root node architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a edge architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_generic_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a generic edge architype."""
-        raise NotImplementedError
-
-    @staticmethod
-    @hookspec(firstresult=True)
-    def make_walker(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a walker architype."""
         raise NotImplementedError
 
     @staticmethod

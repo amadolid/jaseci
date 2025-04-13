@@ -8,9 +8,7 @@ import html
 import inspect
 import os
 import types
-from collections import OrderedDict
-from dataclasses import field
-from functools import wraps
+from dataclasses import dataclass, field
 from logging import getLogger
 from typing import Any, Callable, Mapping, Optional, Sequence, Type, Union, cast
 from uuid import UUID
@@ -21,7 +19,6 @@ from jaclang.plugin.feature import (
     AccessLevel,
     Anchor,
     Architype,
-    DSFunc,
     EdgeAnchor,
     EdgeArchitype,
     EdgeDir,
@@ -404,7 +401,7 @@ class JacWalkerImpl:
 
         # walker entry
         for i in warch._jac_entry_funcs_:
-            if i.func and not i.trigger:
+            if not i.trigger:
                 i.func(warch, current_node)
             if walker.disengaged:
                 return warch
@@ -414,8 +411,7 @@ class JacWalkerImpl:
                 # walker entry with
                 for i in warch._jac_entry_funcs_:
                     if (
-                        i.func
-                        and i.trigger
+                        i.trigger
                         and all_issubclass(i.trigger, NodeArchitype)
                         and isinstance(current_node, i.trigger)
                     ):
@@ -425,7 +421,7 @@ class JacWalkerImpl:
 
                 # node entry
                 for i in current_node._jac_entry_funcs_:
-                    if i.func and not i.trigger:
+                    if not i.trigger:
                         i.func(current_node, warch)
                     if walker.disengaged:
                         return warch
@@ -433,8 +429,7 @@ class JacWalkerImpl:
                 # node entry with
                 for i in current_node._jac_entry_funcs_:
                     if (
-                        i.func
-                        and i.trigger
+                        i.trigger
                         and all_issubclass(i.trigger, WalkerArchitype)
                         and isinstance(warch, i.trigger)
                     ):
@@ -445,8 +440,7 @@ class JacWalkerImpl:
                 # node exit with
                 for i in current_node._jac_exit_funcs_:
                     if (
-                        i.func
-                        and i.trigger
+                        i.trigger
                         and all_issubclass(i.trigger, WalkerArchitype)
                         and isinstance(warch, i.trigger)
                     ):
@@ -456,7 +450,7 @@ class JacWalkerImpl:
 
                 # node exit
                 for i in current_node._jac_exit_funcs_:
-                    if i.func and not i.trigger:
+                    if not i.trigger:
                         i.func(current_node, warch)
                     if walker.disengaged:
                         return warch
@@ -464,8 +458,7 @@ class JacWalkerImpl:
                 # walker exit with
                 for i in warch._jac_exit_funcs_:
                     if (
-                        i.func
-                        and i.trigger
+                        i.trigger
                         and all_issubclass(i.trigger, NodeArchitype)
                         and isinstance(current_node, i.trigger)
                     ):
@@ -474,7 +467,7 @@ class JacWalkerImpl:
                         return warch
         # walker exit
         for i in warch._jac_exit_funcs_:
-            if i.func and not i.trigger:
+            if not i.trigger:
                 i.func(warch, current_node)
             if walker.disengaged:
                 return warch
@@ -648,148 +641,21 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def make_architype(
-        cls: type,
-        arch_base: Type,
-        on_entry: list[DSFunc],
-        on_exit: list[DSFunc],
-    ) -> Type[Architype]:
+    def make_architype(cls: Type[Architype]) -> Type[Architype]:
         """Create a new architype."""
-        for i in on_entry + on_exit:
-            i.resolve(cls)
-        if not hasattr(cls, "_jac_entry_funcs_") or not hasattr(
-            cls, "_jac_exit_funcs_"
-        ):
-            # Saving the module path and reassign it after creating cls
-            # So the jac modules are part of the correct module
-            cur_module = cls.__module__
-            cls = type(cls.__name__, (cls, arch_base), {})
-            cls.__module__ = cur_module
-            cls._jac_entry_funcs_ = on_entry  # type: ignore
-            cls._jac_exit_funcs_ = on_exit  # type: ignore
-        else:
-            new_entry_funcs = OrderedDict(zip([i.name for i in on_entry], on_entry))
-            entry_funcs = OrderedDict(
-                zip([i.name for i in cls._jac_entry_funcs_], cls._jac_entry_funcs_)
-            )
-            entry_funcs.update(new_entry_funcs)
-            cls._jac_entry_funcs_ = list(entry_funcs.values())
+        entries: list[Jac.DSFunc] = []
+        exits: list[Jac.DSFunc] = []
+        for func in cls.__dict__.values():
+            if hasattr(func, "__jac_entry"):
+                entries.append(Jac.DSFunc(func.__name__, func))
+            if hasattr(func, "__jac_exit"):
+                exits.append(Jac.DSFunc(func.__name__, func))
 
-            new_exit_funcs = OrderedDict(zip([i.name for i in on_exit], on_exit))
-            exit_funcs = OrderedDict(
-                zip([i.name for i in cls._jac_exit_funcs_], cls._jac_exit_funcs_)
-            )
-            exit_funcs.update(new_exit_funcs)
-            cls._jac_exit_funcs_ = list(exit_funcs.values())
+        cls._jac_entry_funcs_ = entries
+        cls._jac_exit_funcs_ = exits
 
-        inner_init = cls.__init__  # type: ignore
-
-        @wraps(inner_init)
-        def new_init(self: Architype, *args: object, **kwargs: object) -> None:
-            arch_base.__init__(self)
-            inner_init(self, *args, **kwargs)
-
-        cls.__init__ = new_init  # type: ignore
+        dataclass(eq=False)(cls)
         return cls
-
-    @staticmethod
-    @hookimpl
-    def make_obj(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a new architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls, arch_base=Architype, on_entry=on_entry, on_exit=on_exit
-            )
-            return cls
-
-        return decorator
-
-    @staticmethod
-    @hookimpl
-    def make_node(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a obj architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls, arch_base=NodeArchitype, on_entry=on_entry, on_exit=on_exit
-            )
-            return cls
-
-        return decorator
-
-    @staticmethod
-    @hookimpl
-    def make_root(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a obj architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls, arch_base=Root, on_entry=on_entry, on_exit=on_exit
-            )
-            return cls
-
-        return decorator
-
-    @staticmethod
-    @hookimpl
-    def make_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a edge architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls, arch_base=EdgeArchitype, on_entry=on_entry, on_exit=on_exit
-            )
-            return cls
-
-        return decorator
-
-    @staticmethod
-    @hookimpl
-    def make_generic_edge(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a edge architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls,
-                arch_base=GenericEdge,
-                on_entry=on_entry,
-                on_exit=on_exit,
-            )
-            return cls
-
-        return decorator
-
-    @staticmethod
-    @hookimpl
-    def make_walker(
-        on_entry: list[DSFunc], on_exit: list[DSFunc]
-    ) -> Callable[[type], type]:
-        """Create a walker architype."""
-
-        def decorator(cls: Type[Architype]) -> Type[Architype]:
-            """Decorate class."""
-            cls = Jac.make_architype(
-                cls=cls, arch_base=WalkerArchitype, on_entry=on_entry, on_exit=on_exit
-            )
-            return cls
-
-        return decorator
 
     @staticmethod
     @hookimpl
