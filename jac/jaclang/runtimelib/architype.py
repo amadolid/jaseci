@@ -261,7 +261,7 @@ class Architype:
 class NodeArchitype(Architype):
     """Node Architype Protocol."""
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
 
     @cached_property
     def __jac__(self) -> NodeAnchor:
@@ -272,14 +272,14 @@ class NodeArchitype(Architype):
 class EdgeArchitype(Architype):
     """Edge Architype Protocol."""
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
     __jac__: EdgeAnchor
 
 
 class WalkerArchitype(Architype):
     """Walker Architype Protocol."""
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
 
     @cached_property
     def __jac__(self) -> WalkerAnchor:
@@ -290,7 +290,7 @@ class WalkerArchitype(Architype):
 class ObjectArchitype(Architype):
     """Walker Architype Protocol."""
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
 
     @cached_property
     def __jac__(self) -> ObjectAnchor:
@@ -298,26 +298,28 @@ class ObjectArchitype(Architype):
         return ObjectAnchor(architype=self)
 
 
+@dataclass(eq=False)
 class GenericEdge(EdgeArchitype):
     """Generic Edge."""
 
     _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]] = []
     _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]] = []
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
 
     def __repr__(self) -> str:
         """Override repr for architype."""
         return f"{self.__class__.__name__}()"
 
 
+@dataclass(eq=False)
 class Root(NodeArchitype):
     """Generic Root Node."""
 
     _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]] = []
     _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]] = []
 
-    __jac_base__ = True
+    __jac_base__: ClassVar[bool] = True
 
     @cached_property
     def __jac__(self) -> NodeAnchor:

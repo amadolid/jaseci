@@ -1189,7 +1189,7 @@ class PyastGenPass(Pass):
                 isinstance(node.arch_name, ast.SpecialVarRef)
                 and node.arch_name.orig.name == Tok.KW_ROOT
             ):
-                node.gen.py_ast = [self.jaclib_obj("RootType")]
+                node.gen.py_ast = [self.jaclib_obj("Root")]
             else:
                 self.needs_typing()
                 node.gen.py_ast = [

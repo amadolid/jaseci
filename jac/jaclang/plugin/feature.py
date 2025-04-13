@@ -35,7 +35,11 @@ from jaclang.plugin.spec import (
     ast,
     plugin_manager,
 )
-from jaclang.runtimelib.architype import DataSpatialFunction
+from jaclang.runtimelib.architype import (
+    DataSpatialFunction,
+    GenericEdge as _GenericEdge,
+    Root as _Root,
+)
 
 
 class JacAccessValidation:
@@ -196,11 +200,14 @@ class JacClassReferences:
     TYPE_CHECKING: bool = TYPE_CHECKING
     EdgeDir: TypeAlias = EdgeDir
     DSFunc: TypeAlias = DataSpatialFunction
-    RootType: TypeAlias = Root  # TODO: Rename this to "Root" (for jaclib).
+
     Obj: TypeAlias = Architype
     Node: TypeAlias = NodeArchitype
     Edge: TypeAlias = EdgeArchitype
     Walker: TypeAlias = WalkerArchitype
+
+    Root: TypeAlias = _Root
+    GenericEdge: TypeAlias = _GenericEdge
 
 
 class JacBuiltin:

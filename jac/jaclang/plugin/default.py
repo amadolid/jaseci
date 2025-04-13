@@ -33,10 +33,7 @@ from jaclang.plugin.feature import (
     WalkerArchitype,
     ast,
 )
-from jaclang.runtimelib.constructs import (
-    GenericEdge,
-    JacTestCheck,
-)
+from jaclang.runtimelib.constructs import GenericEdge, JacTestCheck
 from jaclang.runtimelib.importer import ImportPathSpec, JacImporter, PythonImporter
 from jaclang.runtimelib.machine import JacMachine, JacProgram
 from jaclang.runtimelib.memory import Shelf, ShelfStorage
