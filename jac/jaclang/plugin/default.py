@@ -955,9 +955,11 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def has_instance_default(gen_func: Callable[[], T]) -> T:
-        """Jac's has container default feature."""
-        return field(default_factory=lambda: gen_func())
+    def field(factory: Callable[[], T] | None, init: bool) -> T:
+        """Jac's field handler."""
+        if factory:
+            return field(default_factory=factory, init=init)
+        return field(init=init)
 
     @staticmethod
     @hookimpl

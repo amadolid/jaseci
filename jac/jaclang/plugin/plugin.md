@@ -304,12 +304,12 @@ def elvis(
 ) -> T:
     """Jac's elvis operator feature."""
 ```
-### **`has_instance_default`**
+### **`field`**
 ```python
-def has_instance_default(
-    gen_func: Callable[[], T]
+def field(
+    factory: Callable[[], T] | _MISSING_TYPE = MISSING, init: bool = True
 ) -> T:
-    """Jac's has container default feature."""
+    """Jac's field handler."""
 ```
 ### **`report`**
 ```python

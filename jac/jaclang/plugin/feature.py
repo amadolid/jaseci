@@ -391,9 +391,9 @@ class JacFeature(
         )
 
     @staticmethod
-    def has_instance_default(gen_func: Callable[[], T]) -> T:
-        """Jac's has container default feature."""
-        return plugin_manager.hook.has_instance_default(gen_func=gen_func)
+    def field(factory: Callable[[], T] | None = None, init: bool = True) -> T:
+        """Jac's field handler."""
+        return plugin_manager.hook.field(factory=factory, init=init)
 
     @staticmethod
     def report(expr: Any, custom: bool = False) -> None:  # noqa: ANN401

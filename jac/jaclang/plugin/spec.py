@@ -373,8 +373,8 @@ class JacFeatureSpec(
 
     @staticmethod
     @hookspec(firstresult=True)
-    def has_instance_default(gen_func: Callable[[], T]) -> T:
-        """Jac's has container default feature."""
+    def field(factory: Callable[[], T] | None, init: bool) -> T:
+        """Jac's field handler."""
         raise NotImplementedError
 
     @staticmethod

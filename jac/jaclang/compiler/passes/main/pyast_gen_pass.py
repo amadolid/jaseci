@@ -488,11 +488,20 @@ class PyastGenPass(Pass):
                         item.alias.sym_name if item.alias else None
                     )
 
-        item_keys = []
-        item_values = []
+        item_names: list[ast3.expr] = []
+        item_keys: list[ast3.Constant] = []
+        item_values: list[ast3.Constant] = []
         for k, v in imp_from.items():
             item_keys.append(self.sync(ast3.Constant(value=k)))
             item_values.append(self.sync(ast3.Constant(value=v)))
+            item_names.append(
+                self.sync(
+                    ast3.Name(
+                        id=v or k,
+                        ctx=ast3.Store(),
+                    )
+                )
+            )
         path_named_value: str
         py_nodes: list[ast3.AST] = []
         typecheck_nodes: list[ast3.AST] = []
@@ -515,6 +524,63 @@ class PyastGenPass(Pass):
             #     target_named_value += i if i else "."
             #     if i:
             #         break
+
+            args = [
+                self.sync(
+                    ast3.Constant(value=path),
+                ),
+                self.sync(
+                    ast3.Name(
+                        id="__file__",
+                        ctx=ast3.Load(),
+                    )
+                ),
+            ]
+            keywords = []
+
+            if node.is_absorb:
+                args.append(self.sync(ast3.Constant(value=node.is_absorb)))
+
+            if alias is not None:
+                keywords.append(
+                    self.sync(
+                        ast3.keyword(
+                            arg="mdl_alias",
+                            value=self.sync(
+                                ast3.Constant(value=alias),
+                            ),
+                        )
+                    )
+                )
+
+            if node.is_py:
+                keywords.append(
+                    self.sync(
+                        ast3.keyword(
+                            arg="lng",
+                            value=self.sync(
+                                ast3.Constant(value="py"),
+                                node.hint,
+                            ),
+                        )
+                    )
+                )
+
+            if item_keys and item_values:
+                keywords.append(
+                    self.sync(
+                        ast3.keyword(
+                            arg="items",
+                            value=self.sync(
+                                ast3.Dict(
+                                    keys=cast(list[ast3.expr | None], item_keys),
+                                    values=cast(list[ast3.expr], item_values),
+                                ),
+                            ),
+                        )
+                    )
+                )
+
             runtime_nodes.append(
                 self.sync(
                     ast3.Assign(
@@ -523,28 +589,14 @@ class PyastGenPass(Pass):
                                 self.sync(
                                     ast3.Tuple(
                                         elts=(
-                                            [
+                                            item_names
+                                            or [
                                                 self.sync(
                                                     ast3.Name(
                                                         id=path_named_value,
                                                         ctx=ast3.Store(),
                                                     )
                                                 )
-                                            ]
-                                            if not len(item_keys)
-                                            else []
-                                            + [
-                                                self.sync(
-                                                    ast3.Name(
-                                                        id=(
-                                                            v.value
-                                                            if v.value
-                                                            else k.value
-                                                        ),
-                                                        ctx=ast3.Store(),
-                                                    )
-                                                )
-                                                for k, v in zip(item_keys, item_values)
                                             ]
                                         ),
                                         ctx=ast3.Store(),
@@ -555,75 +607,8 @@ class PyastGenPass(Pass):
                         value=self.sync(
                             ast3.Call(
                                 func=self.jaclib_obj("jac_import"),
-                                args=[
-                                    cast(
-                                        ast3.expr, self.sync(ast3.Constant(value=path))
-                                    ),
-                                ]
-                                + (
-                                    [
-                                        self.sync(
-                                            cast(
-                                                ast3.expr,
-                                                self.sync(ast3.Constant(value="py")),
-                                            ),
-                                            node.hint,
-                                        )
-                                    ]
-                                    if node.is_py
-                                    else []
-                                ),
-                                keywords=(
-                                    [
-                                        self.sync(
-                                            ast3.keyword(
-                                                arg="absorb",
-                                                value=self.sync(
-                                                    ast3.Constant(value=node.is_absorb),
-                                                ),
-                                            )
-                                        ),
-                                    ]
-                                    if node.is_absorb
-                                    else []
-                                )
-                                + (
-                                    [
-                                        self.sync(
-                                            ast3.keyword(
-                                                arg="alias",
-                                                value=self.sync(
-                                                    ast3.Constant(value=alias),
-                                                ),
-                                            )
-                                        ),
-                                    ]
-                                    if alias
-                                    else []
-                                )
-                                + (
-                                    [
-                                        self.sync(
-                                            ast3.keyword(
-                                                arg="items",
-                                                value=self.sync(
-                                                    ast3.Dict(
-                                                        keys=[
-                                                            cast(ast3.expr, key)
-                                                            for key in item_keys
-                                                        ],
-                                                        values=[
-                                                            cast(ast3.expr, value)
-                                                            for value in item_values
-                                                        ],
-                                                    ),
-                                                ),
-                                            )
-                                        ),
-                                    ]
-                                    if len(item_keys)
-                                    else []
-                                ),
+                                args=args,
+                                keywords=keywords,
                             )
                         ),
                     ),
@@ -1304,28 +1289,36 @@ class PyastGenPass(Pass):
         semstr: Optional[String] = None,
         """
         annotation = node.type_tag.gen.py_ast[0] if node.type_tag else None
+
         is_static_var = (
             node.parent
             and node.parent.parent
             and isinstance(node.parent.parent, ast.ArchHas)
             and node.parent.parent.is_static
         )
-        is_in_class = (
-            node.parent
-            and node.parent.parent
-            and node.parent.parent.parent
-            and (
-                (
-                    isinstance(node.parent.parent.parent, ast.Architype)
-                    and node.parent.parent.parent.arch_type.name == Tok.KW_CLASS
-                )
-                or (
-                    node.parent.parent.parent.parent
-                    and isinstance(node.parent.parent.parent.parent, ast.Architype)
-                    and node.parent.parent.parent.parent.arch_type.name == Tok.KW_CLASS
-                )
-            )
-        )
+        ######################################################################################
+        #                            I'M NOT SURE IF STILL NEEDED                            #
+        ######################################################################################
+        # is_in_class = (
+        #     node.parent
+        #     and node.parent.parent
+        #     and node.parent.parent.parent
+        #     and (
+        #         (
+        #             isinstance(node.parent.parent.parent, ast.Architype)
+        #             and node.parent.parent.parent.arch_type.name == Tok.KW_CLASS
+        #         )
+        #         or (
+        #             node.parent.parent.parent.parent
+        #             and isinstance(node.parent.parent.parent.parent, ast.Architype)
+        #             and node.parent.parent.parent.parent.arch_type.name == Tok.KW_CLASS
+        #         )
+        #     )
+        # )
+        #
+        # ---------------------------------------------------------------------------------- #
+
+        value = None
         if is_static_var:
             annotation = self.sync(
                 ast3.Subscript(
@@ -1334,97 +1327,54 @@ class PyastGenPass(Pass):
                     ctx=ast3.Load(),
                 )
             )
+            value = cast(ast3.expr, node.value.gen.py_ast[0]) if node.value else None
+        elif node.value:
+            args: list[ast3.expr] = []
+            if isinstance(node.value.gen.py_ast[0], ast3.Lambda):
+                args.append(self.sync(node.value.gen.py_ast[0]))
 
-        default_field_fn_name = "has_instance_default"
+                if node.defer:
+                    args.append(self.sync(ast3.Constant(value=False)))
+
+                value = self.sync(
+                    ast3.Call(
+                        func=self.jaclib_obj("field"),
+                        args=args,
+                        keywords=[],
+                    ),
+                )
+            else:
+                value = self.sync(cast(ast3.expr, node.value.gen.py_ast[0]))
+        elif node.defer:
+            value = self.sync(
+                ast3.Call(
+                    func=self.jaclib_obj("field"),
+                    args=[],
+                    keywords=[
+                        self.sync(
+                            ast3.keyword(
+                                arg="init",
+                                value=self.sync(ast3.Constant(value=False)),
+                            )
+                        )
+                    ],
+                ),
+            )
+
         node.gen.py_ast = [
-            (
-                self.sync(
-                    ast3.AnnAssign(
-                        target=cast(
-                            ast3.Name | ast3.Attribute | ast3.Subscript,
-                            node.name.gen.py_ast[0],
-                        ),
-                        annotation=(
-                            cast(ast3.expr, annotation)
-                            if annotation
-                            else ast3.Constant(value=None)
-                        ),
-                        value=(
-                            self.sync(
-                                ast3.Call(
-                                    func=self.jaclib_obj(default_field_fn_name),
-                                    args=(
-                                        [node.value.gen.py_ast[0]]
-                                        if isinstance(
-                                            node.value.gen.py_ast[0], ast3.Constant
-                                        )
-                                        else []
-                                    ),
-                                    keywords=(
-                                        [
-                                            self.sync(
-                                                ast3.keyword(
-                                                    arg="gen",
-                                                    value=self.sync(
-                                                        ast3.Lambda(
-                                                            args=self.sync(
-                                                                ast3.arguments(
-                                                                    posonlyargs=[],
-                                                                    args=[],
-                                                                    kwonlyargs=[],
-                                                                    vararg=None,
-                                                                    kwarg=None,
-                                                                    kw_defaults=[],
-                                                                    defaults=[],
-                                                                )
-                                                            ),
-                                                            body=cast(
-                                                                ast3.expr,
-                                                                node.value.gen.py_ast[
-                                                                    0
-                                                                ],
-                                                            ),
-                                                        )
-                                                    ),
-                                                )
-                                            )
-                                        ]
-                                        if not isinstance(
-                                            node.value.gen.py_ast[0], ast3.Constant
-                                        )
-                                        else []
-                                    ),
-                                )
-                            )
-                            if node.value
-                            and not (is_static_var or is_in_class or node.defer)
-                            else (
-                                self.sync(
-                                    ast3.Call(
-                                        func=self.jaclib_obj(default_field_fn_name),
-                                        args=[],
-                                        keywords=[
-                                            self.sync(
-                                                ast3.keyword(
-                                                    arg="init",
-                                                    value=self.sync(
-                                                        ast3.Constant(value=False)
-                                                    ),
-                                                )
-                                            )
-                                        ],
-                                    )
-                                )
-                                if node.defer and not (is_static_var or is_in_class)
-                                else (
-                                    cast(ast3.expr, node.value.gen.py_ast[0])
-                                    if node.value
-                                    else None
-                                )
-                            )
-                        ),
-                        simple=int(isinstance(node.name, ast.Name)),
-                    )
+            self.sync(
+                ast3.AnnAssign(
+                    target=cast(
+                        ast3.Name | ast3.Attribute | ast3.Subscript,
+                        node.name.gen.py_ast[0],
+                    ),
+                    annotation=(
+                        cast(ast3.expr, annotation)
+                        if annotation
+                        else ast3.Constant(value=None)
+                    ),
+                    value=value,
+                    simple=int(isinstance(node.name, ast.Name)),
                 )
             )
         ]
@@ -3201,12 +3151,7 @@ class PyastGenPass(Pass):
         kwargs = False
 
         if targ:
-            if kwargs:
-                keywords.append(
-                    ast3.keyword(arg="targets", value=cast(ast3.expr, targ))
-                )
-            else:
-                args.append(targ)
+            args.append(targ)
         else:
             kwargs = True
 
