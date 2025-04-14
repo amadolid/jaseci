@@ -117,7 +117,7 @@ def detach(
 ## Walker Related Methods
 ### **`visit_node`**
 ```python
-def visit_node(
+def visit(
     walker: WalkerArchitype,
     expr: (
     list[NodeArchitype | EdgeArchitype]
@@ -145,7 +145,7 @@ def ignore(
 ```
 ### **`spawn_call`**
 ```python
-def spawn_call(
+def spawn(
     op1: Architype,
     op2: Architype
 ) -> WalkerArchitype:
@@ -359,7 +359,7 @@ def disconnect(
 ```
 ### **`assign_compr`**
 ```python
-def assign_compr(
+def assign(
     target: list[T],
     attr_val: tuple[tuple[str], tuple[Any]]
 ) -> list[T]:

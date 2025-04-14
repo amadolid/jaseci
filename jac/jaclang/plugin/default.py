@@ -307,7 +307,7 @@ class JacWalkerImpl:
 
     @staticmethod
     @hookimpl
-    def visit_node(
+    def visit(
         walker: WalkerArchitype,
         expr: (
             list[NodeArchitype | EdgeArchitype]
@@ -370,7 +370,7 @@ class JacWalkerImpl:
 
     @staticmethod
     @hookimpl
-    def spawn_call(op1: Architype, op2: Architype) -> WalkerArchitype:
+    def spawn(op1: Architype, op2: Architype) -> WalkerArchitype:
         """Invoke data spatial call."""
         if isinstance(op1, WalkerArchitype):
             warch = op1
@@ -892,7 +892,9 @@ class JacFeatureImpl(
     def connect(
         left: NodeArchitype | list[NodeArchitype],
         right: NodeArchitype | list[NodeArchitype],
-        edge_spec: Callable[[NodeAnchor, NodeAnchor], EdgeArchitype],
+        edge: Type[EdgeArchitype] | EdgeArchitype | None,
+        undir: bool,
+        conn_assign: tuple[tuple, tuple] | None,
         edges_only: bool,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's connect operator feature.
@@ -909,7 +911,13 @@ class JacFeatureImpl(
                 for j in right:
                     _right = j.__jac__
                     if Jac.check_connect_access(_right):
-                        edges.append(edge_spec(_left, _right))
+                        edges.append(
+                            Jac.build_edge(
+                                is_undirected=undir,
+                                conn_type=edge,
+                                conn_assign=conn_assign,
+                            )(_left, _right)
+                        )
         return right if not edges_only else edges
 
     @staticmethod
@@ -956,9 +964,7 @@ class JacFeatureImpl(
 
     @staticmethod
     @hookimpl
-    def assign_compr(
-        target: list[T], attr_val: tuple[tuple[str], tuple[Any]]
-    ) -> list[T]:
+    def assign(target: list[T], attr_val: tuple[tuple[str], tuple[Any]]) -> list[T]:
         """Jac's assign comprehension feature."""
         for obj in target:
             attrs, values = attr_val

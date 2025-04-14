@@ -230,7 +230,7 @@ class JacLanguageTests(TestCase):
             stdout_value,
         )
 
-    def test_assign_compr(self) -> None:
+    def test_assign_operation(self) -> None:
         """Test assign_compr."""
         captured_output = io.StringIO()
         sys.stdout = captured_output

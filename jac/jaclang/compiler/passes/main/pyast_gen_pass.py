@@ -2153,7 +2153,6 @@ class PyastGenPass(Pass):
         op: Token | DisconnectOp | ConnectOp,
         """
         if isinstance(node.op, ast.ConnectOp):
-
             left = (
                 node.right.gen.py_ast[0]
                 if node.op.edge_dir == EdgeDir.IN
@@ -2164,102 +2163,89 @@ class PyastGenPass(Pass):
                 if node.op.edge_dir == EdgeDir.IN
                 else node.right.gen.py_ast[0]
             )
-            conn_type = (
-                node.op.conn_type.gen.py_ast[0]
-                if node.op.conn_type
-                else self.sync(ast3.Constant(value=None))
-            )
-            undir = self.sync(ast3.Constant(value=node.op.edge_dir == EdgeDir.ANY))
-            conn_assign = (
-                node.op.conn_assign.gen.py_ast[0]
-                if node.op.conn_assign
-                else self.sync(ast3.Constant(value=None))
-            )
 
+            args = [left, right]
             keywords = []
-            if not isinstance(conn_type, ast3.Constant) or conn_type.value is not None:
-                keywords.append(
-                    self.sync(
-                        ast3.keyword(
-                            arg="edge",
-                            value=cast(ast3.expr, conn_type),
+            kwargs = False
+
+            if node.op.conn_type:
+                args.append(node.op.conn_type.gen.py_ast[0])
+            else:
+                kwargs = True
+
+            if node.op.edge_dir == EdgeDir.ANY:
+                undir = self.sync(ast3.Constant(value=True))
+                if kwargs:
+                    keywords.append(self.sync(ast3.keyword(arg="undir", value=undir)))
+                else:
+                    args.append(undir)
+            else:
+                kwargs = True
+
+            if node.op.conn_assign:
+                if kwargs:
+                    keywords.append(
+                        self.sync(
+                            ast3.keyword(
+                                arg="conn_assign",
+                                value=cast(
+                                    ast3.expr, node.op.conn_assign.gen.py_ast[0]
+                                ),
+                            )
                         )
                     )
-                )
-            if undir.value:  # default is Fault.
-                keywords.append(
-                    self.sync(
-                        ast3.keyword(
-                            arg="undir",
-                            value=undir,
-                        )
-                    )
-                )
-            if (
-                not isinstance(conn_assign, ast3.Constant)
-                or conn_assign.value is not None
-            ):
-                keywords.append(
-                    self.sync(
-                        ast3.keyword(
-                            arg="conn_assign",
-                            value=cast(ast3.expr, conn_assign),
-                        )
-                    )
-                )
+                else:
+                    args.append(node.op.conn_assign.gen.py_ast[0])
 
             node.gen.py_ast = [
                 self.sync(
                     ast3.Call(
-                        func=self.jaclib_obj("conn"),
-                        args=cast(list[ast3.expr], [left, right]),
+                        func=self.jaclib_obj("connect"),
+                        args=cast(list[ast3.expr], args),
                         keywords=keywords,
                     )
                 )
             ]
 
         elif isinstance(node.op, ast.DisconnectOp):
+            args = [node.left.gen.py_ast[0], node.right.gen.py_ast[0]]
             keywords = []
-
-            if node.op.edge_spec.filter_cond and node.op.edge_spec.filter_cond.f_type:
-                keywords.append(
-                    self.sync(
-                        ast3.keyword(
-                            arg="edge",
-                            value=self.sync(
-                                cast(
-                                    ast3.expr,
-                                    node.op.edge_spec.filter_cond.f_type.gen.py_ast[0],
-                                )
-                            ),
-                        )
-                    )
-                )
+            kwargs = False
 
             if node.op.edge_spec.edge_dir != EdgeDir.OUT:
-                keywords.append(
+                args.append(
                     self.sync(
-                        ast3.keyword(
-                            arg="dir",
-                            value=self.sync(
-                                ast3.Attribute(
-                                    value=self.jaclib_obj("EdgeDir"),
-                                    attr=node.op.edge_spec.edge_dir.name,
-                                    ctx=ast3.Load(),
-                                )
-                            ),
+                        ast3.Attribute(
+                            value=self.jaclib_obj("EdgeDir"),
+                            attr=node.op.edge_spec.edge_dir.name,
+                            ctx=ast3.Load(),
                         )
                     )
                 )
+            else:
+                kwargs = True
+
+            if node.op.edge_spec.filter_cond:
+                if kwargs:
+                    keywords.append(
+                        self.sync(
+                            ast3.keyword(
+                                arg="filter",
+                                value=cast(
+                                    ast3.expr,
+                                    node.op.edge_spec.filter_cond.gen.py_ast[0],
+                                ),
+                            ),
+                        )
+                    )
+                else:
+                    args.append(node.op.edge_spec.filter_cond.gen.py_ast[0])
 
             node.gen.py_ast = [
                 self.sync(
                     ast3.Call(
-                        func=self.jaclib_obj("disconn"),
-                        args=cast(
-                            list[ast3.expr],
-                            [node.left.gen.py_ast[0], node.right.gen.py_ast[0]],
-                        ),
+                        func=self.jaclib_obj("disconnect"),
+                        args=cast(list[ast3.expr], args),
                         keywords=keywords,
                     )
                 )
