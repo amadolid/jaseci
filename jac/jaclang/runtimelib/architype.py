@@ -238,8 +238,8 @@ class ObjectAnchor(Anchor):
 class Architype:
     """Architype Protocol."""
 
-    _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]]
-    _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]]
+    _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]] = []
+    _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]] = []
 
     @cached_property
     def __jac__(self) -> Anchor:
@@ -302,9 +302,6 @@ class ObjectArchitype(Architype):
 class GenericEdge(EdgeArchitype):
     """Generic Edge."""
 
-    _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]] = []
-    _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]] = []
-
     __jac_base__: ClassVar[bool] = True
 
     def __repr__(self) -> str:
@@ -315,9 +312,6 @@ class GenericEdge(EdgeArchitype):
 @dataclass(eq=False)
 class Root(NodeArchitype):
     """Generic Root Node."""
-
-    _jac_entry_funcs_: ClassVar[list[DataSpatialFunction]] = []
-    _jac_exit_funcs_: ClassVar[list[DataSpatialFunction]] = []
 
     __jac_base__: ClassVar[bool] = True
 

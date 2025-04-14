@@ -79,8 +79,8 @@ def node_dot(
 def get_edges(
     node: NodeAnchor,
     dir: EdgeDir,
-    filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-    target_obj: Optional[list[NodeArchitype]],
+    filter: Callable[[EdgeArchitype], bool] | None,
+    target_obj: list[NodeArchitype] | None,
 ) -> list[EdgeArchitype]:
     """Get edges connected to this node."""
 ```
@@ -89,8 +89,8 @@ def get_edges(
 def edges_to_nodes(
     node: NodeAnchor,
     dir: EdgeDir,
-    filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-    target_obj: Optional[list[NodeArchitype]],
+    filter: Callable[[EdgeArchitype], bool] | None,
+    target_obj: list[NodeArchitype] | None,
 ) -> list[NodeArchitype]:
     """Get set of nodes connected to this node."""
 ```
@@ -318,13 +318,13 @@ def report(
 ### **`refs`**
 ```python
 def refs(
-    node_obj: NodeArchitype | list[NodeArchitype],
-    target_obj: Optional[NodeArchitype | list[NodeArchitype]],
+    sources: NodeArchitype | list[NodeArchitype],
+    targets: NodeArchitype | list[NodeArchitype] | None,
     dir: EdgeDir,
-    filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+    filter: Callable[[EdgeArchitype], bool] | None,
     edges_only: bool,
 ) -> list[NodeArchitype] | list[EdgeArchitype]:
-    """Jac's apply_dir stmt feature."""
+    """Jac's edge references stmt feature."""
 ```
 ### **`filter`**
 ```python
@@ -353,7 +353,7 @@ def disconnect(
     left: NodeArchitype | list[NodeArchitype],
     right: NodeArchitype | list[NodeArchitype],
     dir: EdgeDir,
-    filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+    filter: Callable[[EdgeArchitype], bool] | None,
 ) -> bool:
     """Jac's disconnect operator feature."""
 ```

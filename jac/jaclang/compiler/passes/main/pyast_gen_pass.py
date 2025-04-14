@@ -3261,7 +3261,7 @@ class PyastGenPass(Pass):
 
         compares: SubNodeList[BinaryExpr],
         """
-        iter_name = "item"
+        iter_name = "i"
 
         comprs: list[ast3.Compare | ast3.Call] = (
             [
@@ -3278,7 +3278,7 @@ class PyastGenPass(Pass):
                             [
                                 self.sync(
                                     ast3.Name(
-                                        id="item",
+                                        id=iter_name,
                                         ctx=ast3.Load(),
                                     )
                                 ),

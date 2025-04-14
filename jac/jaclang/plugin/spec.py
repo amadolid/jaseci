@@ -118,8 +118,8 @@ class JacNodeSpec:
     def get_edges(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[EdgeArchitype]:
         """Get edges connected to this node."""
         raise NotImplementedError
@@ -129,8 +129,8 @@ class JacNodeSpec:
     def edges_to_nodes(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[NodeArchitype]:
         """Get set of nodes connected to this node."""
         raise NotImplementedError
@@ -335,7 +335,7 @@ class JacFeatureSpec(
         sources: NodeArchitype | list[NodeArchitype],
         targets: NodeArchitype | list[NodeArchitype] | None,
         dir: EdgeDir,
-        filter: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Callable[[EdgeArchitype], bool] | None,
         edges_only: bool,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
@@ -370,7 +370,7 @@ class JacFeatureSpec(
         left: NodeArchitype | list[NodeArchitype],
         right: NodeArchitype | list[NodeArchitype],
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Callable[[EdgeArchitype], bool] | None,
     ) -> bool:  # noqa: ANN401
         """Jac's disconnect operator feature."""
         raise NotImplementedError

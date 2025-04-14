@@ -7,8 +7,9 @@ import fnmatch
 import html
 import os
 import types
+from collections import OrderedDict
 from dataclasses import dataclass, field
-from inspect import getfile, getmembers
+from inspect import getfile
 from logging import getLogger
 from typing import Any, Callable, Mapping, Optional, Sequence, Type, Union, cast
 from uuid import UUID
@@ -217,8 +218,8 @@ class JacNodeImpl:
     def get_edges(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[EdgeArchitype]:
         """Get edges connected to this node."""
         ret_edges: list[EdgeArchitype] = []
@@ -226,7 +227,7 @@ class JacNodeImpl:
             if (
                 (source := anchor.source)
                 and (target := anchor.target)
-                and (not filter_func or filter_func([anchor.architype]))
+                and (not filter or filter(anchor.architype))
                 and source.architype
                 and target.architype
             ):
@@ -251,8 +252,8 @@ class JacNodeImpl:
     def edges_to_nodes(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[NodeArchitype]:
         """Get set of nodes connected to this node."""
         ret_edges: list[NodeArchitype] = []
@@ -260,7 +261,7 @@ class JacNodeImpl:
             if (
                 (source := anchor.source)
                 and (target := anchor.target)
-                and (not filter_func or filter_func([anchor.architype]))
+                and (not filter or filter(anchor.architype))
                 and source.architype
                 and target.architype
             ):
@@ -640,17 +641,21 @@ class JacFeatureImpl(
     @hookimpl
     def make_architype(cls: Type[Architype]) -> Type[Architype]:
         """Create a new architype."""
-        entries: list[Jac.DSFunc] = []
-        exits: list[Jac.DSFunc] = []
-        for _n, func in getmembers(cls):
+        entries: OrderedDict[str, Jac.DSFunc] = OrderedDict(
+            (fn.name, fn) for fn in cls._jac_entry_funcs_
+        )
+        exits: OrderedDict[str, Jac.DSFunc] = OrderedDict(
+            (fn.name, fn) for fn in cls._jac_exit_funcs_
+        )
+        for func in cls.__dict__.values():
             if callable(func):
                 if hasattr(func, "__jac_entry"):
-                    entries.append(Jac.DSFunc(func.__name__, func))
+                    entries[func.__name__] = Jac.DSFunc(func.__name__, func)
                 if hasattr(func, "__jac_exit"):
-                    exits.append(Jac.DSFunc(func.__name__, func))
+                    exits[func.__name__] = Jac.DSFunc(func.__name__, func)
 
-        cls._jac_entry_funcs_ = entries
-        cls._jac_exit_funcs_ = exits
+        cls._jac_entry_funcs_ = [*entries.values()]
+        cls._jac_exit_funcs_ = [*exits.values()]
 
         dataclass(eq=False)(cls)
         return cls
@@ -839,9 +844,9 @@ class JacFeatureImpl(
     @hookimpl
     def refs(
         sources: NodeArchitype | list[NodeArchitype],
-        targets: Optional[NodeArchitype | list[NodeArchitype]],
+        targets: NodeArchitype | list[NodeArchitype] | None,
         dir: EdgeDir,
-        filter: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Callable[[EdgeArchitype], bool] | None,
         edges_only: bool,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
@@ -913,7 +918,7 @@ class JacFeatureImpl(
         left: NodeArchitype | list[NodeArchitype],
         right: NodeArchitype | list[NodeArchitype],
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Callable[[EdgeArchitype], bool] | None,
     ) -> bool:  # noqa: ANN401
         """Jac's disconnect operator feature."""
         disconnect_occurred = False
@@ -926,7 +931,7 @@ class JacFeatureImpl(
                 if (
                     (source := anchor.source)
                     and (target := anchor.target)
-                    and (not filter_func or filter_func([anchor.architype]))
+                    and (not filter or filter(anchor.architype))
                     and source.architype
                     and target.architype
                 ):

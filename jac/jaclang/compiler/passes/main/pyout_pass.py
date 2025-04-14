@@ -11,6 +11,7 @@ from typing import Callable
 import jaclang.compiler.absyntree as ast
 from jaclang.compiler.constant import Constants as Con
 from jaclang.compiler.passes import Pass
+from jaclang.settings import settings
 
 black_format: Callable | None = None
 try:
@@ -64,7 +65,7 @@ class PyOutPass(Pass):
         """Generate Python."""
         with open(out_path, "w") as f:
             content = node.gen.py
-            if black_format:
+            if settings.pyout_jaclib_format and black_format:
                 content = black_format(content, mode=FILE_MODE)
             f.write(content)
 

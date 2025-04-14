@@ -24,7 +24,8 @@ class Settings:
     ignore_test_annex: bool = False
     allow_import_from: bool = False
     pyout_jaclib_import_all: bool = False
-    pyout_jaclib_alias = "_"
+    pyout_jaclib_alias: str = "_"
+    pyout_jaclib_format: bool = True
 
     # Formatter configuration
     max_line_length: int = 88

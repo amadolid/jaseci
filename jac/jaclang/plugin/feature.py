@@ -117,24 +117,24 @@ class JacNode:
     def get_edges(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[EdgeArchitype]:
         """Get edges connected to this node."""
         return plugin_manager.hook.get_edges(
-            node=node, dir=dir, filter_func=filter_func, target_obj=target_obj
+            node=node, dir=dir, filter=filter, target_obj=target_obj
         )
 
     @staticmethod
     def edges_to_nodes(
         node: NodeAnchor,
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
-        target_obj: Optional[list[NodeArchitype]],
+        filter: Callable[[EdgeArchitype], bool] | None,
+        target_obj: list[NodeArchitype] | None,
     ) -> list[NodeArchitype]:
         """Get set of nodes connected to this node."""
         return plugin_manager.hook.edges_to_nodes(
-            node=node, dir=dir, filter_func=filter_func, target_obj=target_obj
+            node=node, dir=dir, filter=filter, target_obj=target_obj
         )
 
     @staticmethod
@@ -365,7 +365,7 @@ class JacFeature(
         sources: NodeArchitype | list[NodeArchitype],
         targets: NodeArchitype | list[NodeArchitype] | None = None,
         dir: EdgeDir = EdgeDir.OUT,
-        filter: Callable[[list[EdgeArchitype]], list[EdgeArchitype]] | None = None,
+        filter: Callable[[EdgeArchitype], bool] | None = None,
         edges_only: bool = False,
     ) -> list[NodeArchitype] | list[EdgeArchitype]:
         """Jac's apply_dir stmt feature."""
@@ -397,14 +397,14 @@ class JacFeature(
         left: NodeArchitype | list[NodeArchitype],
         right: NodeArchitype | list[NodeArchitype],
         dir: EdgeDir,
-        filter_func: Optional[Callable[[list[EdgeArchitype]], list[EdgeArchitype]]],
+        filter: Callable[[EdgeArchitype], bool] | None,
     ) -> bool:
         """Jac's disconnect operator feature."""
         return plugin_manager.hook.disconnect(
             left=left,
             right=right,
             dir=dir,
-            filter_func=filter_func,
+            filter=filter,
         )
 
     @staticmethod
@@ -566,14 +566,10 @@ class JacFeature(
         dir: EdgeDir = EdgeDir.OUT,
     ) -> bool:
         """Jac's disconnect operator feature."""
-        filter_func = None
+        filter: Callable[[EdgeArchitype], bool] | None = None
         if edge is not None:
-            filter_func = lambda edges: [  # noqa: E731
-                ed for ed in edges if isinstance(ed, edge)
-            ]
-        return JacFeature.disconnect(
-            left=left, right=right, dir=dir, filter_func=filter_func
-        )
+            filter = lambda ed: isinstance(ed, edge)  # noqa: E731
+        return JacFeature.disconnect(left=left, right=right, dir=dir, filter=filter)
 
     @staticmethod
     def filter(
