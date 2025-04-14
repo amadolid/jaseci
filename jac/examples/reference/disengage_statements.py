@@ -22,7 +22,7 @@ class item(_.Node):
 i = 0
 
 while i < 5:
-    _.conn(_.root(), item())
+    _.connect(_.root(), item())
     i += 1
 
 _.spawn(_.root(), Visitor())

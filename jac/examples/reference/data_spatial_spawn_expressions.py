@@ -7,7 +7,7 @@ class Adder(_.Walker):
 
     @_.entry
     def do(self, here: _.Root) -> None:
-        _.conn(here, node_a())
+        _.connect(here, node_a())
         _.visit(self, _.refs(here))
 
 

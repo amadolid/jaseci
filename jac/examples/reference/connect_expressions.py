@@ -18,9 +18,9 @@ class Creator(_.Walker):
         i = 0
         while i < 7:
             if i % 2 == 0:
-                _.conn(end, (end := node_a(value=i)))
+                _.connect(end, (end := node_a(value=i)))
             else:
-                _.conn(
+                _.connect(
                     end,
                     (end := node_a(value=i + 10)),
                     edge=MyEdge,

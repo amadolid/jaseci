@@ -10,16 +10,16 @@ class Creator(_.Walker):
         end = here
         i = 0
         while i < 3:
-            _.conn(end, (end := node_a(val=i)))
+            _.connect(end, (end := node_a(val=i)))
             i += 1
 
-        _.conn(
+        _.connect(
             end,
             (end := node_a(val=i + 10)),
             edge=connector,
             conn_assign=(("value",), (i,)),
         )
-        _.conn(
+        _.connect(
             (end := node_a(val=i + 10)),
             _.root(),
             edge=connector,
