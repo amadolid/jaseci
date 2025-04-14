@@ -17,10 +17,10 @@ class TestObj(_.Obj):
 random.seed(42)
 apple = []
 i = 0
-while i < 10:
+while i < 100:
     apple.append(TestObj())
     i += 1
-print(_.filter(apple, lambda item: item.y <= 7))
+print(_.filter(apple, lambda i: i.x >= 0 and i.x <= 15) == apple)
 
 
 class MyObj(_.Obj):
