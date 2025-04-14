@@ -8,7 +8,11 @@ class node_a(_.Node):
 
 
 class Creator(_.Walker):
+
     @_.entry
+    @_.impl_patch_filename(
+        "/home/boyong/jaseci/jac/examples/reference/connect_expressions.jac"
+    )
     def create(self, here: _.Root) -> None:
         end = here
         i = 0
@@ -25,8 +29,13 @@ class Creator(_.Walker):
             i += 1
 
     @_.entry
+    @_.impl_patch_filename(
+        "/home/boyong/jaseci/jac/examples/reference/connect_expressions.jac"
+    )
     def travel(self, here: _.Root | node_a) -> None:
-        for i in _.refs(here, MyEdge, lambda edge: edge.val <= 6):
+        for i in _.refs(
+            here, filter=lambda item: isinstance(item, MyEdge) and item.val <= 6
+        ):
             print(i.value)
         _.visit(self, _.refs(here))
 

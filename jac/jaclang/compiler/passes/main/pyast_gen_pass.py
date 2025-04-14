@@ -2493,7 +2493,7 @@ class PyastGenPass(Pass):
             node.gen.py_ast = [
                 self.sync(
                     ast3.Call(
-                        func=self.jaclib_obj("jobj"),
+                        func=self.sync(ast3.Name(id="jobj", ctx=ast3.Load())),
                         args=[],
                         keywords=[
                             self.sync(
