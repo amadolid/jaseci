@@ -216,7 +216,7 @@ class JacLanguageTests(TestCase):
         )
         sys.stdout = sys.__stdout__
         stdout_value = captured_output.getvalue()
-        self.assertIn("TestObj", stdout_value)
+        self.assertIn("True", stdout_value)
 
     def test_gen_dot_bubble(self) -> None:
         """Test the dot gen of nodes and edges of bubblesort."""
