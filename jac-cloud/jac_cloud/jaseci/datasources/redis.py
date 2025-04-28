@@ -127,6 +127,18 @@ class Redis:
             return False
 
     @classmethod
+    def hsetnx(cls, key: str, data: dict | bool | float) -> bool:
+        """Push key value pair to group."""
+        try:
+            redis = cls.get_rd()
+            return bool(redis.hsetnx(cls.__table__, key, dumps(data).decode()))
+        except Exception:
+            logger.exception(
+                f"Error setting key {key} from {cls.__table__} with data\n{data}"
+            )
+            return False
+
+    @classmethod
     def hdelete(cls, *keys: Any) -> bool:  # noqa: ANN401
         """Delete via key from group."""
         try:
@@ -170,13 +182,23 @@ class TokenRedis(Redis):
 
 
 class WebhookRedis(Redis):
-    """Token Memory Interface.
+    """Webhook Memory Interface.
 
     This interface is for Token Management.
     You may override this if you wish to implement different structure
     """
 
     __table__ = "webhook"
+
+
+class ScheduleRedis(Redis):
+    """Schedule Memory Interface.
+
+    This interface is for Schedule Management.
+    You may override this if you wish to implement different structure
+    """
+
+    __table__ = "schedule"
 
 
 class AsyncRedis:

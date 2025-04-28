@@ -983,3 +983,29 @@ walker documentation {
         has openapi_extra: dict[str, Any] | None = {"addons": True};
     }
 }
+
+walker sample_scheduled {
+    has arg1: int;
+    has arg2: str;
+    has kwarg1: int = 3;
+    has kwarg2: str = "4";
+
+
+    can enter with `root entry {
+        print("I am from cron!");
+        print(self);
+    }
+
+    class __specs__ {
+        has private: bool = True;
+        has schedule: dict = {
+            "trigger": "cron",
+            "args": [1, "2"],
+            "kwargs": {
+                "kwarg1": 30,
+                "kwarg2": "40"
+            },
+            "second": "*/5"
+        };
+    }
+}
