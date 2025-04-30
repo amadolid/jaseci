@@ -1,5 +1,9 @@
 # Jac Cloud Scheduler
 
+## **PREREQUISITE**
+
+- This will only be enabled if you have set `DATABASE_HOST`
+
 ## **Supported specs**
 
 | **NAME**      | **TYPE**               | **DESCRIPTION**                                                                                   | **DEFAULT** |
@@ -136,7 +140,7 @@ walker walker_date {
 
 # Jac Cloud Optional Task
 
-- This will only be enabled if you have `DATABASE_HOST` and `TASK_CONSUMER_CRON_SECOND`
+- This will only be enabled if you have set `TASK_CONSUMER_CRON_SECOND` and `DATABASE_HOST`
 
 ## Example Use Case
 

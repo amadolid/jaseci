@@ -8,7 +8,7 @@ from os import getenv
 from traceback import format_exception
 from typing import Any, Callable
 
-from apscheduler.executors.pool import ProcessPoolExecutor, ThreadPoolExecutor
+from apscheduler.executors.pool import ThreadPoolExecutor
 from apscheduler.schedulers.background import BackgroundScheduler
 from apscheduler.util import _Undefined, undefined
 
@@ -30,10 +30,9 @@ from ...jaseci.utils import logger, utc_datetime, utc_datetime_iso
 
 
 SCHEDULER_MAX_THREAD = int(getenv("SCHEDULER_MAX_THREAD", "5"))
-SCHEDULER_MAX_PROCESS = int(getenv("SCHEDULER_MAX_PROCESS", "1"))
 TASK_CONSUMER_CRON_SECOND = getenv("TASK_CONSUMER_CRON_SECOND")
 TASK_CONSUMER_MULTITASK = int(getenv("TASK_CONSUMER_MULTITASK", "1"))
-TASK_IS_ENABLED = bool(getenv("DATABASE_HOST") and TASK_CONSUMER_CRON_SECOND)
+SCHEDULER_IS_ENABLED = bool(getenv("DATABASE_HOST") and TASK_CONSUMER_CRON_SECOND)
 
 
 class Trigger(StrEnum):
@@ -58,7 +57,7 @@ class JaseciScheduler(BackgroundScheduler):
         """Override start."""
         super().start(*args, **kwargs)
 
-        if TASK_IS_ENABLED:
+        if SCHEDULER_IS_ENABLED:
 
             @self.scheduled_job(
                 trigger="cron",
@@ -136,14 +135,12 @@ class JaseciScheduler(BackgroundScheduler):
 scheduler = JaseciScheduler(
     executors={
         Executor.THREAD: ThreadPoolExecutor(SCHEDULER_MAX_THREAD),
-        Executor.PROCESS: ProcessPoolExecutor(SCHEDULER_MAX_PROCESS),
     },
     timezone=UTC,
 )
 
 getLogger("apscheduler.executors.default").setLevel(WARNING)
 getLogger("apscheduler.executors.thread").setLevel(WARNING)
-getLogger("apscheduler.executors.process").setLevel(WARNING)
 
 
 def scheduled_job(
@@ -155,12 +152,14 @@ def scheduled_job(
     coalesce: bool = True,
     max_instances: int = 1,
     next_run_time: _Undefined | Any = undefined,
-    executor: Executor = Executor.THREAD,
     propagate: bool = False,
     save: bool = False,
     **trigger_args: Any,  # noqa: ANN401
 ) -> Callable:
     """Override schedule_job to trigger it once across workers and replicas."""
+    if not SCHEDULER_IS_ENABLED:
+        logger.info("Scheduler is not enabled! Set `DATABASE_HOST` value")
+        return lambda w: w
 
     def wrapper(walker: type[WalkerArchitype]) -> None:
         @scheduler.scheduled_job(
@@ -173,7 +172,7 @@ def scheduled_job(
             coalesce=coalesce,
             max_instances=max_instances,
             next_run_time=next_run_time,
-            executor=executor,
+            executor="thread",
             **trigger_args,
         )
         def process(*args: Any, **kwargs: Any) -> None:  # noqa: ANN401
@@ -245,7 +244,7 @@ def remove_job(id: str) -> None:
         )
 
 
-if TASK_IS_ENABLED:
+if SCHEDULER_IS_ENABLED:
 
     def repopulate_tasks() -> None:
         """Repopulate Tasks."""
@@ -285,5 +284,5 @@ else:
     ) -> str:
         """Create task."""
         raise NotImplementedError(
-            "Task is not enable! Set TASK_CONSUMER_CRON_SECOND and DATABASE_HOST value"
+            "Task is not enabled! Set `TASK_CONSUMER_CRON_SECOND` and `DATABASE_HOST` value"
         )

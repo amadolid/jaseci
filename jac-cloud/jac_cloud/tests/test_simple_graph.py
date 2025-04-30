@@ -967,34 +967,6 @@ class SimpleGraphTest(JacCloudTest):
                     walker,
                 )
 
-        else:
-            walker = self.q_walker.find_one({"name": "walker_cron"}, sort=[("_id", -1)])
-
-            self.assertIsNotNone(walker)
-
-            cast(dict, walker).pop("_id")
-
-            self.assertEqual(
-                {
-                    "name": "walker_cron",
-                    "root": ObjectId("000000000000000000000000"),
-                    "access": {"all": "NO_ACCESS", "roots": {"anchors": {}}},
-                    "architype": {"arg1": 1, "arg2": "2", "kwarg1": 30, "kwarg2": "40"},
-                    "schedule": {
-                        "status": "COMPLETED",
-                        "node_id": None,
-                        "execute_date": None,
-                        "executed_date": None,
-                        "http_status": 200,
-                        "returns": [None],
-                        "reports": [None],
-                        "custom": None,
-                        "error": None,
-                    },
-                },
-                walker,
-            )
-
     def test_all_features(self) -> None:
         """Test Full Features."""
         self.trigger_openapi_specs_test()
