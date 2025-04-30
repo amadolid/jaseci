@@ -29,10 +29,11 @@ from ...jaseci.datasources.redis import ScheduleRedis
 from ...jaseci.utils import logger, utc_datetime, utc_datetime_iso
 
 
-SCHEDULER_MAX_THREAD = int(getenv("SCHEDULER_MAX_THREAD", "10"))
-SCHEDULER_MAX_PROCESS = int(getenv("SCHEDULER_MAX_PROCESS", "5"))
-TASK_CONSUMER_CRON_SECONDS = getenv("TASK_CONSUMER_CRON_SECONDS")
+SCHEDULER_MAX_THREAD = int(getenv("SCHEDULER_MAX_THREAD", "5"))
+SCHEDULER_MAX_PROCESS = int(getenv("SCHEDULER_MAX_PROCESS", "1"))
+TASK_CONSUMER_CRON_SECOND = getenv("TASK_CONSUMER_CRON_SECOND")
 TASK_CONSUMER_MULTITASK = int(getenv("TASK_CONSUMER_MULTITASK", "1"))
+TASK_IS_ENABLED = bool(getenv("DATABASE_HOST") and TASK_CONSUMER_CRON_SECOND)
 
 
 class Trigger(StrEnum):
@@ -50,7 +51,89 @@ class Executor(StrEnum):
     PROCESS = "process"
 
 
-scheduler = BackgroundScheduler(
+class JaseciScheduler(BackgroundScheduler):
+    """Jaseci Scheduler."""
+
+    def start(self, *args: Any, **kwargs: Any) -> None:  # noqa: ANN401
+        """Override start."""
+        super().start(*args, **kwargs)
+
+        if TASK_IS_ENABLED:
+
+            @self.scheduled_job(
+                trigger="cron",
+                name="Task Consumer",
+                second=TASK_CONSUMER_CRON_SECOND,
+                max_instances=TASK_CONSUMER_MULTITASK,
+            )
+            def consume_task() -> None:
+                """Consume Task."""
+                now = utc_datetime()
+                sched: dict[str, Any] | None = ScheduleRedis.lpop("scheduled")
+                if sched and (
+                    not sched["execute_date"] or sched["execute_date"] <= now
+                ):
+                    wanch = WalkerAnchor.ref(walker_id := sched["walker_id"])
+                    root = NodeAnchor.ref(sched["root_id"])
+
+                    if not WalkerAnchor.Collection.update_one(
+                        {"_id": wanch.id, "schedule.status": "PENDING"},
+                        {
+                            "$set": {
+                                "schedule.status": "STARTED",
+                                "schedule.executed_date": now,
+                            }
+                        },
+                    ).modified_count:
+                        logger.info(f"Task `{walker_id}` skipped: {utc_datetime_iso()}")
+                        return
+
+                    logger.info(f"Task `{walker_id}` started: {now.isoformat()}")
+
+                    jctx = JaseciContext.create(
+                        None,
+                        (
+                            NodeAnchor.ref(node_id)
+                            if (node_id := sched["node_id"])
+                            else root
+                        ),
+                    )
+                    jctx.root = root
+
+                    wanch = WalkerAnchor.ref(walker_id)
+                    warch = wanch.architype
+
+                    try:
+                        Jac.spawn(warch, jctx.entry_node.architype)
+
+                        resp = jctx.response(wanch.returns)
+                        if jctx.custom is not MISSING:
+                            if isinstance(jctx.custom, JSONResponse):
+                                resp["custom"] = jctx.custom.body
+                            else:
+                                resp["custom"] = ORJSONResponse(jctx.custom).body
+
+                        resp["http_status"] = resp.pop("status")
+                        wanch.schedule = Schedule(ScheduleStatus.COMPLETED, **resp)
+                    except Exception as e:
+                        now = utc_datetime()
+                        logger.exception(
+                            f"Task `{walker_id}` failed: {now.isoformat()}"
+                        )
+                        wanch.schedule = Schedule(
+                            ScheduleStatus.ERROR,
+                            executed_date=now,
+                            error=format_exception(e),
+                        )
+
+                    Jac.save(wanch)
+
+                    jctx.close()
+
+                    logger.info(f"Task `{walker_id}` done: {utc_datetime_iso()}")
+
+
+scheduler = JaseciScheduler(
     executors={
         Executor.THREAD: ThreadPoolExecutor(SCHEDULER_MAX_THREAD),
         Executor.PROCESS: ProcessPoolExecutor(SCHEDULER_MAX_PROCESS),
@@ -162,7 +245,7 @@ def remove_job(id: str) -> None:
         )
 
 
-if getenv("DATABASE_HOST") and TASK_CONSUMER_CRON_SECONDS:
+if TASK_IS_ENABLED:
 
     def repopulate_tasks() -> None:
         """Repopulate Tasks."""
@@ -192,64 +275,6 @@ if getenv("DATABASE_HOST") and TASK_CONSUMER_CRON_SECONDS:
 
         return wanch.ref_id
 
-    @scheduler.scheduled_job(
-        trigger="cron",
-        name="Task Consumer",
-        second=TASK_CONSUMER_CRON_SECONDS,
-        max_instances=TASK_CONSUMER_MULTITASK,
-    )
-    def consume_task() -> None:
-        """Consume Task."""
-        now = utc_datetime()
-        sched: dict[str, Any] | None = ScheduleRedis.lpop("scheduled")
-        if sched and (not sched["execute_date"] or sched["execute_date"] <= now):
-            wanch = WalkerAnchor.ref(walker_id := sched["walker_id"])
-            root = NodeAnchor.ref(sched["root_id"])
-
-            if not WalkerAnchor.Collection.update_one(
-                {"_id": wanch.id, "schedule.status": "PENDING"},
-                {"$set": {"schedule.status": "STARTED", "schedule.executed_date": now}},
-            ).modified_count:
-                logger.info(f"Task `{walker_id}` skipped: {utc_datetime_iso()}")
-                return
-
-            logger.info(f"Task `{walker_id}` started: {now.isoformat()}")
-
-            jctx = JaseciContext.create(
-                None, NodeAnchor.ref(node_id) if (node_id := sched["node_id"]) else root
-            )
-            jctx.root = root
-
-            wanch = WalkerAnchor.ref(walker_id)
-            warch = wanch.architype
-
-            try:
-                Jac.spawn(warch, jctx.entry_node.architype)
-
-                resp = jctx.response(wanch.returns)
-                if jctx.custom is not MISSING:
-                    if isinstance(jctx.custom, JSONResponse):
-                        resp["custom"] = jctx.custom.body
-                    else:
-                        resp["custom"] = ORJSONResponse(jctx.custom).body
-
-                resp["http_status"] = resp.pop("status")
-                wanch.schedule = Schedule(ScheduleStatus.COMPLETED, **resp)
-            except Exception as e:
-                now = utc_datetime()
-                logger.exception(f"Task `{walker_id}` failed: {now.isoformat()}")
-                wanch.schedule = Schedule(
-                    ScheduleStatus.ERROR,
-                    executed_date=now,
-                    error=format_exception(e),
-                )
-
-            Jac.save(wanch)
-
-            jctx.close()
-
-            logger.info(f"Task `{walker_id}` done: {utc_datetime_iso()}")
-
 else:
 
     def repopulate_tasks() -> None:
@@ -260,5 +285,5 @@ else:
     ) -> str:
         """Create task."""
         raise NotImplementedError(
-            "Task is not enable! Set TASK_CONSUMER_CRON_SECONDS and DATABASE_HOST value"
+            "Task is not enable! Set TASK_CONSUMER_CRON_SECOND and DATABASE_HOST value"
         )

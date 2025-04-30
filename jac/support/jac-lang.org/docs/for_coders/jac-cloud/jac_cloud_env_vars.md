@@ -35,9 +35,9 @@
 | LOGGER_MAX_BACKUP             | Maximum number of backup files before it will deletes old file. Non positive value will not have maximum                       | -1                                               |
 | LOGGER_ROLLOVER_MAX_FILE_SIZE | Maximum file size in bytes before it will rollover to new file                                                                 | 10000000                                         |
 | LOGGER_USE_UTC                | If logger will use UTC                                                                                                         | false                                            |
-| SCHEDULER_MAX_THREAD          | Maximum thread workers for scheduled workers                                                                                   | 10                                               |
-| SCHEDULER_MAX_PROCESS         | Maximum process workers for scheduled workers                                                                                  | 5                                                |
-| TASK_CONSUMER_CRON_SECONDS    | Task consumer cron trigger in seconds                                                                                          | N/A                                              |
+| SCHEDULER_MAX_THREAD          | Maximum thread workers for scheduled workers                                                                                   | 5                                                |
+| SCHEDULER_MAX_PROCESS         | Maximum process workers for scheduled workers                                                                                  | 1                                                |
+| TASK_CONSUMER_CRON_SECOND     | Task consumer cron trigger in seconds                                                                                          | N/A                                              |
 | TASK_CONSUMER_MULTITASK       | Task consumer max running task simultaneously                                                                                  | 1                                                |
 
 # **SSO Supported Enviroment Variable**
