@@ -984,6 +984,15 @@ walker documentation {
     }
 }
 
+walker sample_task {
+    has val: int = 1;
+    can enter with `root entry {
+        self.val += 1;
+        print("I am task!");
+        print(self);
+    }
+}
+
 walker sample_scheduled {
     has arg1: int;
     has arg2: str;
@@ -994,6 +1003,9 @@ walker sample_scheduled {
     can enter with `root entry {
         print("I am from cron!");
         print(self);
+        import:py from jac_cloud.plugin.implementation {create_task}
+
+        create_task(sample_task(), here);
     }
 
     class __specs__ {
@@ -1005,7 +1017,9 @@ walker sample_scheduled {
                 "kwarg1": 30,
                 "kwarg2": "40"
             },
-            "second": "*/5"
+            "save": True,
+            "second": "*/5",
+
         };
     }
 }

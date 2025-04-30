@@ -43,6 +43,7 @@ class FastAPI:
             from ..plugin.implementation import (
                 WEBSOCKET_MANAGER,
                 scheduler,
+                repopulate_tasks,
                 walker_router,
                 webhook_walker_router,
                 websocket_router,
@@ -53,6 +54,7 @@ class FastAPI:
                 from .datasources import Collection
 
                 Collection.apply_indexes()
+                repopulate_tasks()
                 scheduler.start()
 
                 async with create_task_group() as task_group:
