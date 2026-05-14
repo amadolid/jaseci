@@ -1,0 +1,52 @@
+name: BCS AI - PR Review
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+    branches:
+      - main
+      - dev
+
+env:
+  GITHUB_PR_NUMBER: ${{ github.event.number }}
+
+jobs:
+  Analyzer:
+    runs-on: ubuntu-latest
+    if: |
+      github.event.pull_request.head.ref != 'main' &&
+      github.event.pull_request.head.ref != 'dev'
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install dependencies
+      run: |
+        echo "Install dependencies..."
+        python -m pip install --upgrade pip
+        pip install --no-cache-dir -r bcsai-github-pr-reviewer/requirements.txt
+
+    - name: Print Environment Variables
+      run: |
+        echo "Print All Env Vars"
+        printenv
+    
+    - name: Run PR review script
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        COMMAND: pr-review
+        PROVIDER: claude
+        CODE_REVIEW_API_ENDPOINT: ${{ secrets.CODE_REVIEW_API_ENDPOINT }}
+        CODE_REVIEW_API_KEY: ${{ secrets.CODE_REVIEW_API_KEY }}
+        AUTO_APPROVE_CLEAN_PRS: ${{ secrets.AUTO_APPROVE_CLEAN_PRS || 'true' }}
+        SYNC_PR_KEYWORD: ${{ secrets.SYNC_PR_KEYWORD || '[SYNC]' }}
+        
+      run: |
+        echo "Running BCSAI Assist PR Reviewer..."
+        python bcsai-github-pr-reviewer/github_pr_analyzer.py
