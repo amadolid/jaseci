@@ -1,7 +1,7 @@
 """Module for registering CLI plugins for jaseci."""
 
 from getpass import getpass
-from os import getenv
+from os import getenvironment
 from os.path import split
 from pickle import load
 from typing import Any
@@ -126,7 +126,10 @@ class JacCmd:
             )
 
             Collection.apply_indexes()
-            with user_model.Collection.get_session() as session, session.start_transaction():
+            with (
+                user_model.Collection.get_session() as session,
+                session.start_transaction(),
+            ):
                 req_obf: dict = user_request.obfuscate()
                 req_obf.update(
                     {
