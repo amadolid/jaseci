@@ -595,10 +595,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
 
             if match := HUNK_HEADER_PATTERN.match(hunk_header_line):
                 line_number = int(match.group(3))
-                number_of_lines = line_number + int(match.group(4))
-                print(hunk_header_line)
-                print(line_number)
-                print(number_of_lines)
+                number_of_lines = line_number + int(match.group(4)) - 1
                 post_review_comment(
                     pr_number, file_path, line_number, number_of_lines, comment_text
                 )
