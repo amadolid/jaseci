@@ -538,6 +538,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
                 continue
 
             hunks = split_diff_into_hunks(diff_content)
+            logger.info(hunks)
             if not hunks:
                 logger.info(f"Could not parse hunks for {file_path}, skipping.")
                 continue
