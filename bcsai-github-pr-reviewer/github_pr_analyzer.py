@@ -586,6 +586,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
         comment_count = 0
         for hunk_feedback in generate_bulk_review(bulk_request_payload):
             file_path = hunk_feedback.get("file")
+            logger.info(file_path)
             comment_text = extract_task_execution(hunk_feedback.get("feedback", ""))
             hunk_header_line = hunk_feedback.get("hunk", "").split("\n", 1)[0]
 
@@ -597,6 +598,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
                 logger.info(f"Skipping non-issue comment for {file_path}.")
                 continue
 
+            logger.info(hunk_header_line)
             if match := HUNK_HEADER_PATTERN.match(hunk_header_line):
                 line_number = int(match.group(3))
                 number_of_lines = line_number + int(match.group(4)) - 1
