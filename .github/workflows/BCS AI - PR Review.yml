@@ -26,10 +26,6 @@ jobs:
       with:
         python-version: '3.11'
 
-    - name: Clone BCSAI Assist App    
-      run: |
-        git clone ${{ secrets.CLONE_APP }}
-
     - name: Install dependencies
       run: |
         echo "Install dependencies..."

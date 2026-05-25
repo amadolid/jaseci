@@ -320,7 +320,7 @@ def extract_task_execution(text: str) -> str:
 
 
 def post_review_comment(
-    pr_number: str, file_path: str, line: int, comment: str
+    pr_number: str, file_path: str, start_line: int, end_line: int, comment: str
 ) -> None:
     """Post a review comment to a specific line in a PR."""
     try:
@@ -333,14 +333,16 @@ def post_review_comment(
             "body": comment,
             "commit_id": commit_sha,
             "path": file_path,
-            "line": line,
+            "start_line": start_line,
+            "start_side": "RIGHT",
+            "line": end_line,
             "side": "RIGHT",
         }
-        logger.info(f"Posting review comment on {file_path} at line {line}")
+        logger.info(f"Posting review comment on {file_path} at line {start_line}")
         github_post(url, payload)
     except Exception as e:
         logger.error(
-            f"Failed to post review comment on PR {pr_number} for {file_path} at line {line}: {e}"  # noqa: E501
+            f"Failed to post review comment on PR {pr_number} for {file_path} at line {start_line}: {e}"  # noqa: E501
         )
 
 
@@ -593,7 +595,10 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
 
             if match := HUNK_HEADER_PATTERN.match(hunk_header_line):
                 line_number = int(match.group(3))
-                post_review_comment(pr_number, file_path, line_number, comment_text)
+                number_of_lines = line_number + int(match.group(4))
+                post_review_comment(
+                    pr_number, file_path, line_number, number_of_lines, comment_text
+                )
                 comment_count += 1
             else:
                 logger.warning(
