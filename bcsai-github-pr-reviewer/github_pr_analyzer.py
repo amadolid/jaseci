@@ -33,7 +33,7 @@ AUTO_APPROVE_CLEAN_PRS = os.getenv("AUTO_APPROVE_CLEAN_PRS", "true").lower() == 
 SYNC_PR_KEYWORD = os.getenv("SYNC_PR_KEYWORD", "[SYNC]")
 
 CHANGE_TYPES = ("added", "modified")
-HUNK_HEADER_PATTERN = compile(r"@@ -(\d+),(\d+) \+(\d+),(\d+) @@(.*)")
+HUNK_HEADER_PATTERN = compile(r"@@ -(\d+),(\d+) \+(\d+)(?:,(\d+))? @@(.*)")
 TASK_EXEC_PATTERN = compile(r"<task_execution>(.*?)</task_execution>", DOTALL)
 PROG_LANGS = {
     ".py": "Python",
@@ -320,7 +320,7 @@ def extract_task_execution(text: str) -> str:
 
 
 def post_review_comment(
-    pr_number: str, file_path: str, start_line: int, end_line: int, comment: str
+    pr_number: str, file_path: str, comment: str, start_line: int, end_line: int | None
 ) -> None:
     """Post a review comment to a specific line in a PR."""
     try:
@@ -329,15 +329,25 @@ def post_review_comment(
         commit_sha = pr_details["head"]["sha"]
 
         url = f"https://api.github.com/repos/{GIT_OWNER}/{GIT_REPOSITORY_NAME}/pulls/{pr_number}/comments"  # noqa: E501
-        payload = {
-            "body": comment,
-            "commit_id": commit_sha,
-            "path": file_path,
-            "start_line": start_line,
-            "start_side": "RIGHT",
-            "line": end_line,
-            "side": "RIGHT",
-        }
+        payload = (
+            {
+                "body": comment,
+                "commit_id": commit_sha,
+                "path": file_path,
+                "start_line": start_line,
+                "start_side": "RIGHT",
+                "line": end_line,
+                "side": "RIGHT",
+            }
+            if end_line
+            else {
+                "body": comment,
+                "commit_id": commit_sha,
+                "path": file_path,
+                "line": start_line,
+                "side": "RIGHT",
+            }
+        )
         logger.info(f"Posting review comment on {file_path} at line {start_line}")
         github_post(url, payload)
     except Exception as e:
@@ -595,9 +605,15 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
 
             if match := HUNK_HEADER_PATTERN.match(hunk_header_line):
                 line_number = int(match.group(3))
-                number_of_lines = line_number + int(match.group(4)) - 1
+                number_of_lines = (
+                    line_number + int(match.group(4)) - 1 if match.group(4) else None
+                )
                 post_review_comment(
-                    pr_number, file_path, line_number, number_of_lines, comment_text
+                    pr_number,
+                    file_path,
+                    comment_text,
+                    line_number,
+                    number_of_lines,
                 )
                 comment_count += 1
             else:
