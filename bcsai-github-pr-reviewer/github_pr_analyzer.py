@@ -155,6 +155,7 @@ def get_changed_files(pr_number: str) -> Iterable[str]:
 
         changed_files = set()
         for file_info in files_data:
+            print(file_info)
             if file_info["status"] in CHANGE_TYPES:
                 changed_files.add(file_info["filename"])
 
@@ -514,6 +515,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
                 approve_pull_request(pr_number)
             return
 
+        print(changed_files)
         changes_payload = []
         for file_path in changed_files:
             logger.info(f"Processing file: {file_path}")
