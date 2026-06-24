@@ -645,4 +645,3 @@ if __name__ == "__main__":
 
     except Exception as e:
         logger.error(f"Failed to run GitHub PR analyzer: {e}")
-        raise
