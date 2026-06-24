@@ -644,5 +644,5 @@ if __name__ == "__main__":
         github_pr_ai_analyzer(PR_NUMBER)
 
     except Exception as e:
-        logger.critical(f"Failed to run GitHub PR analyzer: {e}", exc_info=True)
+        logger.error(f"Failed to run GitHub PR analyzer: {e}")
         raise
