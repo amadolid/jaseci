@@ -9,6 +9,7 @@ from collections.abc import Iterable
 from difflib import unified_diff
 from functools import cache
 from re import DOTALL, compile
+from sys import exit
 from typing import Any, Iterator, Tuple
 
 import requests
@@ -645,3 +646,4 @@ if __name__ == "__main__":
 
     except Exception as e:
         logger.error(f"Failed to run GitHub PR analyzer: {e}")
+        exit(1)
