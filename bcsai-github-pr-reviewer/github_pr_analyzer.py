@@ -26,6 +26,7 @@ logger = logging.getLogger(__name__)
 # Constants
 COMMAND = os.getenv("COMMAND", "pr-review")
 CODE_REVIEW_API_ENDPOINT = os.getenv("CODE_REVIEW_API_ENDPOINT")
+CODE_REVIEW_API_KEY = os.getenv("CODE_REVIEW_API_KEY")
 PROVIDER = os.getenv("PROVIDER", "openai")
 AUTO_APPROVE_CLEAN_PRS = os.getenv("AUTO_APPROVE_CLEAN_PRS", "true").lower() == "true"
 
@@ -410,22 +411,13 @@ def get_language_name(filename: str) -> str | None:
     return None
 
 
-def check_existing_pr_review(repository_name: str, pull_request_id: str) -> bool:
+def check_existing_pr_review(pull_request_id: str) -> bool:
     """Check if a PR review already exists via an external API."""
-    if not CODE_REVIEW_API_ENDPOINT:
-        logger.warning("CODE_REVIEW_API_ENDPOINT not set. Assuming no review exists.")
-        return False
-
-    api_key = os.getenv("CODE_REVIEW_API_KEY")
-    if not api_key:
-        logger.warning("CODE_REVIEW_API_KEY not set. Cannot authenticate with API.")
-        return False
-
     try:
         repo_uuid = get_repository_uuid()
         url = f"{CODE_REVIEW_API_ENDPOINT}?repository_id={repo_uuid}&pull_request_id={pull_request_id}"  # noqa: E501
         logger.info(f"Checking for existing review at: {url}")
-        api_headers = {"accept": "application/json", "X-API-KEY": api_key}
+        api_headers = {"accept": "application/json", "X-API-KEY": CODE_REVIEW_API_KEY}
         resp = requests.get(url, headers=api_headers, timeout=30)
         resp.raise_for_status()
         data = resp.json()
@@ -439,23 +431,18 @@ def check_existing_pr_review(repository_name: str, pull_request_id: str) -> bool
         logger.error(
             f"API check for existing PR review failed: {e}. Proceeding with review."
         )
-        return False
+        raise
 
 
 def generate_bulk_review(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:
     """Post a review request and stream the response, yielding feedback for each hunk."""  # noqa: E501
-    if not CODE_REVIEW_API_ENDPOINT:
-        raise ValueError("CODE_REVIEW_API_ENDPOINT not configured")
-
-    api_key = os.getenv("CODE_REVIEW_API_KEY")
-    if not api_key:
-        logger.error("CODE_REVIEW_API_KEY not set. Cannot authenticate with API.")
-        return iter([])
-
     try:
         logger.info(f"Sending bulk review request to: {CODE_REVIEW_API_ENDPOINT}")
         logger.debug(f"Payload: {payload}")
-        api_headers = {"Content-Type": "application/json", "X-API-KEY": api_key}
+        api_headers = {
+            "Content-Type": "application/json",
+            "X-API-KEY": CODE_REVIEW_API_KEY,
+        }
         response = requests.post(
             CODE_REVIEW_API_ENDPOINT,
             json=payload,
@@ -485,10 +472,10 @@ def generate_bulk_review(payload: dict[str, Any]) -> Iterator[dict[str, Any]]:
         logger.error(f"HTTP Error during code review request: {e}")
         if hasattr(e.response, "text"):
             logger.error(f"Response body: {e.response.text}")
-        return iter([])
+        raise
     except Exception as e:
         logger.error(f"Error during streaming code review request: {e}")
-        return iter([])
+        raise
 
 
 def github_pr_ai_analyzer(pr_number: str) -> None:
@@ -511,7 +498,7 @@ def github_pr_ai_analyzer(pr_number: str) -> None:
         logger.info(f"Analyzing PR from {head_ref} to {base_ref}")
 
         # Check for existing review to determine diff strategy (smart review logic)
-        review_exists = check_existing_pr_review(GITHUB_REPOSITORY, pr_number)
+        review_exists = check_existing_pr_review(pr_number)
         use_commit_based = review_exists and head_sha
         diff_strategy = "commit-based" if use_commit_based else "branch-based"
         logger.info(f"Review exists: {review_exists}. Using {diff_strategy} diff.")
