@@ -13,10 +13,6 @@ from sys import exit
 from typing import Any, Iterator, Tuple
 
 import requests
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv(override=True)
 
 # Configure logging
 logging.basicConfig(
